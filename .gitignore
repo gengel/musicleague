@@ -1,0 +1,10 @@
+node_modules
+dist
+*.local
+.DS_Store
+
+# Never commit a league export: it holds real names and every vote cast.
+# src/data is where the working copy of an export lives.
+*.csv
+src/data/
+.cache/
