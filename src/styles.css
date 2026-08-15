@@ -1449,6 +1449,554 @@ tbody tr.row--flag td {
   font-size: 13px;
 }
 
+/* ---------------- superlative strip (new, replaces .supers wall) ---------------- */
+
+.sup-strip {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.sup {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sup__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 2px;
+}
+
+.sup__icon {
+  flex: none;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.sup__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+  line-height: 1.2;
+}
+
+.sup__value {
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.sup__subject {
+  font-size: 13px;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.sup__meta {
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sup__runners {
+  font-size: 11.5px;
+  color: var(--dim);
+  margin: 4px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+/* ---------------- tags ---------------- */
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.tag--neg {
+  background: rgba(242, 112, 127, 0.15);
+  color: var(--neg);
+}
+
+.tag--pos {
+  background: rgba(99, 214, 143, 0.15);
+  color: var(--pos);
+}
+
+.tag--warn {
+  background: rgba(240, 180, 60, 0.12);
+  color: #f3cd7c;
+}
+
+/* ---------------- gateway cards (Overview) ---------------- */
+
+.gateways {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.gateway {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.gateway__title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.gateway__body {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+/* ---------------- era spectrum (Players tab) ---------------- */
+
+/* Gradient banner: purple crate-digger left, teal Y2K middle, orange
+   algorithm-native right — the pin's horizontal position becomes readable
+   at a glance against the background alone. */
+.era-spectrum {
+  position: relative;
+  height: 66px;
+  margin: 14px 0 6px;
+  background: linear-gradient(90deg, #2d1a3d 0%, #1a2d3d 50%, #3d2a1a 100%);
+  border-radius: 8px;
+  padding: 0 8px;
+}
+
+.era-pin {
+  position: absolute;
+  font-size: 10.5px;
+  white-space: nowrap;
+  background: #0d0d11;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 2px 6px;
+  transform: translateX(-50%);
+  line-height: 1.25;
+}
+
+/* Three stacked rows so 12 pins in a tight cluster don't collide. */
+.era-pin--row0 {
+  top: 6px;
+}
+.era-pin--row1 {
+  top: 26px;
+}
+.era-pin--row2 {
+  top: 46px;
+}
+
+/* Archetype cell: constrain the column so multiple tags (era band + double
+   agent + votes unknown) wrap onto multiple lines instead of pushing the row wider. */
+td.archetype-col {
+  max-width: 220px;
+  width: 220px;
+  white-space: normal;
+}
+.archetype-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+.archetype-cell .tag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.era-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--dim);
+  padding: 6px 4px 0;
+}
+
+/* ---------------- player picker ---------------- */
+
+.player-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.player-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13.5px;
+  color: var(--text);
+  transition: border-color 0.12s;
+}
+
+.player-btn:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.player-btn--on {
+  border-color: var(--accent);
+  background: rgba(240, 68, 127, 0.08);
+}
+
+.player-btn__name {
+  font-weight: 500;
+}
+
+.player-btn__pts {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------- subtabs (player detail) ---------------- */
+
+.subtabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.subtab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--dim);
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.subtab:hover {
+  color: var(--text);
+}
+
+.subtab--on {
+  background: var(--bg-raised);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+/* ---------------- song list (player submissions) ---------------- */
+
+.song-list {
+  display: grid;
+  gap: 6px;
+}
+
+.song-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(42, 42, 51, 0.55);
+}
+
+.song-row:last-child {
+  border-bottom: none;
+}
+
+.song-row__art {
+  flex: none;
+}
+
+.song-row__body {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.song-row__score {
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13.5px;
+}
+
+.song-row__links {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* ---------------- vote chips ---------------- */
+
+.vote-rounds {
+  display: grid;
+  gap: 12px;
+}
+
+.vote-round__name {
+  font-size: 12px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+}
+
+.vote-round__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  display: inline-block;
+  font-size: 12.5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.chip--up {
+  background: rgba(99, 214, 143, 0.12);
+  color: var(--pos);
+  border: 1px solid rgba(99, 214, 143, 0.2);
+}
+
+.chip--down {
+  background: rgba(242, 112, 127, 0.12);
+  color: var(--neg);
+  border: 1px solid rgba(242, 112, 127, 0.2);
+}
+
+.chip--zero {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--dim);
+  border: 1px solid var(--line);
+}
+
+/* ---------------- lopsided pair (The Room) ---------------- */
+
+.lopsided {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 0 6px;
+  font-size: 15px;
+}
+
+/* ---------------- decade table bar fills (The Songs) ---------------- */
+
+.bar-fill {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  min-width: 2px;
+}
+
+.bar-fill--pos {
+  background: var(--pos);
+  border-radius: 0 4px 4px 0;
+}
+
+.bar-fill--neg {
+  background: var(--neg);
+  border-radius: 4px 0 0 4px;
+}
+
+.decade-table td {
+  vertical-align: middle;
+}
+
+/* ---------------- Play-by-Play chapters ---------------- */
+
+.chapter-group {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 2px;
+}
+
+.chapter {
+  display: grid;
+  gap: 10px;
+}
+
+.chapter__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chapter__title {
+  font-size: 16px;
+  margin: 2px 0 0;
+}
+
+.chapter__meta {
+  white-space: nowrap;
+}
+
+.chapter__lead {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.chapter__twist {
+  margin: 0;
+  font-size: 13.5px;
+  color: #f3cd7c;
+  background: rgba(240, 180, 60, 0.07);
+  border: 1px solid rgba(240, 180, 60, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  line-height: 1.5;
+}
+
+.chapter__twist-icon {
+  margin-right: 4px;
+}
+
+.chapter__moments {
+  margin: 0;
+  padding: 0 0 0 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.chapter__moment {
+  font-size: 13.5px;
+  color: var(--dim);
+  line-height: 1.45;
+}
+
+.chapter__moment::marker {
+  color: var(--accent);
+}
+
+.chapter__winner-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.chapter__winner-art {
+  flex: none;
+}
+
+.chapter__winner-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.chapter__winner-badge {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+
+.chapter__winner-links {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.chapter-songs {
+  padding: 0;
+}
+
+.chapter-songs__list {
+  display: grid;
+  gap: 2px;
+}
+
+.chapter-song {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(42, 42, 51, 0.45);
+}
+
+.chapter-song:last-child {
+  border-bottom: none;
+}
+
+.chapter-song--forfeited {
+  opacity: 0.6;
+}
+
+.chapter-song__rank {
+  flex: none;
+  width: 18px;
+  text-align: right;
+  font-size: 12px;
+}
+
+.chapter-song__art {
+  flex: none;
+}
+
+.chapter-song__body {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.chapter-song__score {
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 13.5px;
+  min-width: 52px;
+}
+
+.chapter-song__links {
+  flex: none;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* row highlight for negative players */
+.row--neg td {
+  background: rgba(242, 112, 127, 0.04);
+}
+
 @media (max-width: 620px) {
   .grid {
     grid-template-columns: 1fr;
@@ -1456,5 +2004,11 @@ tbody tr.row--flag td {
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .sup-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+  .era-axis {
+    display: none;
   }
 }

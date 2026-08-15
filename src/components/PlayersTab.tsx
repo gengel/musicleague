@@ -15,29 +15,42 @@ function EraSpectrum({ stats }: { stats: Stats }) {
   const profiles = useMemo(() => computeEraProfiles(stats), [stats]);
   if (!profiles.length) return null;
 
-  const years = profiles.map((p) => p.blendYear).filter((y): y is number => y !== undefined);
-  if (!years.length) return null;
+  // Sort left-to-right (oldest → newest) so alternating row assignment
+  // naturally distributes visually adjacent pins across rows.
+  const dated = profiles
+    .filter((p): p is typeof p & { blendYear: number } => p.blendYear !== undefined)
+    .sort((a, b) => a.blendYear - b.blendYear);
+  if (!dated.length) return null;
 
+  const years = dated.map((p) => p.blendYear);
   const minY = Math.min(...years) - 2;
   const maxY = Math.max(...years) + 2;
   const range = maxY - minY || 1;
-  const pct = (y: number) => `${Math.round(((y - minY) / range) * 94)}%`;
+  const pct = (y: number) => `${Math.round(((y - minY) / range) * 96)}%`;
 
   return (
     <Card title="The era spectrum" subtitle="Blended from submissions (×2) and upvotes (×1)." wide>
       <div className="era-spectrum">
-        {profiles
-          .filter((p) => p.blendYear !== undefined)
-          .map((p, i) => (
+        {dated.map((p, i) => {
+          // Ambiguous first names (e.g. two Carolines) get a surname initial;
+          // otherwise use the first name alone to keep pins compact.
+          const first = p.name.split(' ')[0];
+          const collides = dated.some(
+            (q) => q.playerId !== p.playerId && q.name.split(' ')[0] === first,
+          );
+          const parts = p.name.split(' ');
+          const label = collides && parts.length > 1 ? `${first} ${parts[1][0]}.` : first;
+          return (
             <span
               key={p.playerId}
-              className={`era-pin${i % 2 === 1 ? ' era-pin--low' : ''}`}
-              style={{ left: pct(p.blendYear!) }}
-              title={`${p.name}: blend ${Math.round(p.blendYear!)}`}
+              className={`era-pin era-pin--row${i % 3}`}
+              style={{ left: pct(p.blendYear) }}
+              title={`${p.name}: blend ${Math.round(p.blendYear)}`}
             >
-              {p.name} {Math.round(p.blendYear!)}
+              {label} {Math.round(p.blendYear)}
             </span>
-          ))}
+          );
+        })}
       </div>
       <div className="era-axis">
         <span>🏺 Crate digger (pre-2000)</span>
@@ -99,18 +112,18 @@ function EraTable({ stats }: { stats: Stats }) {
                 <td className={`num ${gap !== undefined && gap >= 13 ? 'warn' : 'dim'}`}>
                   {gap !== undefined ? gap : '—'}
                 </td>
-                <td>
-                  {band && (
-                    <span className="tag">{describeArchetype(era?.blendYear)}</span>
-                  )}
-                  {isDoubleAgent && (
-                    <span className="tag tag--warn" style={{ marginLeft: 4 }}>
-                      🎭 double agent
-                    </span>
-                  )}
-                  {p.roundsVoted === 0 && (
-                    <span className="dim small"> · votes unknown</span>
-                  )}
+                <td className="archetype-col">
+                  <div className="archetype-cell">
+                    {band && (
+                      <span className="tag">{describeArchetype(era?.blendYear)}</span>
+                    )}
+                    {isDoubleAgent && (
+                      <span className="tag tag--warn" title="Submits from one era, votes for another (13+ yr gap)">🎭 double agent</span>
+                    )}
+                    {p.roundsVoted === 0 && (
+                      <span className="dim small">votes unknown</span>
+                    )}
+                  </div>
                 </td>
               </tr>
             );

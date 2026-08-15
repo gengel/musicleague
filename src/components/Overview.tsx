@@ -2,7 +2,7 @@ import type { Stats } from '../lib/stats';
 import { headlineFacts } from '../lib/facts';
 import { genreReport } from '../lib/genres';
 import { embeddedGenres } from 'virtual:league-data';
-import { Card, n1, StatTile } from './ui';
+import { Card, n1 } from './ui';
 import { LabelIcon } from './Icons';
 import { artFor, SongArt, SongLinks, SongPlayer } from './SongMedia';
 
@@ -83,14 +83,9 @@ export function TopSongs({ stats }: { stats: Stats }) {
   );
 }
 
-/** At-a-glance tiles plus gateway cards linking to each section. */
+/** Gateway cards linking to each section. */
 export function Overview({ stats }: { stats: Stats }) {
-  const totalUp = stats.rounds.reduce((a, r) => a + r.totalUpvotes, 0);
-  const totalDown = stats.rounds.reduce((a, r) => a + r.totalDownvotes, 0);
   const totalForfeited = stats.players.reduce((a, p) => a + p.breakdown.forfeited, 0);
-  const scored = stats.players.filter((p) => p.songs > 0);
-  const belowZero = scored.filter((p) => p.pointsCounted < 0).length;
-  const roundsWithResults = stats.rounds.filter((r) => r.totalUpvotes > 0).length;
   const leader = [...stats.players].sort((a, b) => b.pointsCounted - a.pointsCounted)[0];
   const second = [...stats.players].sort((a, b) => b.pointsCounted - a.pointsCounted)[1];
   const gap = leader && second ? leader.pointsCounted - second.pointsCounted : 0;
@@ -99,42 +94,6 @@ export function Overview({ stats }: { stats: Stats }) {
 
   return (
     <>
-      <Card title="At a glance" wide>
-        <div className="tiles">
-          <StatTile
-            label="Votes cast"
-            value={stats.league.votes.length}
-            hint={`across ${roundsWithResults} round${roundsWithResults === 1 ? '' : 's'}`}
-          />
-          <StatTile label="Upvote points" value={n1(totalUp)} hint="cast by voters" />
-          {totalDown > 0 && (
-            <StatTile label="Downvote points" value={n1(totalDown)} hint="cast against songs" />
-          )}
-          {totalForfeited > 0 && (
-            <StatTile
-              label="Forfeited"
-              value={n1(totalForfeited)}
-              hint="earned, then lost by not voting"
-            />
-          )}
-          {belowZero > 0 && (
-            <StatTile
-              label={stats.inProgress ? 'Below zero' : 'Finished below zero'}
-              value={`${belowZero} of ${scored.length}`}
-              hint="more downvotes than they could absorb"
-            />
-          )}
-          {leader && (
-            <StatTile
-              label={stats.inProgress ? 'Current leader' : 'Winner'}
-              value={leader.name}
-              name
-              hint={`${n1(leader.pointsCounted)} pts, ${leader.wins} round win${leader.wins === 1 ? '' : 's'}`}
-            />
-          )}
-        </div>
-      </Card>
-
       <Card title="Gateways" subtitle="One finding per section — full details on each tab." wide>
         <div className="gateways">
           {leader && (

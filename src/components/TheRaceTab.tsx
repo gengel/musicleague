@@ -3,6 +3,7 @@ import { SuperlativeStrip } from './SuperlativeStrip';
 import { ScoreTimeline } from './ScoreTimeline';
 import { ScoreBreakdownPanel } from './ScoreBreakdownPanel';
 import { FuturePanel } from './FuturePanel';
+import { Participation } from './Participation';
 import { Card } from './ui';
 
 export function TheRaceTab({ stats }: { stats: Stats }) {
@@ -66,6 +67,7 @@ export function TheRaceTab({ stats }: { stats: Stats }) {
       <FuturePanel stats={stats} />
       <ScoreTimeline stats={stats} />
       <ScoreBreakdownPanel stats={stats} />
+      <Participation stats={stats} />
     </>
   );
 }

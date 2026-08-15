@@ -192,6 +192,34 @@ export function future(stats: Stats): Future {
     .filter(
       (p) => realisticBudget === undefined || leader.pointsCounted - p.pointsCounted <= realisticBudget,
     );
+  /**
+   * A per-round target that pretends both players will vote every remaining
+   * round is a lie for a non-voter: their earned upvotes keep forfeiting.
+   * This factors that in by adjusting the target by the chaser's per-round
+   * forfeit rate — worse if they keep forfeiting, easier if they start voting.
+   */
+  const forfeitAwareNote = (
+    chaser: typeof leader,
+    gapPts: number,
+    perRoundNeeded: number,
+  ): string => {
+    if (stats.scoring !== 'competitive' || chaser.forfeitedUpvotes === 0) return '';
+    const roundsMissed = chaser.roundsMissedVoting;
+    const perRoundForfeit = roundsMissed > 0 ? chaser.forfeitedUpvotes / roundsMissed : 0;
+    const rounds = chaser.roundsSubmitted || 1;
+    const forfeitRate = chaser.forfeitedUpvotes / rounds;
+    if (chaser.forfeitedUpvotes >= gapPts) {
+      return ` But ${chaser.name} has already forfeited ${chaser.forfeitedUpvotes} pts by not voting — more than the gap. Voting the rest of the way would close it on its own.`;
+    }
+    if (forfeitRate >= 1) {
+      // On average this player loses at least 1 pt per round to forfeit.
+      // The catch-up target grows if that keeps up.
+      const inflated = Math.ceil(perRoundNeeded + forfeitRate);
+      return ` But ${chaser.name} has forfeited ${chaser.forfeitedUpvotes} pts by not voting — if that habit continues, the real target is closer to ${inflated} a round, not ${perRoundNeeded}.`;
+    }
+    return ` ${chaser.name} has also forfeited ${chaser.forfeitedUpvotes} pts by not voting; ${perRoundForfeit >= 1 ? 'voting from here on would speed it up' : 'closing that habit would help too'}.`;
+  };
+
   if (budget !== undefined && gap > budget) {
     projections.push({
       label: 'The title',
@@ -212,7 +240,7 @@ export function future(stats: Stats): Future {
           : perRoundNeeded <= bestObserved
             ? `more than a typical winning round (${typicalWin}) but inside the best anyone has managed (${bestObserved})`
             : `more than the best round anyone has managed so far (${bestObserved}), so it would take something unprecedented`
-      }.${
+      }.${forfeitAwareNote(runnerUp, gap, perRoundNeeded)}${
         chasers.length > 1
           ? plausible.length < chasers.length
             ? ` ${chasers.length} players are mathematically alive, though only ${plausible.length} on swings this league has actually produced.`
@@ -237,13 +265,11 @@ export function future(stats: Stats): Future {
       interest: 90,
     });
   } else {
+    const perRoundEscape = roundsLeft ? Math.ceil(escapeGap / roundsLeft) : escapeGap;
     projections.push({
       label: 'Last place',
       headline: `${last.name} needs ${escapeGap} on ${secondLast.name} to climb off the bottom.`,
-      detail:
-        last.roundsMissedVoting > 0 && stats.scoring === 'competitive'
-          ? `Voting every round would be the cheapest way to do it: they have already forfeited ${last.forfeitedUpvotes} points by not voting, more than the ${escapeGap} they need.`
-          : `That is ${roundsLeft ? Math.ceil(escapeGap / roundsLeft) : escapeGap} a round, against a typical winning score of ${typicalWin}.`,
+      detail: `That is ${perRoundEscape} a round, against a typical winning score of ${typicalWin}.${forfeitAwareNote(last, escapeGap, perRoundEscape)}`,
       status: 'live',
       subject: last.playerId,
       interest: 90,

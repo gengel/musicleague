@@ -60,17 +60,24 @@ function fail(message, hint) {
 /* ---------------------------- arguments ---------------------------- */
 
 function parseArgs(argv) {
+  // Defaults match this league's actual rules: Competitive scoring (non-voters
+  // forfeit their upvotes), no per-song floor (negative totals stick), and
+  // MusicBrainz genre lookup on. Use --friendly, --floor, --no-genres to opt out.
+  // The *Explicit flags track whether the user passed a CLI flag, so the
+  // "origin" output can distinguish defaults from command-line overrides.
   const opts = {
     inputs: [],
     out: 'dist',
     base: '/',
     label: null,
     redact: false,
-    scoring: null,
-    flooring: null,
+    scoring: 'competitive',
+    scoringExplicit: false,
+    flooring: 'none',
+    flooringExplicit: false,
     rounds: null,
     art: true,
-    genres: false,
+    genres: true,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -97,21 +104,28 @@ function parseArgs(argv) {
       case '--genres':
         opts.genres = true;
         break;
+      case '--no-genres':
+        opts.genres = false;
+        break;
       case '--redact':
       case '--redact-surnames':
         opts.redact = true;
         break;
       case '--competitive':
         opts.scoring = 'competitive';
+        opts.scoringExplicit = true;
         break;
       case '--friendly':
         opts.scoring = 'friendly';
+        opts.scoringExplicit = true;
         break;
       case '--floor':
         opts.flooring = 'song';
+        opts.flooringExplicit = true;
         break;
       case '--no-floor':
         opts.flooring = 'none';
+        opts.flooringExplicit = true;
         break;
       case '--help':
       case '-h':
@@ -146,7 +160,12 @@ function collectFiles(inputs) {
     if (statSync(path).isDirectory()) {
       const inside = readdirSync(path)
         .filter((f) => /\.(csv|txt)$/i.test(f))
-        .map((f) => join(path, f));
+        .map((f) => join(path, f))
+        // Mirror parse.ts's filename classifier: only include files whose names
+        // match a known Music League section keyword. This silently skips legacy
+        // enrichment CSVs (covers.csv, years.csv, wiki-facts.csv) that may live
+        // in the same directory without producing spurious "Could not classify" warnings.
+        .filter((f) => /competitor|vote|submission|round|comment|standing/i.test(basename(f)));
       if (!inside.length) fail(`No CSV files inside ${input}`);
       found.push(...inside);
     } else {
@@ -255,13 +274,13 @@ if (summary.nonVoters.length || anyDownvotes) {
   console.log(`\n${c.bold('League rules')}`);
   if (summary.nonVoters.length) {
     console.log(
-      `  non-voters   ${c.green(summary.scoring.padEnd(12))} ${c.dim(`(${origin(opts.scoring, summary.scoringInferred)})`)}`,
+      `  non-voters   ${c.green(summary.scoring.padEnd(12))} ${c.dim(`(${origin(opts.scoringExplicit, summary.scoringInferred)})`)}`,
     );
   }
   if (anyDownvotes) {
     const label = summary.flooring === 'song' ? 'floor at zero' : 'allow negative';
     console.log(
-      `  downvotes    ${c.green(label.padEnd(12))} ${c.dim(`(${origin(opts.flooring, summary.flooringInferred)})`)}`,
+      `  downvotes    ${c.green(label.padEnd(12))} ${c.dim(`(${origin(opts.flooringExplicit, summary.flooringInferred)})`)}`,
     );
   }
 

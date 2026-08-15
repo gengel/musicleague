@@ -57,9 +57,8 @@ describe('dashboard with the sample league', () => {
     expect(screen.getByText(/7 players · 6 rounds/)).toBeDefined();
   });
 
-  it('shows at-a-glance tiles and the superlatives strip', async () => {
+  it('shows the Overview superlatives strip and gateway cards', async () => {
     await openDemo();
-    expect(screen.getByText('At a glance')).toBeDefined();
     // Overview strip shows four superlatives as span.sup__label, not headings
     for (const label of [
       'Biggest single haul',
@@ -69,6 +68,8 @@ describe('dashboard with the sample league', () => {
     ]) {
       expect(screen.getByText(label)).toBeDefined();
     }
+    // Gateway cards link to each section
+    expect(screen.getByText('Gateways')).toBeDefined();
   });
 
   it('renders the score timeline with a series per player', async () => {
@@ -163,7 +164,8 @@ describe('dashboard with the sample league', () => {
 
   it('reports the non-voting forfeit and names the worst offender', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Play-by-Play' }));
+    // Participation panel now lives on The Race tab (forfeits are a standings story)
+    await user.click(screen.getByRole('button', { name: 'The Race' }));
     expect(screen.getByText(/no point penalty for skipping a vote/)).toBeDefined();
     const card = screen.getByText('The cost of not voting').closest('.card') as HTMLElement;
     // Sorted by points forfeited, Gus skipped three rounds in the fixture.
@@ -312,14 +314,6 @@ describe('dashboard with the sample league', () => {
     await user.click(within(card).getByRole('columnheader', { name: /Player/ }));
     const after = card.querySelector('tbody tr')!.textContent;
     expect(after).not.toBe(before);
-  });
-
-  it('shows round-by-round detail on the songs tab', async () => {
-    const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'The Songs' }));
-    const card = screen.getByText('Round by round').closest('.card') as HTMLElement;
-    expect(within(card).getByText('Songs that open with a scream')).toBeDefined();
-    expect(card.querySelectorAll('tbody tr').length).toBe(6);
   });
 
   it('returns to the landing screen to load another export', async () => {

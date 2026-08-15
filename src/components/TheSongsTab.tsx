@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { Stats } from '../lib/stats';
 import { computeDecadeTable } from '../lib/taste';
 import { SuperlativeStrip } from './SuperlativeStrip';
-import { SongsPanel, ConsensusPanel, ArtistsPanel, RoundsPanel } from './SongsPanel';
+import { SongsPanel, ConsensusPanel, ArtistsPanel } from './SongsPanel';
 import { GenrePanel } from './GenrePanel';
 import { Card } from './ui';
 
@@ -70,7 +70,6 @@ export function TheSongsTab({ stats }: { stats: Stats }) {
       />
 
       <DecadePanel stats={stats} />
-      <RoundsPanel stats={stats} />
       <SongsPanel stats={stats} />
       <ConsensusPanel stats={stats} />
       <GenrePanel stats={stats} />

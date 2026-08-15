@@ -2,8 +2,6 @@ import { useMemo } from 'react';
 import type { Stats } from '../lib/stats';
 import { buildPlayByPlay, type RoundChapter, type RoundTwist } from '../lib/recap';
 import { SuperlativeStrip } from './SuperlativeStrip';
-import { Participation } from './Participation';
-import { RoundsPanel } from './SongsPanel';
 import { SongArt, SongLinks, SongPlayer } from './SongMedia';
 import { Card, Empty } from './ui';
 
@@ -196,8 +194,6 @@ export function PlayByPlayTab({ stats }: { stats: Stats }) {
         </div>
       ))}
 
-      <RoundsPanel stats={stats} />
-      <Participation stats={stats} />
     </>
   );
 }
