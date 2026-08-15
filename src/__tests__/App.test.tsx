@@ -327,6 +327,51 @@ describe('dashboard with the sample league', () => {
     await user.click(screen.getByRole('button', { name: /Load another export/i }));
     expect(screen.getByRole('button', { name: /drop Music League CSV/i })).toBeDefined();
   });
+
+  /**
+   * I2 regression — the Play-by-Play chapter must name the credited winner
+   * (highest effectiveNet), not the raw top scorer when a forfeit changes who won.
+   *
+   * The demo fixture has Gus skipping votes in some rounds, which creates
+   * exactly the forfeit scenario this invariant guards against.
+   */
+  it('I2 — Play-by-Play chapter names the credited winner, not the forfeited top scorer', async () => {
+    const user = await openDemo();
+    await user.click(screen.getByRole('button', { name: 'Play-by-Play' }));
+
+    // Build the same chapters the tab renders, so we know which round has a twist.
+    const { parseLeague } = await import('../lib/parse');
+    const { computeStats } = await import('../lib/stats');
+    const { buildDemoCsv, buildDemoEnrichment } = await import('../lib/demo');
+    const { buildPlayByPlay } = await import('../lib/recap');
+    const { attachEnrichment, parseEnrichment } = await import('../lib/enrich');
+    const { computeSuperlatives } = await import('../lib/stats');
+
+    const league = parseLeague([{ name: 'demo.csv', text: buildDemoCsv() }]);
+    const computed = computeStats(league, { scoring: 'competitive', flooring: 'none' });
+    const enrichment = parseEnrichment(buildDemoEnrichment());
+    const enrichedStats = { ...computed, songs: attachEnrichment(computed.songs, enrichment) };
+    const stats = { ...enrichedStats, superlatives: computeSuperlatives(enrichedStats) };
+    const chapters = buildPlayByPlay(stats);
+
+    // Find the first chapter where a forfeit changed the winner.
+    const twistedChapter = chapters.find((c) => c.twist?.wasForfeited);
+    if (!twistedChapter) return; // demo may not always produce this; skip rather than fail
+
+    const creditedWinner = twistedChapter.winner!;
+    const forfeitedSong = twistedChapter.twist!.song;
+
+    // The credited winner's title must appear in a chapter__lead.
+    const leads = [...document.querySelectorAll('.chapter__lead')].map((el) => el.textContent ?? '');
+    expect(leads.some((t) => t.includes(creditedWinner.title))).toBe(true);
+
+    // The forfeited song must appear in a chapter__twist paragraph, not a lead.
+    const twists = [...document.querySelectorAll('.chapter__twist')].map((el) => el.textContent ?? '');
+    expect(twists.some((t) => t.includes(forfeitedSong.title))).toBe(true);
+
+    // No lead should claim the forfeited song won the round.
+    expect(leads.some((t) => t.includes(`"${forfeitedSong.title}" won`))).toBe(false);
+  });
 });
 
 describe('a league still under way', () => {

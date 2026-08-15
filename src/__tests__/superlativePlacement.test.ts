@@ -72,7 +72,7 @@ const OBSCURITY_GATED = ['Deepest cut to score', 'Biggest hit to bomb'];
 
 function buildStats(withObscurity = false) {
   const league = parseLeague([{ name: 'demo.csv', text: buildDemoCsv() }]);
-  const computed = computeStats(league, { scoring: 'competitive', flooring: 'off' });
+  const computed = computeStats(league, { scoring: 'competitive', flooring: 'none' });
   const rawEnrich = buildDemoEnrichment();
   if (!withObscurity) {
     // Clear obscurity so gated superlatives stay absent
@@ -122,7 +122,7 @@ describe('I5 — superlative placement audit', () => {
 
   it('total non-obscurity superlative count matches the audit', () => {
     const stats = buildStats(false);
-    // The demo uses 'off' flooring so no-floor superlatives appear; filter to
+    // The demo uses 'none' flooring so no-floor superlatives appear; filter to
     // only those registered in the audit.
     const auditedProduced = stats.superlatives.filter((s) =>
       PLACEMENT[s.label] !== undefined,
