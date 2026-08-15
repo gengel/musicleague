@@ -9,7 +9,6 @@
  *
  *   --out <dir>     output directory (default dist)
  *   --base <path>   public base path, e.g. /musicleague/ for GitHub Pages
- *   --single        also emit one self-contained league.html
  *   --label <name>  title shown in the header (default: derived from the file)
  *   --redact        publish surnames as an initial and dashes, e.g. Tim E---
  *   --competitive   score non-voters as Competitive Mode does: they forfeit
@@ -26,7 +25,9 @@
 
 import { spawnSync } from 'node:child_process';
 import {
+  copyFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -37,7 +38,6 @@ import {
 import { basename, extname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { inlineHtml } from './inline.mjs';
 import { fetchArtwork } from './art.mjs';
 import { fetchGenres } from './genres.mjs';
 
@@ -64,7 +64,6 @@ function parseArgs(argv) {
     inputs: [],
     out: 'dist',
     base: '/',
-    single: false,
     label: null,
     redact: false,
     scoring: null,
@@ -92,9 +91,6 @@ function parseArgs(argv) {
         i += 1;
         break;
       }
-      case '--single':
-        opts.single = true;
-        break;
       case '--no-art':
         opts.art = false;
         break;
@@ -135,7 +131,7 @@ const opts = parseArgs(process.argv.slice(2));
 if (!opts.inputs.length) {
   fail(
     'No CSV given.',
-    'Usage: npm run bake -- <export.csv> [more.csv ...] [--single] [--base /path/]',
+    'Usage: npm run bake -- <export.csv> [more.csv ...] [--base /path/]',
   );
 }
 
@@ -414,11 +410,20 @@ if (opts.redact) {
 
 /* ------------------------------ artwork ------------------------------
  * Album art is resolved from the Spotify track ids the export already
- * carries, then inlined, so the published page shows artwork without
- * requesting anything when a reader opens it.
+ * carries and written to real image files, so the published page fetches
+ * them like any other same-origin asset instead of paying for them inside
+ * the JS bundle.
+ *
+ * Files live in a shared directory (snapshots/art if it exists, else
+ * .cache/art) keyed by track id, so a round-7 build only downloads the
+ * handful of covers it has not seen before, and every past snapshot can
+ * point at the same files instead of duplicating them.
  * ------------------------------------------------------------------ */
 
 let artwork = {};
+const sharedArtDir = existsSync(join(root, 'snapshots'))
+  ? join(root, 'snapshots/art')
+  : join(root, '.cache/art');
 
 if (opts.art) {
   const tracks = api.artworkTargets(published);
@@ -426,6 +431,7 @@ if (opts.art) {
     process.stdout.write(`\n${c.bold('Artwork')}\n  fetching for ${tracks.length} tracks `);
     let done = 0;
     const result = await fetchArtwork(tracks, {
+      artDir: sharedArtDir,
       cachePath: join(root, '.cache/art.json'),
       onProgress: () => {
         done += 1;
@@ -436,14 +442,14 @@ if (opts.art) {
     const kb = (result.bytes / 1024).toFixed(0);
     console.log(
       `\n  ${c.green('✓')} ${Object.keys(artwork).length} covers ${c.dim(
-        `(${result.fromCache} cached, ${result.fetched} downloaded, ~${kb} kB inlined)`,
+        `(${result.fromCache} cached, ${result.fetched} downloaded, ~${kb} kB new)`,
       )}`,
     );
     if (result.failed) {
       console.log(`  ${c.yellow('!')} ${result.failed} had no artwork available, and are skipped`);
     }
     console.log(
-      `  ${c.dim('only track ids were sent to Spotify; the built page fetches nothing')}`,
+      `  ${c.dim('only track ids were sent to Spotify; the built page fetches its own images, nothing else')}`,
     );
   }
 }
@@ -490,6 +496,43 @@ if (opts.genres) {
   }
 }
 
+/* ---------------------------- enrichment -----------------------------
+ * Release years, cover/remix relationships, Wikipedia facts, obscurity and
+ * round semantics — all optional, all pre-committed under enrich/ rather
+ * than fetched here. Redaction never touches this: it is song and artist
+ * data, not player data.
+ * ------------------------------------------------------------------ */
+
+let enrichment = {};
+
+const enrichDir = join(root, 'enrich');
+if (existsSync(enrichDir)) {
+  const readJson = (name) => {
+    const path = join(enrichDir, name);
+    if (!existsSync(path)) return undefined;
+    try {
+      return JSON.parse(readFileSync(path, 'utf8'));
+    } catch {
+      console.log(`  ${c.yellow('!')} enrich/${name} did not parse as JSON — ignoring it`);
+      return undefined;
+    }
+  };
+  enrichment = {
+    years: readJson('years.json'),
+    covers: readJson('covers.json'),
+    facts: readJson('facts.json'),
+    obscurity: readJson('obscurity.json'),
+    durations: readJson('durations.json'),
+    rounds: readJson('rounds.json'),
+  };
+  const counts = Object.entries(enrichment)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `${Object.keys(v).length} ${k}`);
+  if (counts.length) {
+    console.log(`\n${c.bold('Enrichment')}\n  ${c.green('✓')} ${c.dim(counts.join(', '))}`);
+  }
+}
+
 /* ------------------------------ build ------------------------------ */
 
 const label =
@@ -508,10 +551,11 @@ writeFileSync(
     totalRounds: opts.rounds,
     art: artwork,
     genres: genreMap,
+    enrichment,
   }),
 );
 
-function viteBuild({ outDir, single }) {
+function viteBuild({ outDir }) {
   const args = ['vite', 'build', '--outDir', outDir, '--base', opts.base, '--emptyOutDir'];
   const result = spawnSync('npx', args, {
     cwd: root,
@@ -520,7 +564,6 @@ function viteBuild({ outDir, single }) {
     env: {
       ...process.env,
       ML_BAKE_MANIFEST: manifestPath,
-      ML_BAKE_SINGLE: single ? '1' : '0',
     },
   });
   if (result.status !== 0) {
@@ -532,31 +575,81 @@ function viteBuild({ outDir, single }) {
 }
 
 console.log(`\n${c.bold('Building')}`);
-viteBuild({ outDir: opts.out, single: false });
+viteBuild({ outDir: opts.out });
 const outPath = resolve(root, opts.out);
 console.log(`  ${c.green('✓')} ${opts.out}/  ${c.dim('static site, ready to host')}`);
 
-/* --------------------------- single file --------------------------- */
+/* ------------------------------- art ------------------------------- *
+ * Copies only the files this build actually references from the shared
+ * art directory into dist/art, so the published site is self-contained
+ * without every past edition's covers riding along.
+ * ------------------------------------------------------------------- */
 
-if (opts.single) {
-  const singleDir = join(work, 'single');
-  viteBuild({ outDir: singleDir, single: true });
+if (Object.keys(artwork).length) {
+  const artOut = join(outPath, 'art');
+  mkdirSync(artOut, { recursive: true });
+  let copied = 0;
+  for (const sizes of Object.values(artwork)) {
+    for (const fileName of Object.values(sizes)) {
+      const from = join(sharedArtDir, fileName);
+      if (existsSync(from)) {
+        copyFileSync(from, join(artOut, fileName));
+        copied += 1;
+      }
+    }
+  }
+  console.log(`  ${c.green('✓')} ${opts.out}/art/  ${c.dim(`${copied} image files`)}`);
+}
 
-  const html = readFileSync(join(singleDir, 'index.html'), 'utf8');
-  const assetDir = join(singleDir, 'assets');
-  const assets = existsSync(assetDir) ? readdirSync(assetDir) : [];
-  const read = (f) => ({ fileName: f, code: readFileSync(join(assetDir, f), 'utf8') });
+/* ----------------------------- editions ----------------------------- *
+ * Lists past snapshots (npm run snapshot) alongside the build that was
+ * just published, so an old round stays reachable once the export moves on.
+ * ------------------------------------------------------------------- */
 
-  const merged = inlineHtml({
-    html,
-    scripts: assets.filter((f) => f.endsWith('.js')).map(read),
-    styles: assets.filter((f) => f.endsWith('.css')).map(read),
-  });
+const snapshotsDir = join(root, 'snapshots');
+if (existsSync(snapshotsDir)) {
+  const editions = readdirSync(snapshotsDir)
+    .filter((name) => existsSync(join(snapshotsDir, name, 'manifest.json')))
+    .map((name) => {
+      const meta = JSON.parse(readFileSync(join(snapshotsDir, name, 'manifest.json'), 'utf8'));
+      return { name, ...meta };
+    })
+    .sort((a, b) => b.round - a.round);
 
-  const singleFile = join(outPath, 'league.html');
-  writeFileSync(singleFile, merged);
-  const mb = (Buffer.byteLength(merged) / 1024 / 1024).toFixed(2);
-  console.log(`  ${c.green('✓')} ${opts.out}/league.html  ${c.dim(`${mb} MB, self-contained`)}`);
+  if (editions.length) {
+    const rows = editions
+      .map(
+        (e) =>
+          `      <li><a href="snapshots/${e.name}/dist/">round ${e.round}</a> <span>${new Date(e.archivedAt).toLocaleDateString()}</span></li>`,
+      )
+      .join('\n');
+    const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>${label ?? 'League'} — past editions</title>
+    <style>
+      body { font: 15px system-ui, sans-serif; max-width: 32rem; margin: 3rem auto; color: #24292f; }
+      h1 { font-size: 1.1rem; }
+      ul { padding: 0; list-style: none; }
+      li { display: flex; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid #eee; }
+      a { color: #0969da; text-decoration: none; }
+      span { color: #57606a; font-size: .9em; }
+    </style>
+  </head>
+  <body>
+    <h1>Past editions</h1>
+    <ul>
+${rows}
+    </ul>
+  </body>
+</html>
+`;
+    writeFileSync(join(outPath, 'editions.html'), html);
+    console.log(
+      `  ${c.green('✓')} ${opts.out}/editions.html  ${c.dim(`${editions.length} past edition${editions.length === 1 ? '' : 's'} listed`)}`,
+    );
+  }
 }
 
 /* ------------------------------ outro ------------------------------ */
@@ -564,7 +657,7 @@ if (opts.single) {
 console.log(`\n${c.bold('Publish')}`);
 console.log(`  Any static host works — the page has no backend.`);
 console.log(
-  `  ${c.dim('It contacts Spotify only when a reader presses play on a song.')}`,
+  `  ${c.dim('It fetches its own images, and contacts Spotify only when a reader presses play.')}`,
 );
 console.log(`  ${c.dim(`local check:  npx vite preview --outDir ${opts.out}`)}`);
 if (opts.base === '/') {

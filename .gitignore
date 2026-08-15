@@ -7,3 +7,7 @@ node_modules
 *.csv
 src/data/
 .cache/
+
+# Snapshots hold a full copy of the export for whatever round they archive —
+# same reasoning as src/data/ above. They're for local/host backup, not git.
+snapshots/

@@ -1,88 +1,7 @@
+import { buildRedactionMap, redactCsvText } from '../lib/redact';
 import { describe, expect, it } from 'vitest';
-import {
-  escapeForInlineScript,
-  escapeForInlineStyle,
-  inlineHtml,
-} from '../../scripts/inline.mjs';
 import { artworkTargets, describeLeague } from '../lib/inspect';
 import { buildDemoCsv } from '../lib/demo';
-
-const HTML = `<!doctype html>
-<html>
-  <head>
-    <script type="module" crossorigin src="/assets/index-abc123.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/style-def456.css">
-  </head>
-  <body><div id="root"></div></body>
-</html>
-`;
-
-describe('inlineHtml', () => {
-  it('replaces the script and style references with their contents', () => {
-    const out = inlineHtml({
-      html: HTML,
-      scripts: [{ fileName: 'index-abc123.js', code: 'console.log(1)' }],
-      styles: [{ fileName: 'style-def456.css', code: 'body{color:red}' }],
-    });
-    expect(out).toContain('<script>\nconsole.log(1)\n</script>');
-    expect(out).toContain('<style>\nbody{color:red}\n</style>');
-    expect(out).not.toContain('src="/assets/index-abc123.js"');
-    expect(out).not.toContain('href="/assets/style-def456.css"');
-  });
-
-  it('moves the script after #root so it cannot run before its mount point', () => {
-    // Vite emits a deferred module script; an inlined classic script is not
-    // deferred, so left in <head> it would execute before the div exists.
-    const out = inlineHtml({
-      html: HTML,
-      scripts: [{ fileName: 'index-abc123.js', code: 'console.log(1)' }],
-      styles: [{ fileName: 'style-def456.css', code: 'body{}' }],
-    });
-    expect(out.indexOf('console.log(1)')).toBeGreaterThan(out.indexOf('id="root"'));
-    expect(out.indexOf('console.log(1)')).toBeLessThan(out.indexOf('</body>'));
-    expect(out).not.toMatch(/<head>[\s\S]*console\.log\(1\)[\s\S]*<\/head>/);
-  });
-
-  it('does not treat $ sequences in the bundle as replacement patterns', () => {
-    // Minified output really does contain these; String.replace would expand
-    // `$&` into the matched <script> tag and corrupt the bundle.
-    const code = 'const a="$&";const b="$`";const c="$\'";const d="$$";const e="$1"';
-    const out = inlineHtml({
-      html: HTML,
-      scripts: [{ fileName: 'index-abc123.js', code }],
-      styles: [{ fileName: 'style-def456.css', code: 'a{content:"$&"}' }],
-    });
-    expect(out).toContain(code);
-    expect(out).toContain('a{content:"$&"}');
-    expect(out).not.toContain('<script type="module"');
-  });
-
-  it('breaks a closing script tag hidden inside the bundle', () => {
-    const out = inlineHtml({
-      html: HTML,
-      scripts: [{ fileName: 'index-abc123.js', code: 'const s="</script>"' }],
-      styles: [{ fileName: 'style-def456.css', code: 'body{}' }],
-    });
-    // Exactly one real closing tag: the one we emit.
-    expect(out.match(/<\/script>/g)).toHaveLength(1);
-    expect(out).toContain('<\\/script>');
-  });
-
-  it('escapes closing tags case-insensitively and with stray whitespace', () => {
-    expect(escapeForInlineScript('a</SCRIPT >b')).toBe('a<\\/SCRIPT >b');
-    expect(escapeForInlineScript('a</script>b')).toBe('a<\\/script>b');
-    expect(escapeForInlineStyle('a</STYLE>b')).toBe('a<\\/STYLE>b');
-  });
-
-  it('throws rather than silently emitting a page with missing assets', () => {
-    expect(() =>
-      inlineHtml({ html: HTML, scripts: [{ fileName: 'nope.js', code: 'x' }], styles: [] }),
-    ).toThrow(/Could not find a <script>/);
-    expect(() => inlineHtml({ html: HTML, scripts: [], styles: [] })).toThrow(
-      /Unlined assets remain/,
-    );
-  });
-});
 
 describe('artwork targets', () => {
   /** Real-format Spotify ids: 22 characters of base62. */
@@ -174,5 +93,42 @@ Round,Voter,Submitter,Song Title,Points
     expect(summary.errors).toEqual([]);
     expect(summary.hasVotes).toBe(false);
     expect(summary.warnings.some((w) => w.includes('No vote rows'))).toBe(true);
+  });
+});
+
+describe('snapshot rebuild fidelity (I7)', () => {
+  // A snapshot archives the export text verbatim (scripts/snapshot.mjs), so
+  // rebuilding from it is faithful exactly when the bake pipeline is a pure
+  // function of that text: same bytes in, same summary and redaction out.
+  // This is the property that makes "rebuild round 6 from its archive"
+  // actually mean something, without spawning the CLI or touching the network.
+  const exportText = buildDemoCsv();
+
+  it('produces an identical summary from the same export text, rebuilt independently', () => {
+    const first = describeLeague([{ name: 'export.csv', text: exportText }]);
+    // Simulate "time has passed, the export was archived and reloaded" by
+    // round-tripping the text through a fresh string before re-parsing.
+    const restored = String(exportText);
+    const second = describeLeague([{ name: 'export.csv', text: restored }]);
+
+    expect(second.players).toEqual(first.players);
+    expect(second.rounds).toEqual(first.rounds);
+    expect(second.songs).toBe(first.songs);
+    expect(second.voteRows).toBe(first.voteRows);
+    expect(second.totals).toEqual(first.totals);
+    expect(second.winners).toEqual(first.winners);
+  });
+
+  it('redacts an archived export to the same result as redacting it fresh', () => {
+    const summary = describeLeague([{ name: 'export.csv', text: exportText }]);
+    const map = buildRedactionMap(summary.players);
+    const report1 = { proseChanges: [] as { column: string; before: string; after: string }[] };
+    const report2 = { proseChanges: [] as { column: string; before: string; after: string }[] };
+
+    const redactedNow = redactCsvText(exportText, map, 'export.csv', report1);
+    const redactedAgain = redactCsvText(String(exportText), map, 'export.csv', report2);
+
+    expect(redactedAgain).toBe(redactedNow);
+    expect(report2).toEqual(report1);
   });
 });

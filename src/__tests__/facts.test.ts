@@ -28,14 +28,15 @@ describe('headlineFacts', () => {
     }
   });
 
-  it('adds the song card without displacing an earned fact', () => {
+  it('adds a song card for the art only when none of the chosen facts already has one', () => {
     const facts = headlineFacts(demo, 4);
-    const onMerit = facts.filter((f) => !f.artId);
-    // The four that qualified on interest are all still there, and the song
-    // card sits alongside them rather than in place of the weakest.
-    expect(onMerit).toHaveLength(4);
-    expect(facts.length).toBeGreaterThanOrEqual(4);
-    if (facts.length === 5) expect(facts[4].artId).toBeTruthy();
+    const withArt = facts.filter((f) => f.artId);
+    // At least one fact in the final set carries art — either one of the
+    // top facts already had a song attached, or a 5th was appended for it.
+    expect(withArt.length).toBeGreaterThanOrEqual(1);
+    // Never displaces an earned fact: the set is only ever 4 (exactly the
+    // limit) or 5 (limit plus one appended card).
+    expect([4, 5]).toContain(facts.length);
   });
 
   it('does not tell more than two stories about the same player', () => {

@@ -5,8 +5,9 @@ questions the site itself does not: who votes for whose songs, who gets frozen
 out, what not voting actually cost, and how the standings really moved.
 
 Everything is parsed in the browser. There is no backend and no upload — your
-league data never leaves the machine. The only outside request the page can make
-is to Spotify, and only when a reader presses play on a song.
+league data never leaves the machine. The only outside requests the published
+page can make are for its own images, and to Spotify, only when a reader
+presses play on a song.
 
 ## The two league rules the export does not carry
 
@@ -45,7 +46,7 @@ round rank, round winner, season total, standings timeline. Round ranking always
 uses the raw score, so the zero floor never changes who won a round.
 
 ```bash
-npm run bake -- src/data --competitive --no-floor --redact --single
+npm run bake -- src/data --competitive --no-floor --redact
 ```
 
 ## Running it
@@ -67,7 +68,6 @@ the CSV in themselves. To bake the league into the page instead:
 
 ```bash
 npm run bake -- "~/Downloads/My League.csv"           # -> dist/
-npm run bake -- ~/Downloads/export-folder --single    # also dist/league.html
 npm run bake -- "My League.csv" --base /musicleague/  # GitHub Pages subfolder
 ```
 
@@ -79,7 +79,6 @@ rounds, songs, vote rows — before building.
 | --- | --- |
 | `--out <dir>` | output directory, default `dist` |
 | `--base <path>` | public base path for subfolder hosting, e.g. `/repo-name/` |
-| `--single` | also emit `league.html`, one self-contained file |
 | `--label <name>` | header title, default derived from the filename |
 | `--redact` | publish surnames as an initial and dashes, e.g. `Tim E---` |
 | `--competitive` | non-voters forfeit the upvotes their song earned that round |
@@ -88,15 +87,13 @@ rounds, songs, vote rows — before building.
 | `--no-floor` | downvotes carry through, so a total can be negative |
 
 `dist/` works on any static host — GitHub Pages, S3, Netlify, Cloudflare Pages,
-a plain nginx directory. There is no backend; the only third-party request is
-Spotify, and only when a reader presses play.
-`league.html` is everything in one file: host it, email it, or just open it from
-disk, no server needed.
+a plain nginx directory. There is no backend; it fetches its own images from
+wherever it is hosted, and the only third-party request is Spotify, only when
+a reader presses play.
 
 **It contains the export in readable form** — names, songs, every vote and who
 cast it. Anyone with the URL can read it, so host it privately if the league
-would not want it public. `league.html` is the easiest way to share it with
-players without publishing it to the web.
+would not want it public.
 
 ## A league that is still running
 
@@ -111,7 +108,7 @@ Where an export does contain a round with no results yet — one still in voting
 that is detected on its own and the same language applies.
 
 ```bash
-npm run bake -- src/data --competitive --no-floor --rounds 10 --redact --single
+npm run bake -- src/data --competitive --no-floor --rounds 10 --redact
 ```
 
 ## Redacting surnames for a public deploy
@@ -150,15 +147,18 @@ The export carries a Spotify track id for every submission and a playlist URL
 for every round, so both are exact rather than guessed.
 
 **Artwork.** `npm run bake` resolves each track's cover through Spotify's oEmbed
-endpoint, which needs no API key or quota, and inlines the image as a data URI.
-The built page therefore shows artwork while still fetching nothing when a
-reader opens it. Only track ids are sent to Spotify — never names, votes or
-comments. Covers are cached under `.cache/art.json`, so rebuilds are instant,
-and `--no-art` skips the step entirely.
+endpoint, which needs no API key or quota, and writes it to a real image file
+under `dist/art/`. The built page therefore shows artwork as a same-origin
+image rather than a third-party request when a reader opens it — the file was
+already fetched at build time, not on their behalf. Only track ids are sent to
+Spotify — never names, votes or comments. Files are shared across every past
+snapshot and cached under `.cache/art.json` (or `snapshots/art/` once a
+snapshot exists), so rebuilds only download what they have not seen before, and
+`--no-art` skips the step entirely.
 
 Two sizes are fetched: a 64px thumbnail for table rows, and a 300px cover for
-the handful of songs shown as hero cards. That keeps the inlined weight to a few
-hundred kilobytes rather than a few megabytes.
+the handful of songs shown as hero cards. Keeping them as files rather than
+inlining them into the JS bundle is what keeps that bundle small.
 
 **Playback.** Each song gets a **Play** button that inserts a Spotify player,
 plus links to the track and to a YouTube search. The player is
@@ -319,12 +319,12 @@ src/lib/future.ts   projections for the rounds still to play
 src/lib/demo.ts     deterministic sample league
 src/components/     dashboard panels
 scripts/bake.mjs    CLI: validate an export and build a static copy
-src/lib/redact.ts    surname redaction for a public deploy
-scripts/bake.mjs    CLI: validate an export and build a static copy
-scripts/art.mjs     fetches album art at bake time and inlines it
+src/lib/redact.ts   surname redaction for a public deploy
+scripts/snapshot.mjs archives an export, its enrichment and its build before
+                    the next round's export overwrites them
+scripts/art.mjs     fetches album art at bake time, writing real image files
 scripts/genres.mjs  resolves artist genres on MusicBrainz, with a vocabulary
 src/lib/genres.ts   genre analysis, with sample sizes enforced
-scripts/inline.mjs  folds a build into one self-contained HTML file
 ```
 
 ## Genres, and why they are hedged

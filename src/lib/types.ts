@@ -103,6 +103,43 @@ export function isPlaceholderName(name: string): boolean {
 }
 
 /**
+ * Resolves the name each player should be called in generated prose.
+ *
+ * This exists because a league can contain two players with the same first
+ * name — this one has both a "Caroline" and a "Caroline Cone" — and any
+ * narrative feature that shortens a full name to its first token risks
+ * silently attributing one player's result to the other. `displayName`
+ * always returns each player's full name exactly as given, which is the one
+ * choice guaranteed not to collide: it is what the export itself uses to
+ * tell them apart. All generated prose (Play-by-Play chapters, superlative
+ * captions, archetype labels) must call this rather than reading `name` or
+ * any hand-shortened form directly.
+ *
+ * Built once per league and passed around, rather than recomputed per call,
+ * so a name is judged against the same roster everywhere it appears.
+ */
+export function buildDisplayNameResolver(players: Player[]): (playerId: string) => string {
+  const byId = new Map(players.map((p) => [p.id, p.name]));
+  return (playerId: string) => byId.get(playerId) ?? playerId;
+}
+
+/**
+ * True if any two players in the league would collide on their first name
+ * alone. A guard rail for generated prose, which must never shorten to a
+ * first name when this is true — see `buildDisplayNameResolver`.
+ */
+export function hasNameCollision(players: Player[]): boolean {
+  const seen = new Set<string>();
+  for (const p of players) {
+    const first = p.name.trim().split(/\s+/)[0]?.toLowerCase();
+    if (!first) continue;
+    if (seen.has(first)) return true;
+    seen.add(first);
+  }
+  return false;
+}
+
+/**
  * Identity key for a person, round or song title.
  *
  * Only case and whitespace are normalised. Punctuation and emoji are

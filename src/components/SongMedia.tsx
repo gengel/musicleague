@@ -5,9 +5,9 @@ import { Icon } from './Icons';
 /**
  * Album art, links and players for a submitted song.
  *
- * Artwork is resolved from the Spotify track id at bake time and inlined, so it
- * displays without the page fetching anything. Spotify links are exact for the
- * same reason. YouTube is offered as a search link rather than an embed: the
+ * Artwork is resolved from the Spotify track id at bake time and written to
+ * same-origin image files, so it loads without the page requesting anything
+ * from a third party. Spotify links are exact for the same reason. YouTube is offered as a search link rather than an embed: the
  * export carries no YouTube id, and resolving one would need the Data API plus
  * fuzzy matching that would sometimes land on a lyric video or a live cover.
  *
@@ -32,14 +32,22 @@ export type ArtSize = 'sm' | 'lg' | 'xl';
  * Inlined cover for a track, at whichever size was baked in.
  * Falls back down the chain, since a cover scaled up beats no cover at all.
  */
+/**
+ * Inlined cover for a track, at whichever size was baked in.
+ * Falls back down the chain, since a cover scaled up beats no cover at all.
+ *
+ * Art is written to real files under `art/` at bake time (see scripts/art.mjs)
+ * rather than embedded as data URIs, so this resolves a filename to a
+ * same-origin URL respecting the site's base path.
+ */
 export function artFor(spotifyId: string | undefined, size: ArtSize): string | undefined {
   if (!spotifyId) return undefined;
   const entry = embeddedArt[spotifyId];
   if (!entry) return undefined;
   const chain: ArtSize[] = size === 'xl' ? ['xl', 'lg', 'sm'] : size === 'lg' ? ['lg', 'xl', 'sm'] : ['sm', 'lg', 'xl'];
   for (const candidate of chain) {
-    const uri = entry[candidate];
-    if (uri) return uri;
+    const fileName = entry[candidate];
+    if (fileName) return `${import.meta.env.BASE_URL}art/${fileName}`;
   }
   return undefined;
 }

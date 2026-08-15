@@ -37,6 +37,7 @@ function embeddedLeagueData(): Plugin {
           'export const embeddedTotalRounds = null;',
           'export const embeddedArt = {};',
           'export const embeddedGenres = {};',
+          'export const embeddedEnrichment = {};',
         ].join('\n');
       }
       const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
@@ -49,24 +50,15 @@ function embeddedLeagueData(): Plugin {
         `export const embeddedTotalRounds = ${toLiteral(manifest.totalRounds ?? null)};`,
         `export const embeddedArt = ${toLiteral(manifest.art ?? {})};`,
         `export const embeddedGenres = ${toLiteral(manifest.genres ?? {})};`,
+        `export const embeddedEnrichment = ${toLiteral(manifest.enrichment ?? {})};`,
       ].join('\n');
     },
   };
 }
 
-// A single self-contained HTML file has to run without module resolution, so
-// the bake script asks for one classic script it can inline.
-const single = process.env.ML_BAKE_SINGLE === '1';
-
 export default defineConfig({
   plugins: [react(), embeddedLeagueData()],
   server: { port: 5173, open: true },
-  build: single
-    ? {
-        cssCodeSplit: false,
-        rollupOptions: { output: { format: 'iife' } },
-      }
-    : {},
   test: {
     // Library tests run in node; component tests opt into jsdom with a
     // `@vitest-environment jsdom` docblock.

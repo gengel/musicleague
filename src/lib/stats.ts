@@ -1,4 +1,5 @@
 import type { League, Round, Submission, Vote } from './types';
+import type { CoverInfo, ObscurityInfo } from './enrich';
 
 /**
  * How the league converts votes into points.
@@ -155,6 +156,17 @@ export interface SongStats {
   shareOfRound: number;
   /** True when the song drew both upvotes and downvotes. */
   polarizing: boolean;
+  /**
+   * Optional metadata layered on after the fact from `enrich/*.json` — see
+   * `attachEnrichment` in enrich.ts. Absent for any song not covered by the
+   * league's enrichment files, which is a normal, supported state (I6): a
+   * song with no `year` is not an error, just a song nobody has dated yet.
+   */
+  year?: number;
+  cover?: CoverInfo;
+  fact?: string;
+  obscurity?: ObscurityInfo;
+  durationMs?: number;
 }
 
 export interface RoundStats {
@@ -932,6 +944,7 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
       songs,
       players,
       pairs,
+      rounds: roundStats,
       nameOf,
       songByTrack,
       submissionByTrack,
@@ -940,6 +953,27 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
     artistCounts,
     hasVotes,
   };
+}
+
+/**
+ * Re-runs superlative computation over an already-computed Stats object.
+ * Call this after attachEnrichment so that year and obscurity fields are
+ * visible to the superlative builders.
+ */
+export function computeSuperlatives(stats: Stats): Superlative[] {
+  const nameOf = new Map(stats.players.map((p) => [p.playerId, p.name]));
+  const songByTrack = new Map(stats.songs.map((s) => [s.trackId, s]));
+  const submissionByTrack = new Map(stats.league.submissions.map((s) => [s.trackId, s]));
+  return buildSuperlatives({
+    songs: stats.songs,
+    players: stats.players,
+    pairs: stats.pairs,
+    rounds: stats.rounds,
+    nameOf,
+    songByTrack,
+    submissionByTrack,
+    scoring: stats.scoring,
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -967,12 +1001,13 @@ function buildSuperlatives(ctx: {
   songs: SongStats[];
   players: PlayerStats[];
   pairs: PairStats[];
+  rounds: RoundStats[];
   nameOf: Map<string, string>;
   songByTrack: Map<string, SongStats>;
   submissionByTrack: Map<string, Submission>;
   scoring: ScoringMode;
 }): Superlative[] {
-  const { songs, players, pairs, nameOf } = ctx;
+  const { songs, players, pairs, rounds, nameOf } = ctx;
   const out: Superlative[] = [];
 
   const songTitle = (s: SongStats): string => s.title || 'Untitled';
@@ -1349,6 +1384,104 @@ function buildSuperlatives(ctx: {
       subject: p.name,
     }),
   );
+
+  // --- Song-level: era and obscurity ---
+
+  add(
+    'The time capsule',
+    songs.filter((s) => s.year !== undefined),
+    (s) => -(s.year as number),
+    (s) => ({
+      value: String(s.year),
+      subject: songTitle(s),
+      meta: songMeta(s, 'oldest song of the season'),
+    }),
+  );
+
+  add(
+    'Deepest cut to score',
+    songs.filter((s) => s.obscurity !== undefined && s.effectiveNet > 0),
+    (s) => -(s.obscurity!.value),
+    (s) => ({
+      value: `${s.obscurity!.value.toLocaleString()} listeners`,
+      subject: songTitle(s),
+      meta: songMeta(s),
+    }),
+  );
+
+  add(
+    'Biggest hit to bomb',
+    songs.filter((s) => s.obscurity !== undefined && s.effectiveNet < 0),
+    (s) => s.obscurity!.value,
+    (s) => ({
+      value: `${s.obscurity!.value.toLocaleString()} listeners → ${fmt(s.effectiveNet)} pts`,
+      subject: songTitle(s),
+      meta: songMeta(s),
+    }),
+  );
+
+  // --- Round-level ---
+
+  const playedRounds = rounds.filter((r) => r.hasVotes);
+  const roundsWithWinner = playedRounds.filter((r) => r.winnerTrackId);
+
+  add(
+    'Highest-scoring round',
+    roundsWithWinner,
+    (r) => ctx.songByTrack.get(r.winnerTrackId!)?.effectiveNet ?? 0,
+    (r) => {
+      const winner = ctx.songByTrack.get(r.winnerTrackId!);
+      return {
+        value: winner ? `${fmt(winner.effectiveNet)} pts` : '?',
+        subject: r.round.name,
+        meta: winner ? [songTitle(winner)] : [],
+      };
+    },
+  );
+
+  add(
+    'Lowest-scoring round',
+    roundsWithWinner,
+    (r) => -(ctx.songByTrack.get(r.winnerTrackId!)?.effectiveNet ?? 0),
+    (r) => {
+      const winner = ctx.songByTrack.get(r.winnerTrackId!);
+      return {
+        value: winner ? `${fmt(winner.effectiveNet)} pts to win` : '?',
+        subject: r.round.name,
+        meta: winner ? [songTitle(winner)] : [],
+      };
+    },
+  );
+
+  add(
+    'Best turnout',
+    playedRounds,
+    (r) => r.voters.length,
+    (r) => ({
+      value: `${r.voters.length} of ${players.length} voted`,
+      subject: r.round.name,
+      meta: [`${r.songCount} songs`],
+    }),
+  );
+
+  if (ctx.scoring === 'competitive') {
+    const forfeitedByRound = new Map<string, number>();
+    for (const s of songs) {
+      if (s.forfeited && s.upvotes > 0) {
+        forfeitedByRound.set(s.roundId, (forfeitedByRound.get(s.roundId) ?? 0) + s.upvotes);
+      }
+    }
+    add(
+      'Most points lost in a round',
+      playedRounds.filter((r) => forfeitedByRound.has(r.round.id)),
+      (r) => forfeitedByRound.get(r.round.id) ?? 0,
+      (r) => ({
+        value: `${forfeitedByRound.get(r.round.id)} pts forfeited`,
+        subject: r.round.name,
+        meta: ['earned by non-voters, counted for none of them'],
+      }),
+    );
+  }
 
   return out;
 }

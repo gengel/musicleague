@@ -57,25 +57,23 @@ describe('dashboard with the sample league', () => {
     expect(screen.getByText(/7 players · 6 rounds/)).toBeDefined();
   });
 
-  it('shows at-a-glance tiles and the superlatives wall', async () => {
+  it('shows at-a-glance tiles and the superlatives strip', async () => {
     await openDemo();
     expect(screen.getByText('At a glance')).toBeDefined();
-    expect(screen.getByText('Superlatives')).toBeDefined();
+    // Overview strip shows four superlatives as span.sup__label, not headings
     for (const label of [
       'Biggest single haul',
-      'Widest appeal',
-      'Biggest superfan',
-      'Coldest shoulder',
-      'Most forfeited by not voting',
-      'Arch-nemesis',
-      'Biggest contrarian',
+      'Biggest haul never counted',
+      'Best average song',
+      'Chattiest',
     ]) {
-      expect(screen.getByRole('heading', { name: label })).toBeDefined();
+      expect(screen.getByText(label)).toBeDefined();
     }
   });
 
   it('renders the score timeline with a series per player', async () => {
-    await openDemo();
+    const user = await openDemo();
+    await user.click(screen.getByRole('button', { name: 'The Race' }));
     expect(screen.getByText('Score over time')).toBeDefined();
     const chart = document.querySelector('.recharts-wrapper');
     expect(chart).not.toBeNull();
@@ -93,7 +91,8 @@ describe('dashboard with the sample league', () => {
   });
 
   it('orders the chart legend by final standing, not alphabetically', async () => {
-    await openDemo();
+    const user = await openDemo();
+    await user.click(screen.getByRole('button', { name: 'The Race' }));
     const legend = [...document.querySelectorAll('.chart-legend__btn')].map((el) =>
       (el.textContent ?? '').trim(),
     );
@@ -107,6 +106,7 @@ describe('dashboard with the sample league', () => {
 
   it('mutes a player when their legend entry is clicked', async () => {
     const user = await openDemo();
+    await user.click(screen.getByRole('button', { name: 'The Race' }));
     const first = document.querySelectorAll('.chart-legend__btn')[0] as HTMLButtonElement;
     expect(first.getAttribute('aria-pressed')).toBe('true');
     await user.click(first);
@@ -119,6 +119,7 @@ describe('dashboard with the sample league', () => {
 
   it('switches the timeline to league position and points per round', async () => {
     const user = await openDemo();
+    await user.click(screen.getByRole('button', { name: 'The Race' }));
     await user.click(screen.getByRole('button', { name: 'League position' }));
     expect(screen.getByText(/Lower is better/)).toBeDefined();
     await user.click(screen.getByRole('button', { name: 'Points per round' }));
@@ -127,7 +128,7 @@ describe('dashboard with the sample league', () => {
 
   it('renders the voting matrix with a cell for every ordered pair', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Voting' }));
+    await user.click(screen.getByRole('button', { name: 'The Room' }));
     expect(screen.getByText('Who votes for whom')).toBeDefined();
     // 7 players: 42 off-diagonal cells plus 7 blocked self cells.
     expect(document.querySelectorAll('.matrix__cell').length).toBe(42);
@@ -136,7 +137,7 @@ describe('dashboard with the sample league', () => {
 
   it('switches the matrix between affinity and raw totals', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Voting' }));
+    await user.click(screen.getByRole('button', { name: 'The Room' }));
     await user.click(screen.getByRole('button', { name: 'Total points' }));
     expect(screen.getByText(/Raw upvote points given/)).toBeDefined();
     await user.click(screen.getByRole('button', { name: 'Downvotes' }));
@@ -145,7 +146,7 @@ describe('dashboard with the sample league', () => {
 
   it('lists superfans and cold shoulders', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Voting' }));
+    await user.click(screen.getByRole('button', { name: 'The Room' }));
     const fans = screen.getByText('Biggest superfans').closest('.card') as HTMLElement;
     const cold = screen.getByText('Coldest shoulders').closest('.card') as HTMLElement;
 
@@ -162,7 +163,7 @@ describe('dashboard with the sample league', () => {
 
   it('reports the non-voting forfeit and names the worst offender', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Participation' }));
+    await user.click(screen.getByRole('button', { name: 'Play-by-Play' }));
     expect(screen.getByText(/no point penalty for skipping a vote/)).toBeDefined();
     const card = screen.getByText('The cost of not voting').closest('.card') as HTMLElement;
     // Sorted by points forfeited, Gus skipped three rounds in the fixture.
@@ -171,7 +172,7 @@ describe('dashboard with the sample league', () => {
 
   it('shows every song, with no paging', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Songs' }));
+    await user.click(screen.getByRole('button', { name: 'The Songs' }));
     const card = screen.getByText('Every song').closest('.card') as HTMLElement;
     expect(card.querySelectorAll('tbody tr').length).toBe(41);
     expect(within(card).queryByRole('button', { name: /Show all/ })).toBeNull();
@@ -179,7 +180,7 @@ describe('dashboard with the sample league', () => {
 
   it('filters the song table by round', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Songs' }));
+    await user.click(screen.getByRole('button', { name: 'The Songs' }));
     const card = screen.getByText('Every song').closest('.card') as HTMLElement;
     await user.click(within(card).getByRole('button', { name: 'One-hit wonders' }));
     expect(card.querySelectorAll('tbody tr').length).toBe(7);
@@ -189,7 +190,7 @@ describe('dashboard with the sample league', () => {
 
   it('sorts songs by upvotes and by downvotes independently', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Songs' }));
+    await user.click(screen.getByRole('button', { name: 'The Songs' }));
     const card = screen.getByText('Every song').closest('.card') as HTMLElement;
     // Resolve columns by their header, so inserting one cannot break this.
     const indexOf = (label: string) =>
@@ -215,7 +216,7 @@ describe('dashboard with the sample league', () => {
 
   it('marks a forfeited song without adding a sortable column for it', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Songs' }));
+    await user.click(screen.getByRole('button', { name: 'The Songs' }));
     const card = screen.getByText('Every song').closest('.card') as HTMLElement;
     // Gus skipped voting in this round in the fixture.
     await user.click(within(card).getByRole('button', { name: 'Covers better than the original' }));
@@ -280,7 +281,7 @@ describe('dashboard with the sample league', () => {
 
   it('breaks every score into its parts', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Standings' }));
+    await user.click(screen.getByRole('button', { name: 'The Race' }));
     const card = screen.getByText('How the scores add up').closest('.card') as HTMLElement;
 
     // The demo league has downvotes and non-voters, so every term shows.
@@ -305,15 +306,17 @@ describe('dashboard with the sample league', () => {
   it('sorts a table when a header is clicked', async () => {
     const user = await openDemo();
     await user.click(screen.getByRole('button', { name: 'Players' }));
-    const before = document.querySelector('tbody tr')!.textContent;
-    await user.click(screen.getByRole('columnheader', { name: /Player/ }));
-    const after = document.querySelector('tbody tr')!.textContent;
+    // Target the sortable PlayersPanel table ('Players, end to end')
+    const card = screen.getByText('Players, end to end').closest('.card') as HTMLElement;
+    const before = card.querySelector('tbody tr')!.textContent;
+    await user.click(within(card).getByRole('columnheader', { name: /Player/ }));
+    const after = card.querySelector('tbody tr')!.textContent;
     expect(after).not.toBe(before);
   });
 
-  it('shows round-by-round detail on the standings tab', async () => {
+  it('shows round-by-round detail on the songs tab', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('button', { name: 'Standings' }));
+    await user.click(screen.getByRole('button', { name: 'The Songs' }));
     const card = screen.getByText('Round by round').closest('.card') as HTMLElement;
     expect(within(card).getByText('Songs that open with a scream')).toBeDefined();
     expect(card.querySelectorAll('tbody tr').length).toBe(6);

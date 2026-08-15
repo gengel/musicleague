@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  embeddedEnrichment,
   embeddedFiles,
   embeddedFlooring,
   embeddedLabel,
@@ -8,44 +9,49 @@ import {
   embeddedTotalRounds,
 } from 'virtual:league-data';
 import { parseLeague, type NamedFile } from './lib/parse';
-import { computeStats, type FloorMode, type ScoringMode } from './lib/stats';
-import { buildDemoCsv } from './lib/demo';
+import { computeStats, computeSuperlatives, type FloorMode, type ScoringMode } from './lib/stats';
+import { attachEnrichment, parseEnrichment } from './lib/enrich';
+import { buildDemoCsv, buildDemoEnrichment } from './lib/demo';
 import { FileDrop } from './components/FileDrop';
-import { Headlines, Overview, TopSongs } from './components/Overview';
-import { ScoreTimeline } from './components/ScoreTimeline';
-import { AffinityMatrix, PairLeaders } from './components/AffinityMatrix';
-import { Participation } from './components/Participation';
-import { ArtistsPanel, ConsensusPanel, RoundsPanel, SongsPanel } from './components/SongsPanel';
-import { PlayerProfiles, PlayersPanel } from './components/PlayersPanel';
-import { ScoreBreakdownPanel } from './components/ScoreBreakdownPanel';
-import { SocialGraphPanel } from './components/SocialGraphPanel';
-import { FuturePanel } from './components/FuturePanel';
-import { GenrePanel } from './components/GenrePanel';
+import { Headlines, TopSongs, Overview } from './components/Overview';
+import { SuperlativeStrip } from './components/SuperlativeStrip';
+import { TheRaceTab } from './components/TheRaceTab';
+import { TheSongsTab } from './components/TheSongsTab';
+import { TheRoomTab } from './components/TheRoomTab';
+import { PlayersTab } from './components/PlayersTab';
+import { PlayByPlayTab } from './components/PlayByPlayTab';
 
-const TABS = [
-  'Overview',
-  'Standings',
-  'Voting',
-  'Network',
-  'Future',
-  'Participation',
-  'Songs',
-  'Players',
-] as const;
+const TABS = ['Overview', 'The Race', 'The Songs', 'The Room', 'Players', 'Play-by-Play'] as const;
 type Tab = (typeof TABS)[number];
 
 /**
- * Reads `#demo` / `#demo:Voting` from the URL so the sample league can be
- * linked to directly. Real exports are never encoded in the URL.
+ * Legacy hash fragments from old 8-tab layout → new 6-tab names.
+ * Keeps any bookmarks or shared links working after the restructure.
  */
+const HASH_REDIRECTS: Record<string, Tab> = {
+  standings: 'The Race',
+  future: 'The Race',
+  voting: 'The Room',
+  network: 'The Room',
+  songs: 'The Songs',
+  participation: 'Play-by-Play',
+  players: 'Players',
+  overview: 'Overview',
+  'the race': 'The Race',
+  'the songs': 'The Songs',
+  'the room': 'The Room',
+  'play-by-play': 'Play-by-Play',
+};
+
 function readHash(): { demo: boolean; tab: Tab } {
   const raw = decodeURIComponent(window.location.hash.replace(/^#/, ''));
-  const [name, tab] = raw.split(':');
-  const match = TABS.find((t) => t.toLowerCase() === (tab ?? '').toLowerCase());
-  return { demo: name.toLowerCase() === 'demo', tab: match ?? 'Overview' };
+  const [name, tabRaw] = raw.split(':');
+  const tabKey = (tabRaw ?? '').toLowerCase();
+  const redirected = HASH_REDIRECTS[tabKey];
+  const direct = TABS.find((t) => t.toLowerCase() === tabKey);
+  return { demo: name.toLowerCase() === 'demo', tab: redirected ?? direct ?? 'Overview' };
 }
 
-/** A baked-in league takes precedence over the demo hash. */
 function initialFiles(demo: boolean): NamedFile[] | null {
   if (embeddedFiles?.length) return embeddedFiles;
   if (demo) return [{ name: 'Sample League.csv', text: buildDemoCsv() }];
@@ -58,8 +64,6 @@ export default function App() {
   const [isDemo, setIsDemo] = useState(initial.demo && !embeddedFiles?.length);
   const [tab, setTab] = useState<Tab>(initial.tab);
   const [error, setError] = useState<string | undefined>();
-  // The two league rules come from the bake flags, or are inferred from the
-  // official standings when the export carries them.
   const scoringChoice: ScoringMode | undefined = embeddedScoring ?? undefined;
   const flooringChoice: FloorMode | undefined = embeddedFlooring ?? undefined;
   const isBaked = Boolean(embeddedFiles?.length) && files === embeddedFiles;
@@ -74,11 +78,17 @@ export default function App() {
         );
         return null;
       }
-      return computeStats(league, {
+      const computed = computeStats(league, {
         scoring: scoringChoice ?? 'auto',
         flooring: flooringChoice ?? 'auto',
         totalRounds: embeddedTotalRounds ?? undefined,
       });
+      const enrichment = parseEnrichment(
+        embeddedFiles?.length ? embeddedEnrichment : isDemo ? buildDemoEnrichment() : {},
+      );
+      const enrichedSongs = attachEnrichment(computed.songs, enrichment);
+      const enrichedStats = { ...computed, songs: enrichedSongs };
+      return { ...enrichedStats, superlatives: computeSuperlatives(enrichedStats) };
     } catch (err) {
       setError(`Could not read that file: ${err instanceof Error ? err.message : String(err)}`);
       return null;
@@ -128,15 +138,17 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <button
-          className="ghost-btn ghost-btn--sm"
-          onClick={() => {
-            setFiles(null);
-            setIsDemo(false);
-          }}
-        >
-          {isBaked ? 'Load a different export' : 'Load another export'}
-        </button>
+        {!isBaked && (
+          <button
+            className="ghost-btn ghost-btn--sm"
+            onClick={() => {
+              setFiles(null);
+              setIsDemo(false);
+            }}
+          >
+            Load another export
+          </button>
+        )}
       </header>
 
       {stats.inProgress && (
@@ -158,53 +170,29 @@ export default function App() {
         </div>
       )}
 
-
       <main className="grid">
         {tab === 'Overview' && (
           <>
+            <SuperlativeStrip
+              stats={stats}
+              labels={[
+                'Biggest single haul',
+                'Biggest haul never counted',
+                'Best average song',
+                'Chattiest',
+              ]}
+            />
             <Headlines stats={stats} />
             <TopSongs stats={stats} />
             <Overview stats={stats} />
-            <ScoreTimeline stats={stats} />
           </>
         )}
 
-        {tab === 'Standings' && (
-          <>
-            <ScoreTimeline stats={stats} />
-            <ScoreBreakdownPanel stats={stats} />
-            <RoundsPanel stats={stats} />
-          </>
-        )}
-
-        {tab === 'Voting' && (
-          <>
-            <AffinityMatrix stats={stats} />
-            <PairLeaders stats={stats} />
-          </>
-        )}
-
-        {tab === 'Network' && <SocialGraphPanel stats={stats} />}
-
-        {tab === 'Future' && <FuturePanel stats={stats} />}
-
-        {tab === 'Participation' && <Participation stats={stats} />}
-
-        {tab === 'Songs' && (
-          <>
-            <SongsPanel stats={stats} />
-            <GenrePanel stats={stats} />
-            <ConsensusPanel stats={stats} />
-            <ArtistsPanel stats={stats} />
-          </>
-        )}
-
-        {tab === 'Players' && (
-          <>
-            <PlayersPanel stats={stats} />
-            <PlayerProfiles stats={stats} />
-          </>
-        )}
+        {tab === 'The Race' && <TheRaceTab stats={stats} />}
+        {tab === 'The Songs' && <TheSongsTab stats={stats} />}
+        {tab === 'The Room' && <TheRoomTab stats={stats} />}
+        {tab === 'Players' && <PlayersTab stats={stats} />}
+        {tab === 'Play-by-Play' && <PlayByPlayTab stats={stats} />}
       </main>
 
       <footer className="foot">

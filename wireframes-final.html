@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Music League Dashboard — Final IA Wireframes</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.5; padding: 24px; max-width: 1200px; margin: 0 auto; }
+h1 { font-size: 26px; margin-bottom: 4px; color: #fff; }
+h2 { font-size: 18px; margin: 48px 0 8px; color: #58a6ff; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
+h3 { font-size: 13px; margin: 20px 0 8px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.06em; }
+p.subtitle { color: #8b949e; font-size: 13px; margin-bottom: 24px; }
+.tabs { display: flex; gap: 2px; margin: 16px 0 20px; background: #21262d; border-radius: 8px; overflow: hidden; }
+.tab { padding: 9px 18px; font-size: 13px; color: #8b949e; }
+.tab.on { background: #30363d; color: #fff; font-weight: 600; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 12px 0; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 12px 0; }
+.card { border: 1px solid #30363d; border-radius: 8px; padding: 14px; background: #0d1117; }
+.card-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.card-value { font-size: 18px; color: #fff; font-weight: 600; }
+.card-sm { font-size: 14px; }
+.card-subject { font-size: 13px; color: #c9d1d9; margin-top: 2px; }
+.card-meta { font-size: 11px; color: #8b949e; margin-top: 4px; }
+.card-link { font-size: 10px; color: #58a6ff; margin-top: 6px; display: block; }
+.wide { grid-column: 1 / -1; }
+.placeholder { border: 1px dashed #30363d; border-radius: 8px; padding: 16px; text-align: center; color: #484f58; font-style: italic; min-height: 70px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.placeholder.tall { min-height: 140px; }
+.placeholder.hero { min-height: 200px; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+.table th { text-align: left; padding: 6px 8px; color: #8b949e; border-bottom: 1px solid #21262d; font-weight: 500; }
+.table td { padding: 6px 8px; border-bottom: 1px solid #161b22; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.dim { color: #484f58; }
+.tag { display: inline-block; background: #21262d; border-radius: 4px; padding: 2px 6px; font-size: 10px; margin: 2px 2px 2px 0; }
+.tag.green { background: #1b3a2a; color: #3fb950; }
+.tag.red { background: #3d1a1a; color: #f85149; }
+.tag.orange { background: #3d2a1a; color: #f0883e; }
+.tag.blue { background: #1a2d3d; color: #58a6ff; }
+.tag.purple { background: #2d1a3d; color: #a371f7; }
+.gateway { border: 1px solid #21262d; border-radius: 8px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+.gateway .arrow { color: #58a6ff; font-size: 18px; }
+.anno { font-size: 11px; padding: 3px 0; color: #8b949e; border-left: 2px solid #30363d; padding-left: 8px; margin: 4px 0; }
+.new { border-left-color: #f0883e; color: #f0883e; }
+.section { border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin: 24px 0; background: #161b22; }
+.section-title { font-size: 16px; color: #fff; font-weight: 600; margin-bottom: 4px; }
+.section-q { font-size: 13px; color: #f0883e; font-style: italic; margin-bottom: 16px; }
+hr { border: none; border-top: 1px solid #21262d; margin: 32px 0; }
+.player-header { display: flex; gap: 16px; align-items: center; border: 1px solid #30363d; border-radius: 8px; padding: 16px; background: #0d1117; margin: 12px 0; }
+.player-header .rank { font-size: 24px; color: #484f58; font-weight: 700; }
+.player-header .info { flex: 1; }
+.player-header .name { font-size: 18px; font-weight: 600; color: #fff; }
+.player-header .traits { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.subtabs { display: flex; gap: 0; margin: 12px 0; border-bottom: 1px solid #30363d; }
+.subtab { padding: 8px 16px; font-size: 12px; color: #8b949e; border-bottom: 2px solid transparent; }
+.subtab.on { color: #fff; border-bottom-color: #58a6ff; }
+.prob-bar { display: flex; height: 24px; border-radius: 4px; overflow: hidden; margin: 8px 0; }
+.prob-bar div { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; }
+.song-card { display: flex; gap: 12px; border: 1px solid #30363d; border-radius: 8px; padding: 12px; margin: 8px 0; background: #0d1117; }
+.song-card .art { min-width: 56px; max-width: 56px; min-height: 56px; background: #21262d; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #484f58; }
+.song-card .details { flex: 1; }
+.song-card .title { font-weight: 600; font-size: 14px; color: #fff; }
+.song-card .artist { font-size: 12px; color: #c9d1d9; }
+.song-card .submitter { font-size: 11px; color: #8b949e; }
+.song-card .fact { font-size: 11px; color: #f0883e; margin-top: 4px; border-left: 2px solid #f0883e; padding-left: 6px; }
+.song-card .cover-info { font-size: 11px; color: #a371f7; margin-top: 4px; border-left: 2px solid #a371f7; padding-left: 6px; }
+.song-card .score { min-width: 50px; text-align: right; }
+.song-card .score-num { font-size: 18px; font-weight: 700; color: #3fb950; }
+.song-card .score-neg { color: #f85149; }
+.filter-bar { background: #21262d; border-radius: 8px; padding: 8px 14px; margin: 12px 0; font-size: 11px; display: flex; gap: 12px; align-items: center; color: #8b949e; flex-wrap: wrap; }
+.filter-bar .active { color: #fff; text-decoration: underline; }
+.round-row { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #161b22; font-size: 12px; }
+.round-row .r-name { min-width: 120px; color: #8b949e; }
+.round-row .r-songs { flex: 1; display: flex; gap: 4px; flex-wrap: wrap; }
+.round-row .r-chip { padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+.round-row .r-chip.up { background: #1b3a2a; color: #3fb950; }
+.round-row .r-chip.down { background: #3d1a1a; color: #f85149; }
+.round-row .r-chip.zero { background: #21262d; color: #8b949e; }
+</style>
+</head>
+<body>
+
+<h1>Music League — Final IA Wireframes</h1>
+<p class="subtitle">Option A + C hybrid. Each tab answers one question. Orange highlights = new music metadata features. Purple = cover/original relationship.</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 1: OVERVIEW -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+<div class="section-title">Tab 1: Overview</div>
+<div class="section-q">"What's the story of this league?"</div>
+
+<div class="tabs">
+  <div class="tab on">Overview</div>
+  <div class="tab">The Race</div>
+  <div class="tab">The Songs</div>
+  <div class="tab">The Room</div>
+  <div class="tab">Players</div>
+</div>
+
+<h3>Headlines — the hook</h3>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-label">The cost of silence</div>
+    <div class="card-value card-sm">Caroline</div>
+    <div class="card-meta">0 votes in 6 rounds · 43 pts forfeited</div>
+    <span class="card-link">→ Players</span>
+  </div>
+  <div class="card">
+    <div class="card-label">Mutually assured destruction</div>
+    <div class="card-value card-sm">464 up / 348 down</div>
+    <div class="card-meta">Only 105 survived · 7 of 12 below zero</div>
+    <span class="card-link">→ The Race</span>
+  </div>
+  <div class="card">
+    <div class="card-label">Genre</div>
+    <div class="card-value card-sm">Pop dominates, R&B wins</div>
+    <div class="card-meta">19 Pop songs at −1.3 each · 7 R&B at +2.3</div>
+    <span class="card-link">→ The Songs</span>
+  </div>
+</div>
+
+<h3>Showcase — top songs with enriched metadata</h3>
+<div class="grid-4">
+  <div class="card">
+    <div class="placeholder" style="min-height:48px;">🎵 art</div>
+    <div style="font-weight:600; font-size:13px; margin-top:6px; color:#fff;">Real Love</div>
+    <div style="font-size:11px;">Mary J. Blige</div>
+    <div style="margin-top:4px;"><span class="tag green">16 pts</span> <span class="tag blue">1992</span> <span class="tag orange">Pop 72</span></div>
+    <div class="anno new" style="margin-top:6px; font-size:10px;">Certified Gold · peaked #7 Hot 100</div>
+  </div>
+  <div class="card">
+    <div class="placeholder" style="min-height:48px;">🎵 art</div>
+    <div style="font-weight:600; font-size:13px; margin-top:6px; color:#fff;">I Shall Be Released</div>
+    <div style="font-size:11px;">Nina Simone</div>
+    <div style="margin-top:4px;"><span class="tag green">15 (forf.)</span> <span class="tag blue">1971</span> <span class="tag purple">cover</span></div>
+    <div class="anno" style="margin-top:6px; font-size:10px; border-left-color:#a371f7; color:#a371f7;">Original: Bob Dylan (1967)</div>
+  </div>
+  <div class="card">
+    <div class="placeholder" style="min-height:48px;">🎵 art</div>
+    <div style="font-weight:600; font-size:13px; margin-top:6px; color:#fff;">Shine</div>
+    <div style="font-size:11px;">Dolly Parton</div>
+    <div style="margin-top:4px;"><span class="tag green">13 pts</span> <span class="tag blue">2001</span> <span class="tag purple">cover</span></div>
+    <div class="anno" style="margin-top:6px; font-size:10px; border-left-color:#a371f7; color:#a371f7;">Original: Collective Soul (1993)</div>
+  </div>
+  <div class="card">
+    <div class="placeholder" style="min-height:48px;">🎵 art</div>
+    <div style="font-weight:600; font-size:13px; margin-top:6px; color:#fff;">About A Girl</div>
+    <div style="font-size:11px;">Nirvana</div>
+    <div style="margin-top:4px;"><span class="tag green">11 pts</span> <span class="tag blue">1989</span> <span class="tag orange">Pop 68</span></div>
+    <div class="anno new" style="margin-top:6px; font-size:10px;">Written about Tracy Marander; she found out from a biography</div>
+  </div>
+</div>
+
+<h3>Gateway cards — teasers that link to tabs</h3>
+<div class="grid">
+  <div class="gateway">
+    <div>
+      <div style="font-weight:600; color:#fff; font-size:14px;">The Race</div>
+      <div style="font-size:12px; color:#8b949e; margin-top:2px;">Caroline: <strong style="color:#3fb950;">72%</strong> chance to win · Cynthia: 14% · 10 others splitting 14%</div>
+      <div class="placeholder" style="min-height:40px; margin-top:6px; border:none; padding:0; justify-content:flex-start;">
+        <div class="prob-bar" style="width:100%; height:20px;">
+          <div style="width:72%; background:#3fb950;">72%</div>
+          <div style="width:14%; background:#58a6ff;">14%</div>
+          <div style="width:14%; background:#30363d; color:#8b949e;">…</div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="gateway">
+    <div>
+      <div style="font-weight:600; color:#fff; font-size:14px;">The Room</div>
+      <div style="font-size:12px; color:#8b949e; margin-top:2px;">2 clusters · strongest tie: Greggo → t33nwitch (15 pts)</div>
+      <div class="placeholder" style="min-height:50px; margin-top:6px; border:none; padding:0;">[ mini graph: 12 nodes, coloured clusters ]</div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="gateway">
+    <div>
+      <div style="font-weight:600; color:#f0883e; font-size:14px;">The League's Taste</div>
+      <div style="font-size:12px; color:#8b949e; margin-top:2px;">Obscure picks outscore popular ones by 2.1 pts on average</div>
+      <div style="font-size:12px; color:#8b949e;">Median submission year: 2006 · sweet spot: 1985–2000</div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="gateway">
+    <div>
+      <div style="font-weight:600; color:#fff; font-size:14px;">Players</div>
+      <div style="font-size:12px; color:#8b949e; margin-top:2px;">12 players · 3 archetypes: Archaeologists, Curators, Populists</div>
+      <div style="font-size:11px; margin-top:4px;">
+        <span class="tag">Greggo: 🏺 1988</span>
+        <span class="tag">t33nwitch: 🎧 2004</span>
+        <span class="tag">Caroline: 📻 2016</span>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+</div>
+
+<h3>Superlatives — best of, as gateways</h3>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-label">🎵 Biggest single haul <span style="color:#58a6ff;">→ Songs</span></div>
+    <div class="card-value card-sm">16 pts</div>
+    <div class="card-subject">Real Love</div>
+    <div class="card-meta">Mary J. Blige · Born This Way</div>
+  </div>
+  <div class="card">
+    <div class="card-label">🤝 Biggest superfan <span style="color:#58a6ff;">→ Room</span></div>
+    <div class="card-value card-sm">Greggo → t33nwitch</div>
+    <div class="card-subject">15 pts given</div>
+    <div class="card-meta">58% of what the rules allowed</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">🏺 Deepest cut to score <span style="color:#58a6ff;">→ Songs</span></div>
+    <div class="card-value card-sm">Popularity 12</div>
+    <div class="card-subject">O Superman — Laurie Anderson</div>
+    <div class="card-meta">Scored 3 pts despite near-zero Spotify presence</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">💀 Biggest hit to bomb <span style="color:#58a6ff;">→ Songs</span></div>
+    <div class="card-value card-sm">Popularity 95 → 1 pt</div>
+    <div class="card-subject">APT. — ROSÉ & Bruno Mars</div>
+    <div class="card-meta">Best-selling single of 2025; this room gave it 1 point</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">📅 The Archaeologist <span style="color:#58a6ff;">→ Players</span></div>
+    <div class="card-value card-sm">Median year: 1988</div>
+    <div class="card-subject">Greggo</div>
+    <div class="card-meta">Oldest taste in the league · avg popularity 34</div>
+  </div>
+  <div class="card">
+    <div class="card-label">🎯 Biggest contrarian <span style="color:#58a6ff;">→ Players</span></div>
+    <div class="card-value card-sm">64% against the room</div>
+    <div class="card-subject">Greggo</div>
+    <div class="card-meta">Picks averaged 36th percentile elsewhere</div>
+  </div>
+</div>
+<div class="dim" style="font-size:11px; text-align:center; margin-top:4px;">… ~17 more superlatives below the fold</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 2: THE RACE -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+<div class="section-title">Tab 2: The Race</div>
+<div class="section-q">"Who's going to win?"</div>
+
+<div class="tabs">
+  <div class="tab">Overview</div>
+  <div class="tab on">The Race</div>
+  <div class="tab">The Songs</div>
+  <div class="tab">The Room</div>
+  <div class="tab">Players</div>
+</div>
+
+<h3>Win probability — Monte Carlo projection (10,000 simulations)</h3>
+<div class="card wide">
+  <div class="card-label">Probability of finishing #1 after 10 rounds</div>
+  <div class="prob-bar" style="margin-top:8px;">
+    <div style="width:72%; background:#3fb950;">Caroline C— 72%</div>
+    <div style="width:14%; background:#58a6ff;">Cynthia 14%</div>
+    <div style="width:5%; background:#a371f7;">t33nwitch 5%</div>
+    <div style="width:9%; background:#30363d; color:#8b949e;">others 9%</div>
+  </div>
+  <div class="card-meta" style="margin-top:8px;">Based on each player's observed per-round score distribution (mean, variance) sampled across 4 remaining rounds. Caroline's lead is 30 pts; the largest 4-round swing observed is 22.</div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Expected final score (5th–95th percentile)</div>
+    <table class="table">
+      <tr><th></th><th>Player</th><th class="num">Current</th><th class="num">Projected</th><th class="num">Range</th><th class="num">Win%</th></tr>
+      <tr><td>1</td><td>Caroline C—</td><td class="num">44</td><td class="num" style="color:#3fb950;">58</td><td class="num dim">44–74</td><td class="num" style="color:#3fb950;">72%</td></tr>
+      <tr><td>2</td><td>Cynthia D—</td><td class="num">14</td><td class="num">24</td><td class="num dim">8–42</td><td class="num">14%</td></tr>
+      <tr><td>3</td><td>t33nwitch</td><td class="num">5</td><td class="num">12</td><td class="num dim">−4–30</td><td class="num">5%</td></tr>
+      <tr><td>…</td><td colspan="5" class="dim">9 more players</td></tr>
+      <tr><td>12</td><td>Greggo</td><td class="num">−28</td><td class="num" style="color:#f85149;">−36</td><td class="num dim">−52–−16</td><td class="num dim">0.1%</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-label">Key scenarios</div>
+    <div style="font-size:12px; margin-top:8px;">
+      <div style="padding:6px 0; border-bottom:1px solid #21262d;"><strong>For Cynthia to overtake Caroline:</strong> needs to outscore her by 8 pts/round for 4 rounds. Happened 0 of 6 times so far. Probability: 14%.</div>
+      <div style="padding:6px 0; border-bottom:1px solid #21262d;"><strong>Caroline's floor:</strong> even her worst 4-round projection (5th percentile) keeps her at 44 — still #1.</div>
+      <div style="padding:6px 0; border-bottom:1px solid #21262d;"><strong>Kingmaker:</strong> Greggo's ballot alone changed who won a round once. His voting pattern affects Caroline's margin by ~3 pts/round.</div>
+      <div style="padding:6px 0;"><strong>If Caroline votes:</strong> simulation with voting restores her forfeited pts → projected finish: 92 pts (league uncompetitive).</div>
+    </div>
+  </div>
+</div>
+
+<h3>Score timeline</h3>
+<div class="placeholder tall">📈 Line chart — all 12 players, 6 rounds so far, greyed projection cone for remaining 4</div>
+
+<h3>Score breakdown</h3>
+<div class="placeholder">Table: player × up/down/forfeit/floor — as currently exists</div>
+
+<h3>Rounds</h3>
+<div class="placeholder">Expandable per-round results — winner, songs ranked</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 3: THE SONGS -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+<div class="section-title">Tab 3: The Songs</div>
+<div class="section-q">"What did people submit, and what does the room actually like?"</div>
+
+<div class="tabs">
+  <div class="tab">Overview</div>
+  <div class="tab">The Race</div>
+  <div class="tab on">The Songs</div>
+  <div class="tab">The Room</div>
+  <div class="tab">Players</div>
+</div>
+
+<h3>Taste bias — what wins here?</h3>
+<div class="grid">
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">Popularity vs Score</div>
+    <div class="placeholder" style="min-height:120px;">Scatter plot<br>X = Spotify popularity (0–100)<br>Y = league score<br>Each dot is a song, coloured by submitter<br>Trendline: −0.04 pts per popularity point<br><br><strong>"The room punishes mainstream picks."</strong></div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">Era vs Score</div>
+    <div class="placeholder" style="min-height:120px;">Horizontal bar chart — decade buckets<br><br>Pre-1980: ██████░ +0.8 (6 songs)<br>1980s: ████████░ +1.2 (11 songs)<br>1990s: ██████████░ +1.6 (14 songs)<br>2000s: ███░ −0.3 (12 songs)<br>2010s: ██░ −0.8 (15 songs)<br>2020s: █░ −1.1 (10 songs)<br><br><strong>"The sweet spot is 1985–2000."</strong></div>
+  </div>
+</div>
+<div class="card wide" style="margin-top:8px;">
+  <div class="card-label" style="color:#f0883e;">Verdict</div>
+  <div style="font-size:13px; color:#fff;">This league rewards older, less-popular music. The optimal profile: something from the mid-90s with Spotify popularity under 50. Songs matching that profile average +2.4 pts; songs outside it average −0.9.</div>
+</div>
+
+<h3>The Collection — browsable song cards</h3>
+<div class="filter-bar">
+  <span>Sort:</span>
+  <span class="active">Score ↓</span>
+  <span>Year</span>
+  <span>Popularity</span>
+  <span>Duration</span>
+  <span>Breadth</span>
+  <span>|</span>
+  <span>Filter:</span>
+  <span>Genre ▾</span>
+  <span>Decade ▾</span>
+  <span>Round ▾</span>
+  <span>Submitter ▾</span>
+  <span style="color:#a371f7;">Covers only</span>
+</div>
+
+<div class="song-card">
+  <div class="art">🎵</div>
+  <div class="details">
+    <div class="title">Real Love</div>
+    <div class="artist">Mary J. Blige</div>
+    <div class="submitter">t33nwitch · Born This Way</div>
+    <div style="margin-top:4px;">
+      <span class="tag blue">1992</span>
+      <span class="tag orange">Pop 72</span>
+      <span class="tag">4:02</span>
+      <span class="tag green">90% breadth</span>
+    </div>
+    <div class="fact">Topped the Hot R&B chart · certified Gold · Blige's first top-10 on the Hot 100</div>
+  </div>
+  <div class="score">
+    <div class="score-num">16</div>
+    <div style="font-size:10px; color:#8b949e;">+16 / −0</div>
+  </div>
+</div>
+
+<div class="song-card">
+  <div class="art">🎵</div>
+  <div class="details">
+    <div class="title">I Shall Be Released</div>
+    <div class="artist">Nina Simone</div>
+    <div class="submitter">Caroline · Secondhand Hits</div>
+    <div style="margin-top:4px;">
+      <span class="tag blue">1971</span>
+      <span class="tag orange">Pop 41</span>
+      <span class="tag">3:38</span>
+      <span class="tag purple">cover</span>
+    </div>
+    <div class="cover-info">Cover of Bob Dylan (1967) · from the Basement Tapes sessions</div>
+    <div class="fact">Rolling Stone's Jann Wenner compared the original demo's vocal to the Bee Gees</div>
+  </div>
+  <div class="score">
+    <div class="score-num" style="text-decoration: line-through; color:#f0883e;">15</div>
+    <div style="font-size:10px; color:#f0883e;">forfeited</div>
+  </div>
+</div>
+
+<div class="song-card">
+  <div class="art">🎵</div>
+  <div class="details">
+    <div class="title">Enter Sandman</div>
+    <div class="artist">Alessia Cara, The Warning</div>
+    <div class="submitter">Meredith C— · Secondhand Hits</div>
+    <div style="margin-top:4px;">
+      <span class="tag blue">2021</span>
+      <span class="tag orange">Pop 45</span>
+      <span class="tag">5:18</span>
+      <span class="tag purple">cover</span>
+    </div>
+    <div class="cover-info">Cover of Metallica (1991) · original was 9× platinum, 30M+ copies sold</div>
+    <div class="fact">The Warning covered this as preteens; Metallica invited them to record their own version</div>
+  </div>
+  <div class="score">
+    <div class="score-num">7</div>
+    <div style="font-size:10px; color:#8b949e;">+9 / −2</div>
+  </div>
+</div>
+
+<div class="song-card">
+  <div class="art">🎵</div>
+  <div class="details">
+    <div class="title">APT.</div>
+    <div class="artist">ROSÉ, Bruno Mars</div>
+    <div class="submitter">Caroline · Algorithm & Blues</div>
+    <div style="margin-top:4px;">
+      <span class="tag blue">2024</span>
+      <span class="tag orange">Pop 95</span>
+      <span class="tag">2:42</span>
+    </div>
+    <div class="fact">Best-selling global single of 2025 — first non-Western artist to top the IFPI chart</div>
+  </div>
+  <div class="score">
+    <div class="score-num score-neg">1</div>
+    <div style="font-size:10px; color:#8b949e;">+1 / −0</div>
+  </div>
+</div>
+
+<div class="dim" style="text-align:center; font-size:11px; margin:8px 0;">… 64 more songs</div>
+
+<h3>Cover/original data — inline on each song card</h3>
+<div class="section-note" style="color:#a371f7;">Cover info is part of the song, not a separate section. The purple "cover" tag and the original-artist line appear on any song that's a cover. Filtering to "Covers only" shows just those cards. The taste bias charts above can also slice by "covers vs originals" if the data is rich enough.</div>
+
+<div class="song-card">
+  <div class="art">🎵</div>
+  <div class="details">
+    <div class="title">Smooth Criminal</div>
+    <div class="artist">Alien Ant Farm</div>
+    <div class="submitter">Bob · Secondhand Hits</div>
+    <div style="margin-top:4px;">
+      <span class="tag blue">2001</span>
+      <span class="tag orange">Pop 71</span>
+      <span class="tag">3:32</span>
+      <span class="tag purple">cover</span>
+    </div>
+    <div class="cover-info">Original: Michael Jackson (1987) · 14-year gap · reached #7 on Hot 100; famous for the anti-gravity lean</div>
+  </div>
+  <div class="score">
+    <div class="score-num">4</div>
+    <div style="font-size:10px; color:#8b949e;">+7 / −3</div>
+  </div>
+</div>
+
+<div class="song-card">
+  <div class="art">🎵</div>
+  <div class="details">
+    <div class="title">American Woman</div>
+    <div class="artist">Lenny Kravitz</div>
+    <div class="submitter">Tim E— · Secondhand Hits</div>
+    <div style="margin-top:4px;">
+      <span class="tag blue">1999</span>
+      <span class="tag orange">Pop 63</span>
+      <span class="tag">3:46</span>
+      <span class="tag purple">cover</span>
+    </div>
+    <div class="cover-info">Original: The Guess Who (1970) · 29-year gap · #1 in US and Canada; improvised when a guitar string broke</div>
+  </div>
+  <div class="score">
+    <div class="score-num">5</div>
+    <div style="font-size:10px; color:#8b949e;">+8 / −3</div>
+  </div>
+</div>
+
+<div class="card-meta" style="margin-top:12px; color:#a371f7;">When Round 10 (remixes) lands, the same pattern applies — a purple "remix" tag, with "Original: Artist (year)" inline. No dedicated panel needed; it's just an attribute of the song.</div>
+
+<h3>Genre table + Artists (as existing, enhanced)</h3>
+<div class="grid">
+  <div class="placeholder">Genre table — performance vs league avg (9 rows, as now)</div>
+  <div class="placeholder">Artists table — now with era range + avg popularity per artist</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 4: THE ROOM -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+<div class="section-title">Tab 4: The Room</div>
+<div class="section-q">"How do people relate to each other?"</div>
+
+<div class="tabs">
+  <div class="tab">Overview</div>
+  <div class="tab">The Race</div>
+  <div class="tab">The Songs</div>
+  <div class="tab on">The Room</div>
+  <div class="tab">Players</div>
+</div>
+
+<h3>The Graph — hero</h3>
+<div class="placeholder hero">🕸️ Force-directed graph — full width, large<br><br>• Nodes sized by total score<br>• Edge thickness = mutual warmth<br>• Node colour = cluster<br>• Click node → highlights edges, shows pair stats<br>• Toggle: All edges / Strongest ties / Clusters only</div>
+
+<h3>Pair superlatives — annotating the edges</h3>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-label">Biggest superfan</div>
+    <div class="card-value card-sm">Greggo → t33nwitch</div>
+    <div class="card-meta">15 pts · 58% of allowed · 4 rounds</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Coldest shoulder</div>
+    <div class="card-value card-sm">Go_BirdzDH → Brittny</div>
+    <div class="card-meta">0 pts in 6 chances</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Mutual admiration</div>
+    <div class="card-value card-sm">Cynthia ↔ Go_BirdzDH</div>
+    <div class="card-meta">15 pts traded, near even (8/7)</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Most unrequited</div>
+    <div class="card-value card-sm">Greggo → Megan</div>
+    <div class="card-meta">Gave 8, got 0 back</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Arch-nemesis</div>
+    <div class="card-value card-sm">t33nwitch → Greggo</div>
+    <div class="card-meta">6 downvote pts across 4 rounds</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">Taste overlap</div>
+    <div class="card-value card-sm">Cynthia ↔ Caroline</div>
+    <div class="card-meta">Submit from same era/popularity band; vote similarly</div>
+  </div>
+</div>
+
+<h3>Affinity matrix</h3>
+<div class="placeholder tall">NxN heatmap — rows = voters, cols = submitters<br>Colour = net affinity<br>Click cell → pair detail</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 5: PLAYERS -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+<div class="section-title">Tab 5: Players</div>
+<div class="section-q">"Who is this person?"</div>
+
+<div class="tabs">
+  <div class="tab">Overview</div>
+  <div class="tab">The Race</div>
+  <div class="tab">The Songs</div>
+  <div class="tab">The Room</div>
+  <div class="tab on">Players</div>
+</div>
+
+<h3>Player list — click to select</h3>
+<div class="card wide">
+<table class="table">
+  <tr>
+    <th></th><th>Player</th><th class="num">Score</th><th class="num">Up</th><th class="num">Down</th><th class="num">Forf.</th>
+    <th class="num" style="color:#f0883e;">Med. Year</th>
+    <th class="num" style="color:#f0883e;">Avg Pop</th>
+    <th>Archetype</th>
+  </tr>
+  <tr style="background:#1a2d3d;">
+    <td>1</td><td><strong style="color:#fff;">Caroline C—</strong></td><td class="num">44</td><td class="num">54</td><td class="num">10</td><td class="num" style="color:#f0883e;">43</td>
+    <td class="num" style="color:#f0883e;">2016</td><td class="num" style="color:#f0883e;">64</td>
+    <td><span class="tag orange">Populist</span></td>
+  </tr>
+  <tr>
+    <td>2</td><td>Cynthia D—</td><td class="num">14</td><td class="num">31</td><td class="num">17</td><td class="num">0</td>
+    <td class="num" style="color:#f0883e;">2008</td><td class="num" style="color:#f0883e;">52</td>
+    <td><span class="tag blue">Curator</span></td>
+  </tr>
+  <tr>
+    <td>…</td><td colspan="8" class="dim">10 more players</td>
+  </tr>
+  <tr>
+    <td>12</td><td>Greggo</td><td class="num">−28</td><td class="num">8</td><td class="num">29</td><td class="num">7</td>
+    <td class="num" style="color:#f0883e;">1988</td><td class="num" style="color:#f0883e;">34</td>
+    <td><span class="tag purple">Archaeologist</span></td>
+  </tr>
+</table>
+</div>
+
+<hr>
+
+<h3>Selected player: Greggo</h3>
+<div class="player-header">
+  <div class="rank">#12</div>
+  <div class="info">
+    <div class="name">Greggo <span class="dim" style="font-weight:400; font-size:14px;">−28 pts</span></div>
+    <div class="traits">
+      <span class="tag green">+8 up</span>
+      <span class="tag red">−29 down</span>
+      <span class="tag orange">−7 forfeited</span>
+      <span class="tag purple">🏺 Archaeologist</span>
+    </div>
+    <div style="font-size:12px; color:#8b949e; margin-top:6px;">
+      Era: 1976–2002 (median 1988) · Avg popularity: 34 · Biggest contrarian (64%) · Fan: Laura M · Sceptic: t33nwitch (net −5)
+    </div>
+    <div style="font-size:12px; color:#f0883e; margin-top:4px;">
+      Submits old, obscure music in a league that rewards it on paper — but attracts 4.8 downvotes per song, the most of anyone.
+    </div>
+  </div>
+</div>
+
+<div class="subtabs">
+  <div class="subtab on">Submissions</div>
+  <div class="subtab">Votes Given</div>
+  <div class="subtab">Votes Received</div>
+</div>
+
+<h3>Sub-view: Submissions</h3>
+<div class="song-card">
+  <div class="art">🎵</div>
+  <div class="details">
+    <div class="title">Brass Monkey</div>
+    <div class="artist">Beastie Boys</div>
+    <div class="submitter">Born This Way (round 1)</div>
+    <div style="margin-top:4px;">
+      <span class="tag blue">1986</span>
+      <span class="tag orange">Pop 55</span>
+      <span class="tag">3:33</span>
+    </div>
+    <div class="fact">From Licensed to Ill; also on the compilation Solid Gold Hits</div>
+  </div>
+  <div class="score">
+    <div class="score-num">4</div>
+    <div style="font-size:10px; color:#8b949e;">+6 / −2</div>
+  </div>
+</div>
+<div class="song-card">
+  <div class="art">🎵</div>
+  <div class="details">
+    <div class="title">Trogdor</div>
+    <div class="artist">Strong Bad</div>
+    <div class="submitter">Brain FM (round 4)</div>
+    <div style="margin-top:4px;">
+      <span class="tag blue">2003</span>
+      <span class="tag orange">Pop 18</span>
+      <span class="tag">2:14</span>
+    </div>
+  </div>
+  <div class="score">
+    <div class="score-num score-neg">−5</div>
+    <div style="font-size:10px; color:#8b949e;">+2 / −7</div>
+  </div>
+</div>
+<div class="dim" style="text-align:center; font-size:11px; margin:8px 0;">… 4 more songs</div>
+<div class="card-meta" style="margin-top:8px; color:#f0883e;">Greggo's submissions: avg popularity 34, avg year 1991. The league's sweet spot (pop <50, year <2000) should favour him, but his specific picks attract more downvotes than average for that profile. Taste alignment alone doesn't explain it — it's the specific songs, not the era.</div>
+
+<hr style="margin:16px 0;">
+
+<h3>Sub-view: Votes Given (round-by-round)</h3>
+<div class="section-note">Every song Greggo voted on, grouped by round. Shows who he supported and who he attacked.</div>
+
+<div class="round-row">
+  <div class="r-name">Born This Way</div>
+  <div class="r-songs">
+    <span class="r-chip up">+5 Real Love</span>
+    <span class="r-chip up">+3 About A Girl</span>
+    <span class="r-chip up">+2 Like a Prayer</span>
+    <span class="r-chip down">−3 Candy</span>
+    <span class="r-chip down">−2 Nothing's Gonna Stop Us</span>
+  </div>
+</div>
+<div class="round-row">
+  <div class="r-name">Served Hot</div>
+  <div class="r-songs">
+    <span class="r-chip up">+4 Gin and Juice</span>
+    <span class="r-chip up">+3 Watermelon Man</span>
+    <span class="r-chip up">+2 Cherry Bomb</span>
+    <span class="r-chip down">−3 Candy Shop</span>
+    <span class="r-chip down">−2 Honey</span>
+  </div>
+</div>
+<div class="round-row">
+  <div class="r-name">Algorithm & Blues</div>
+  <div class="r-songs">
+    <span class="r-chip up">+5 O Superman</span>
+    <span class="r-chip up">+3 Champagne Coast</span>
+    <span class="r-chip down">−3 APT.</span>
+    <span class="r-chip down">−2 Boom Boom Pow</span>
+    <span class="r-chip zero">0 (7 songs)</span>
+  </div>
+</div>
+<div class="dim" style="font-size:11px; margin:8px 0;">… 3 more rounds</div>
+
+<div class="card-meta" style="margin-top:8px;">Pattern: Greggo consistently upvotes older/rock songs and downvotes recent pop. Correlation between his vote and song year: −0.6. He's the most era-biased voter in the league.</div>
+
+<hr style="margin:16px 0;">
+
+<h3>Sub-view: Votes Received (who votes on Greggo's songs)</h3>
+<div class="card wide">
+<table class="table">
+  <tr><th>Voter</th><th class="num">Total Up</th><th class="num">Total Down</th><th class="num">Net</th><th class="num">Net Affinity</th><th>Pattern</th></tr>
+  <tr><td>Laura M</td><td class="num" style="color:#3fb950;">1</td><td class="num">0</td><td class="num">+1</td><td class="num">1.38×</td><td><span class="tag green">only supporter</span></td></tr>
+  <tr><td>Meredith C—</td><td class="num" style="color:#3fb950;">4</td><td class="num" style="color:#f85149;">1</td><td class="num">+3</td><td class="num">0.9×</td><td></td></tr>
+  <tr><td>Go_BirdzDH</td><td class="num" style="color:#3fb950;">4</td><td class="num" style="color:#f85149;">2</td><td class="num">+2</td><td class="num">0.6×</td><td></td></tr>
+  <tr><td>Tim E—</td><td class="num">3</td><td class="num" style="color:#f85149;">3</td><td class="num">0</td><td class="num">0.0×</td><td><span class="tag">neutral</span></td></tr>
+  <tr><td>Bob</td><td class="num">1</td><td class="num" style="color:#f85149;">5</td><td class="num" style="color:#f85149;">−4</td><td class="num" style="color:#f85149;">−0.8×</td><td><span class="tag red">hostile</span></td></tr>
+  <tr><td>t33nwitch</td><td class="num">1</td><td class="num" style="color:#f85149;">6</td><td class="num" style="color:#f85149;">−5</td><td class="num" style="color:#f85149;">−1.2×</td><td><span class="tag red">arch-nemesis</span></td></tr>
+  <tr><td>Cynthia D—</td><td class="num">1</td><td class="num" style="color:#f85149;">5</td><td class="num" style="color:#f85149;">−4</td><td class="num" style="color:#f85149;">−0.9×</td><td><span class="tag red">hostile</span></td></tr>
+  <tr><td colspan="6" class="dim">… 4 more voters</td></tr>
+</table>
+</div>
+<div class="card-meta" style="margin-top:8px;">Only 2 of 11 voters have a positive net toward Greggo. His downvote exposure (4.8/song) is 2× the league average (2.4/song). t33nwitch is the most consistent sceptic — downvoted 5 of 6 songs.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TAB 6: PLAY-BY-PLAY -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section">
+<div class="section-title">Tab 6: Play-by-Play</div>
+<div class="section-q">"What happened each round?"</div>
+
+<div class="tabs">
+  <div class="tab">Overview</div>
+  <div class="tab">The Race</div>
+  <div class="tab">The Songs</div>
+  <div class="tab">The Room</div>
+  <div class="tab">Players</div>
+  <div class="tab on">Play-by-Play</div>
+</div>
+
+<div class="section-note">A scrollable narrative — one "chapter" per round, auto-generated from the data. Each round gets: the winner, the biggest mover, a standout moment, and the state of the race afterward. Reads like a recap column.</div>
+
+<div class="card wide" style="margin-bottom:16px; border-left:3px solid #3fb950;">
+  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+    <div>
+      <div class="card-label">Round 1 of 10</div>
+      <div class="card-value card-sm" style="margin-top:2px;">Born This Way</div>
+    </div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">
+      "Submit a song released the year you were born"<br>
+      11 submissions · 10 voters
+    </div>
+  </div>
+  
+  <div style="margin-top:12px; display:flex; gap:16px;">
+    <div style="flex:1;">
+      <div style="font-size:12px; font-weight:600; color:#3fb950; margin-bottom:4px;">🏆 Winner: Real Love — Mary J. Blige (t33nwitch)</div>
+      <div style="font-size:12px; color:#c9d1d9;">16 pts, 90% breadth — the room nearly unanimously loved it. First time a song drew votes from 9 of 10 voters.</div>
+    </div>
+    <div style="min-width:80px; text-align:center;">
+      <div class="placeholder" style="min-height:60px; min-width:60px; font-size:9px; margin:0;">art</div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px; font-size:12px; border-top:1px solid #21262d; padding-top:10px;">
+    <div style="margin-bottom:6px;"><strong style="color:#fff;">The moment:</strong> Caroline's first submission (Creep — Radiohead) pulled 6 upvotes… but she didn't vote, so all 6 were forfeited. She ends the round at −2 instead of +4. The pattern starts here.</div>
+    <div style="margin-bottom:6px;"><strong style="color:#f0883e;">Music note:</strong> Oldest song: Watermelon Man (1962). Most popular: Like a Prayer (Pop 82). Nobody went newer than 1997.</div>
+  </div>
+
+  <div style="margin-top:10px; font-size:11px; color:#8b949e; border-top:1px solid #21262d; padding-top:8px;">
+    <strong>Standings after round 1:</strong> t33nwitch (10) · Meredith (6) · Bob (4) · … · Greggo (−2) · Caroline (−2)
+  </div>
+</div>
+
+<div class="card wide" style="margin-bottom:16px; border-left:3px solid #58a6ff;">
+  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+    <div>
+      <div class="card-label">Round 2 of 10</div>
+      <div class="card-value card-sm" style="margin-top:2px;">Served Hot</div>
+    </div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">
+      "Song title must contain a food or drink"<br>
+      12 submissions · 10 voters
+    </div>
+  </div>
+  
+  <div style="margin-top:12px; display:flex; gap:16px;">
+    <div style="flex:1;">
+      <div style="font-size:12px; font-weight:600; color:#3fb950; margin-bottom:4px;">🏆 Winner: Gin and Juice — Snoop Dogg (Greggo)</div>
+      <div style="font-size:12px; color:#c9d1d9;">8 pts — Greggo's only round with a positive net score. Even his detractors voted for this one.</div>
+    </div>
+    <div style="min-width:80px; text-align:center;">
+      <div class="placeholder" style="min-height:60px; min-width:60px; font-size:9px; margin:0;">art</div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px; font-size:12px; border-top:1px solid #21262d; padding-top:10px;">
+    <div style="margin-bottom:6px;"><strong style="color:#fff;">The moment:</strong> The Candy wars — Mandy Moore's "Candy" (1999) and 50 Cent's "Candy Shop" (2003) split the room evenly. Together they drew 14 downvotes. The theme brought out strong opinions.</div>
+    <div style="margin-bottom:6px;"><strong style="color:#fff;">Biggest mover:</strong> Caroline climbs to 1st despite still not voting — her Honey (Mariah Carey) pulled 11 upvotes.</div>
+  </div>
+
+  <div style="margin-top:10px; font-size:11px; color:#8b949e; border-top:1px solid #21262d; padding-top:8px;">
+    <strong>Standings after round 2:</strong> Caroline (12) · t33nwitch (8) · Cynthia (7) · … · Greggo (−6)
+  </div>
+</div>
+
+<div class="card wide" style="margin-bottom:16px; border-left:3px solid #a371f7;">
+  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+    <div>
+      <div class="card-label">Round 3 of 10</div>
+      <div class="card-value card-sm" style="margin-top:2px;">Algorithm & Blues</div>
+    </div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">
+      "A song the algorithm gave you"<br>
+      12 submissions · 9 voters
+    </div>
+  </div>
+  
+  <div style="margin-top:12px; display:flex; gap:16px;">
+    <div style="flex:1;">
+      <div style="font-size:12px; font-weight:600; color:#3fb950; margin-bottom:4px;">🏆 Winner: Champagne Coast — Blood Orange (Cynthia D—)</div>
+      <div style="font-size:12px; color:#c9d1d9;">7 pts — low-scoring round. The algorithm theme produced the league's most niche submissions: avg popularity 38, lowest of any round.</div>
+    </div>
+    <div style="min-width:80px; text-align:center;">
+      <div class="placeholder" style="min-height:60px; min-width:60px; font-size:9px; margin:0;">art</div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px; font-size:12px; border-top:1px solid #21262d; padding-top:10px;">
+    <div style="margin-bottom:6px;"><strong style="color:#fff;">The moment:</strong> O Superman (Laurie Anderson) — an 8-minute minimalist piece from 1981 — becomes the most divisive song in the league's history. ±3.0 spread: people either gave it 5 or gave it −3. Nobody was neutral.</div>
+    <div style="margin-bottom:6px;"><strong style="color:#f0883e;">Music note:</strong> APT. (ROSÉ & Bruno Mars, Pop 95) was the most popular song submitted all season — and scored just 1 pt from a single voter. The league's anti-mainstream bias in a single data point.</div>
+  </div>
+
+  <div style="margin-top:10px; font-size:11px; color:#8b949e; border-top:1px solid #21262d; padding-top:8px;">
+    <strong>Standings after round 3:</strong> Caroline (18) · Cynthia (14) · t33nwitch (9) · … · Greggo (−12)
+  </div>
+</div>
+
+<div class="dim" style="text-align:center; font-size:12px; margin:16px 0;">… Rounds 4, 5, 6 follow the same format</div>
+
+<div class="card wide" style="margin-bottom:16px; border-left:3px solid #a371f7;">
+  <div style="display:flex; justify-content:space-between; align-items:baseline;">
+    <div>
+      <div class="card-label">Round 6 of 10</div>
+      <div class="card-value card-sm" style="margin-top:2px;">Secondhand Hits</div>
+    </div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">
+      "Your favourite cover song"<br>
+      11 submissions · 9 voters
+    </div>
+  </div>
+  
+  <div style="margin-top:12px; display:flex; gap:16px;">
+    <div style="flex:1;">
+      <div style="font-size:12px; font-weight:600; color:#3fb950; margin-bottom:4px;">🏆 Winner: Shine — Dolly Parton covering Collective Soul (Brittny L—)</div>
+      <div style="font-size:12px; color:#c9d1d9;">13 pts — the round where covers of older originals dominated. Songs covering pre-1990 material averaged +5; post-2000 averaged −1.</div>
+    </div>
+    <div style="min-width:80px; text-align:center;">
+      <div class="placeholder" style="min-height:60px; min-width:60px; font-size:9px; margin:0;">art</div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px; font-size:12px; border-top:1px solid #21262d; padding-top:10px;">
+    <div style="margin-bottom:6px;"><strong style="color:#fff;">The moment:</strong> Caroline's I Shall Be Released (Nina Simone covering Bob Dylan) earned 15 pts — would have been the highest score of the season — but she still hadn't voted. 15 points forfeited. Her total forfeited now exceeds everyone else's total earned.</div>
+    <div style="margin-bottom:6px;"><strong style="color:#a371f7;">Cover fact:</strong> Avg gap between cover and original: 15 years. The furthest reach: Enter Sandman (Alessia Cara covering 1991 Metallica, 30-year gap). The shortest: Passionfruit (Yaeji covering 2017 Drake, 2-year gap) — it scored −1.</div>
+    <div style="margin-bottom:6px;"><strong style="color:#fff;">The race:</strong> Caroline extends her lead to 30 pts despite forfeiting again. At this point the Monte Carlo gives her 72% to win. Nobody has ever overcome a 30-point gap in 4 rounds in this league's scoring range.</div>
+  </div>
+
+  <div style="margin-top:10px; font-size:11px; color:#8b949e; border-top:1px solid #21262d; padding-top:8px;">
+    <strong>Standings after round 6:</strong> Caroline C— (44) · Cynthia D— (14) · t33nwitch (5) · … · Greggo (−28)
+  </div>
+</div>
+
+<h3>What gets auto-generated per round</h3>
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Always computed</div>
+    <ul style="font-size:12px; margin:6px 0 0 16px;">
+      <li>Round winner + their score + art</li>
+      <li>Standings after (delta from previous)</li>
+      <li>Biggest mover (largest positive swing)</li>
+      <li>Submission count + voter count</li>
+      <li>Round theme from the export</li>
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-label">Conditionally generated "moments"</div>
+    <ul style="font-size:12px; margin:6px 0 0 16px;">
+      <li>Forfeited score that would have won/changed standings</li>
+      <li>Most divisive song (if spread is an outlier)</li>
+      <li>Lead change or tightest gap</li>
+      <li>Someone's first/only win</li>
+      <li>New "record" (highest score, most downvoted, etc.)</li>
+      <li style="color:#f0883e;">Music data hook: round's avg popularity/year, notable outlier</li>
+      <li style="color:#a371f7;">Cover/remix relationship insight (if themed round)</li>
+      <li>Kingmaker moment (if removing one voter changes the winner)</li>
+    </ul>
+  </div>
+</div>
+<div class="card-meta" style="margin-top:8px;">Each round picks 2–3 of the most interesting moments from the candidate list. No two rounds lead with the same type of moment consecutively. The algorithm ranks by statistical unusualness (z-score against the season) so genuinely notable things rise to the top.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- NOTES -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="section" style="border-color:#484f58;">
+<div class="section-title" style="color:#c9d1d9;">Implementation Notes</div>
+
+<h3>What stays from the current build</h3>
+<ul style="font-size:12px; margin:8px 0 16px 20px;">
+  <li>Parser, scoring engine, stats model — unchanged</li>
+  <li>Bake CLI, redaction, art inlining, genre lookups — unchanged</li>
+  <li>Affinity matrix, graph, genre table — restyled but same logic</li>
+  <li>Superlatives — same computation, new layout (gateway links)</li>
+  <li>Headlines/facts — same</li>
+</ul>
+
+<h3>What's new</h3>
+<ul style="font-size:12px; margin:8px 0 16px 20px;">
+  <li style="color:#f0883e;"><strong>Monte Carlo simulator</strong> — samples from observed per-round distributions, 10k iterations</li>
+  <li style="color:#f0883e;"><strong>Spotify metadata fetch</strong> — popularity, year, duration (requires API key at bake time)</li>
+  <li style="color:#f0883e;"><strong>Taste bias analysis</strong> — correlations between metadata and scores</li>
+  <li style="color:#f0883e;"><strong>Player archetypes</strong> — computed from median year + avg popularity</li>
+  <li style="color:#f0883e;"><strong>Player detail view</strong> — 3 sub-tabs (submissions, votes given, votes received)</li>
+  <li style="color:#f0883e;"><strong>Song cards</strong> — browsable, filterable, with Wikipedia facts + cover info</li>
+  <li style="color:#f0883e;"><strong>Cover/original panel</strong> — relationships for themed rounds</li>
+  <li style="color:#f0883e;"><strong>Projection cone</strong> on timeline chart (grey shading for remaining rounds)</li>
+  <li style="color:#f0883e;"><strong>Gateway cards</strong> on Overview with mini-visualizations</li>
+  <li style="color:#f0883e;"><strong>Play-by-Play tab</strong> — auto-generated narrative recap per round, picking 2–3 moments by statistical unusualness</li>
+  <li>6-tab structure (down from 8)</li>
+  <li>Player table and profiles merged into one view with selection</li>
+  <li>Participation folded into Players (forfeits inline)</li>
+  <li>Future folded into The Race (projections as the coda)</li>
+</ul>
+
+<h3>Data requirements</h3>
+<table class="table" style="max-width:600px;">
+  <tr><th>Data</th><th>Source</th><th>Status</th></tr>
+  <tr><td>Popularity, year, duration</td><td>Spotify Web API</td><td>Needs API key (friend's Premium)</td></tr>
+  <tr><td>Wikipedia facts</td><td>Wikipedia API</td><td>✓ Done (40/68 songs)</td></tr>
+  <tr><td>Cover → original</td><td>Manual + Wikipedia</td><td>✓ Done (11 songs, round 6)</td></tr>
+  <tr><td>Genres</td><td>MusicBrainz</td><td>✓ Done (65/81 artists)</td></tr>
+  <tr><td>Album art</td><td>Spotify oEmbed</td><td>✓ Done (68 covers)</td></tr>
+</table>
+</div>
+
+</body>
+</html>

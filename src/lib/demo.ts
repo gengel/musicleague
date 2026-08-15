@@ -6,6 +6,8 @@
  * serial non-voter) so every panel has something to show.
  */
 
+import { identityKey } from './types';
+
 /** Mulberry32 — small, seedable, good enough for fixtures. */
 function rng(seed: number): () => number {
   let a = seed >>> 0;
@@ -18,6 +20,25 @@ function rng(seed: number): () => number {
 }
 
 const PLAYERS = ['Ada', 'Bo', 'Cleo', 'Dev', 'Esme', 'Finn', 'Gus'] as const;
+
+/**
+ * A real-format Spotify track id: 22 base62 characters. The demo used to use
+ * "track000"-style ids, which `spotifyTrackId` (parse.ts) correctly refuses
+ * to recognise as one — real exports never look like that — but it meant the
+ * demo league could never exercise enrichment (years, covers, facts,
+ * obscurity), all of which key on this id. Deterministic per index so the
+ * fixture stays stable across runs.
+ */
+function demoSpotifyId(i: number): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let n = i + 1;
+  let out = '';
+  for (let k = 0; k < 22; k += 1) {
+    out += alphabet[(n * 7 + k * 13) % alphabet.length];
+    n = (n * 31 + 17) % 100000;
+  }
+  return out;
+}
 
 const ROUNDS = [
   ['Songs that open with a scream', 'Loud from the very first second.'],
@@ -141,7 +162,7 @@ export function buildDemoCsv(seed = 20260813): string {
         s.submitter,
         s.title,
         s.artist,
-        `track${String(i).padStart(3, '0')}`,
+        demoSpotifyId(i),
         i % 5 === 0 ? 'Been saving this one.' : '',
         `2026-01-0${1 + (i % 9)}T12:00:00Z`,
       ]),
@@ -262,4 +283,78 @@ export function buildDemoCsv(seed = 20260813): string {
   lines.push('');
 
   return lines.join('\n');
+}
+
+/**
+ * Synthetic enrichment for the demo league, in the same raw shape
+ * `embeddedEnrichment` carries (see vite-env.d.ts) — so `#demo` exercises
+ * every enrichment-dependent panel exactly like a baked build would,
+ * without a real export ever needing to be enriched by hand.
+ *
+ * Mirrors buildDemoCsv's own song generation loop exactly (same ROUNDS /
+ * PLAYERS iteration order, same Esme-skips-round-4 exception) so the track
+ * index `i` lines up with the same `demoSpotifyId(i)` each submission got.
+ */
+export function buildDemoEnrichment(): {
+  years: Record<string, number>;
+  covers: Record<string, { originalTitle: string; originalArtist: string; originalYear: number; note?: string }>;
+  facts: Record<string, string>;
+  obscurity: Record<string, { value: number; source: 'manual'; fetchedAt: string }>;
+  durations: Record<string, number>;
+  rounds: Record<string, { kind: 'covers' | 'remix' | 'none' }>;
+} {
+  const years: Record<string, number> = {};
+  const covers: Record<string, { originalTitle: string; originalArtist: string; originalYear: number; note?: string }> = {};
+  const facts: Record<string, string> = {};
+  const obscurity: Record<string, { value: number; source: 'manual'; fetchedAt: string }> = {};
+  const durations: Record<string, number> = {};
+
+  let i = 0;
+  ROUNDS.forEach((_, roundIdx) => {
+    PLAYERS.forEach((player) => {
+      if (player === 'Esme' && roundIdx === 3) return;
+      const id = demoSpotifyId(i);
+      // Spread years across five decades so the decade table and quadrant
+      // classifier both have more than one bucket to show, deterministically
+      // from the song index rather than randomly.
+      years[id] = 1975 + ((i * 7) % 50);
+      // Every third song has an obscurity reading, so panels can be seen
+      // both with and without full coverage — the honest, partial-data case
+      // a real league is more likely to be in than 100% or 0% coverage.
+      if (i % 3 === 0) {
+        obscurity[id] = { value: (i * 11) % 100, source: 'manual', fetchedAt: '2026-01-01T00:00:00Z' };
+      }
+      // Durations spread from ~2 to ~6 minutes deterministically.
+      durations[id] = 120000 + ((i * 13) % 240000);
+      // Round index 2 is "Covers better than the original" — the demo's
+      // stand-in for a real covers round, so cover data has somewhere to
+      // attach that actually matches the round's theme.
+      if (roundIdx === 2 && i % 2 === 0) {
+        covers[id] = {
+          originalTitle: `${TITLES[(i + 3) % TITLES.length]}`,
+          originalArtist: ARTISTS[(i + 1) % ARTISTS.length],
+          originalYear: 1968 + ((i * 5) % 40),
+          note: 'A demo cover, for exercising the cover-tag UI.',
+        };
+      }
+      if (i % 4 === 0) {
+        facts[id] = `Fact ${i}: this is demo liner-note text, standing in for a real Wikipedia excerpt.`;
+      }
+      i += 1;
+    });
+  });
+
+  return {
+    years,
+    covers,
+    facts,
+    obscurity,
+    durations,
+    rounds: {
+      // The demo's [rounds] section carries no explicit id column, so
+      // parse.ts derives Round.id as identityKey(title) — mirrored here
+      // rather than a made-up key, so this actually resolves in the app.
+      [identityKey(ROUNDS[2][0])]: { kind: 'covers' },
+    },
+  };
 }

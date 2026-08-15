@@ -83,7 +83,7 @@ export function TopSongs({ stats }: { stats: Stats }) {
   );
 }
 
-/** Headline tiles plus the superlatives wall. */
+/** At-a-glance tiles plus gateway cards linking to each section. */
 export function Overview({ stats }: { stats: Stats }) {
   const totalUp = stats.rounds.reduce((a, r) => a + r.totalUpvotes, 0);
   const totalDown = stats.rounds.reduce((a, r) => a + r.totalDownvotes, 0);
@@ -92,15 +92,14 @@ export function Overview({ stats }: { stats: Stats }) {
   const belowZero = scored.filter((p) => p.pointsCounted < 0).length;
   const roundsWithResults = stats.rounds.filter((r) => r.totalUpvotes > 0).length;
   const leader = [...stats.players].sort((a, b) => b.pointsCounted - a.pointsCounted)[0];
+  const second = [...stats.players].sort((a, b) => b.pointsCounted - a.pointsCounted)[1];
+  const gap = leader && second ? leader.pointsCounted - second.pointsCounted : 0;
+
+  const topSong = [...stats.songs].sort((a, b) => b.effectiveNet - a.effectiveNet)[0];
 
   return (
     <>
       <Card title="At a glance" wide>
-        {/*
-          Player, round and song counts are deliberately absent: they already
-          sit in the header, and nine tiles spilled onto a second row. What is
-          left is the vote economy, which is what makes this league unusual.
-        */}
         <div className="tiles">
           <StatTile
             label="Votes cast"
@@ -136,42 +135,47 @@ export function Overview({ stats }: { stats: Stats }) {
         </div>
       </Card>
 
-      <Card
-        title="Superlatives"
-        subtitle="The headline answers. Runners-up are listed underneath each one."
-        wide
-      >
-        <div className="supers">
-          {stats.superlatives.map((s) => (
-            <article className="super" key={s.label}>
-              <h3>
-                <span className="super__badge">
-                  <LabelIcon label={s.label} size={19} />
-                </span>
-                {s.label}
-              </h3>
-              <strong className="super__value">{s.value}</strong>
-              {s.subject && <p className="super__subject">{s.subject}</p>}
-              {s.meta && s.meta.length > 0 && (
-                <p className="super__meta">{s.meta.join(' · ')}</p>
-              )}
-              {s.runnersUp && s.runnersUp.length > 0 && (
-                <>
-                  <span className="super__rest-label">
-                    {s.runnersUp.length === 1 ? 'Runner-up' : 'Runners-up'}
-                  </span>
-                  <ol className="super__rest">
-                  {s.runnersUp.map((r, i) => (
-                    <li key={`${r.value}-${i}`}>
-                      <span className="super__rest-value">{r.value}</span>
-                      {r.subject && <span className="dim"> {r.subject}</span>}
-                    </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-            </article>
-          ))}
+      <Card title="Gateways" subtitle="One finding per section — full details on each tab." wide>
+        <div className="gateways">
+          {leader && (
+            <div className="gateway">
+              <strong className="gateway__title">The Race</strong>
+              <p className="gateway__body dim">
+                {leader.name} leads on {n1(leader.pointsCounted)}
+                {gap > 0 && second
+                  ? ` — ${gap} points ahead of ${second.name} with ${stats.inProgress ? 'rounds to play' : 'the season over'}`
+                  : ''}
+                .
+              </p>
+            </div>
+          )}
+          {topSong && (
+            <div className="gateway">
+              <strong className="gateway__title">The Songs</strong>
+              <p className="gateway__body dim">
+                Best song of the season: {topSong.title}
+                {topSong.artist ? ` by ${topSong.artist}` : ''} — {n1(topSong.effectiveNet)} pts.
+              </p>
+            </div>
+          )}
+          {stats.hasVotes && (
+            <div className="gateway">
+              <strong className="gateway__title">The Room</strong>
+              <p className="gateway__body dim">
+                {stats.pairs.length} voter–player relationships tracked across{' '}
+                {stats.roundsPlayed} round{stats.roundsPlayed === 1 ? '' : 's'}.
+              </p>
+            </div>
+          )}
+          <div className="gateway">
+            <strong className="gateway__title">Play-by-Play</strong>
+            <p className="gateway__body dim">
+              {stats.roundsPlayed} chapter{stats.roundsPlayed === 1 ? '' : 's'}, one per round.
+              {stats.scoring === 'competitive' && totalForfeited > 0
+                ? ` ${n1(totalForfeited)} pts forfeited by non-voters.`
+                : ''}
+            </p>
+          </div>
         </div>
       </Card>
     </>

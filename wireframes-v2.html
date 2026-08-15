@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Music League — IA Wireframes v2</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.5; padding: 24px; max-width: 1180px; margin: 0 auto; }
+h1 { font-size: 26px; margin-bottom: 4px; color: #fff; }
+h3 { font-size: 12px; margin: 22px 0 8px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.07em; }
+p.subtitle { color: #8b949e; font-size: 13px; }
+.callout { border: 1px solid #3d2a1a; background: #1a1410; border-radius: 8px; padding: 14px; margin: 16px 0; font-size: 13px; }
+.callout strong { color: #f0883e; }
+.tabs { display: flex; gap: 2px; margin: 14px 0 18px; background: #21262d; border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.tab { padding: 9px 15px; font-size: 12.5px; color: #8b949e; }
+.tab.on { background: #30363d; color: #fff; font-weight: 600; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 12px 0; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 12px 0; }
+.card { border: 1px solid #30363d; border-radius: 8px; padding: 14px; background: #0d1117; }
+.card-label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.card-value { font-size: 17px; color: #fff; font-weight: 600; }
+.card-sm { font-size: 14px; }
+.card-meta { font-size: 11px; color: #8b949e; margin-top: 4px; }
+.card-link { font-size: 10px; color: #58a6ff; margin-top: 6px; display: block; }
+.wide { grid-column: 1 / -1; }
+.ph { border: 1px dashed #30363d; border-radius: 8px; padding: 14px; text-align: center; color: #484f58; font-style: italic; min-height: 64px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; }
+.ph.tall { min-height: 130px; }
+.ph.hero { min-height: 190px; }
+table.t { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+table.t th { text-align: left; padding: 6px 8px; color: #8b949e; border-bottom: 1px solid #21262d; font-weight: 500; }
+table.t td { padding: 6px 8px; border-bottom: 1px solid #161b22; }
+table.t .num { text-align: right; font-variant-numeric: tabular-nums; }
+.dim { color: #484f58; }
+.tag { display: inline-block; background: #21262d; border-radius: 4px; padding: 2px 6px; font-size: 10px; margin: 2px 2px 2px 0; }
+.tag.green { background: #1b3a2a; color: #3fb950; }
+.tag.red { background: #3d1a1a; color: #f85149; }
+.tag.orange { background: #3d2a1a; color: #f0883e; }
+.tag.blue { background: #1a2d3d; color: #58a6ff; }
+.tag.purple { background: #2d1a3d; color: #a371f7; }
+.gw { border: 1px solid #21262d; border-radius: 8px; padding: 13px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.gw .arrow { color: #58a6ff; font-size: 17px; }
+.anno { font-size: 11px; color: #8b949e; border-left: 2px solid #30363d; padding-left: 8px; margin: 4px 0; }
+.anno.new { border-left-color: #f0883e; color: #f0883e; }
+.anno.cover { border-left-color: #a371f7; color: #a371f7; }
+.sec { border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin: 26px 0; background: #161b22; }
+.sec-title { font-size: 16px; color: #fff; font-weight: 600; }
+.sec-q { font-size: 13px; color: #f0883e; font-style: italic; margin-bottom: 6px; }
+.rule { font-size: 11px; color: #8b949e; background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 8px 10px; margin: 8px 0; }
+.song { display: flex; gap: 11px; border: 1px solid #30363d; border-radius: 8px; padding: 11px; margin: 7px 0; background: #0d1117; }
+.song .art { min-width: 52px; max-width: 52px; height: 52px; background: #21262d; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #484f58; }
+.song .d { flex: 1; }
+.song .ti { font-weight: 600; font-size: 13.5px; color: #fff; }
+.song .ar { font-size: 12px; }
+.song .su { font-size: 11px; color: #8b949e; }
+.song .sc { min-width: 52px; text-align: right; }
+.song .scn { font-size: 17px; font-weight: 700; color: #3fb950; }
+.song .scn.neg { color: #f85149; }
+.song .scn.forf { color: #f0883e; text-decoration: line-through; }
+.fb { background: #21262d; border-radius: 8px; padding: 7px 12px; margin: 10px 0; font-size: 11px; display: flex; gap: 11px; align-items: center; color: #8b949e; flex-wrap: wrap; }
+.fb .on { color: #fff; text-decoration: underline; }
+.pl { display: flex; gap: 14px; align-items: center; border: 1px solid #30363d; border-radius: 8px; padding: 14px; background: #0d1117; margin: 10px 0; }
+.pl .rk { font-size: 22px; color: #484f58; font-weight: 700; min-width: 30px; }
+.pl .nm { font-size: 17px; font-weight: 600; color: #fff; }
+.subtabs { display: flex; margin: 12px 0; border-bottom: 1px solid #30363d; }
+.subtab { padding: 8px 15px; font-size: 12px; color: #8b949e; border-bottom: 2px solid transparent; }
+.subtab.on { color: #fff; border-bottom-color: #58a6ff; }
+.bar { display: flex; height: 22px; border-radius: 4px; overflow: hidden; margin: 6px 0; }
+.bar div { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; }
+.rr { display: flex; gap: 8px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid #161b22; font-size: 12px; }
+.rr .rn { min-width: 118px; color: #8b949e; }
+.rr .rs { flex: 1; display: flex; gap: 4px; flex-wrap: wrap; }
+.chip { padding: 2px 6px; border-radius: 3px; font-size: 10px; }
+.chip.up { background: #1b3a2a; color: #3fb950; }
+.chip.down { background: #3d1a1a; color: #f85149; }
+.chip.zero { background: #21262d; color: #6e7681; }
+.chap { border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin: 14px 0; background: #0d1117; border-left: 3px solid #30363d; }
+.chap.win { border-left-color: #3fb950; }
+.chap.twist { border-left-color: #f0883e; }
+.empty { border: 1px dashed #3d2a1a; border-radius: 8px; padding: 18px; text-align: center; font-size: 12px; color: #8b949e; background: #14100c; }
+.spectrum { position: relative; height: 54px; background: linear-gradient(90deg, #2d1a3d 0%, #1a2d3d 50%, #3d2a1a 100%); border-radius: 6px; margin: 14px 0 6px; }
+.spectrum span { position: absolute; top: 6px; transform: translateX(-50%); font-size: 9.5px; background: #0d1117; border: 1px solid #30363d; border-radius: 3px; padding: 1px 4px; white-space: nowrap; }
+.spectrum span.low { top: 30px; }
+.axis { display: flex; justify-content: space-between; font-size: 10px; color: #6e7681; }
+.real { color: #3fb950; font-size: 10px; }
+.fake { color: #d29922; font-size: 10px; }
+.sup-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0 16px; }
+.sup { border: 1px solid #30363d; border-radius: 7px; padding: 10px; background: #0d1117; border-top: 2px solid #58a6ff; }
+.sup .l { font-size: 9.5px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.06em; }
+.sup .v { font-size: 14px; color: #fff; font-weight: 600; margin-top: 3px; line-height: 1.2; }
+.sup .s { font-size: 11.5px; color: #c9d1d9; margin-top: 2px; }
+.sup .m { font-size: 10px; color: #6e7681; margin-top: 3px; line-height: 1.35; }
+.sup .n { font-size: 9.5px; color: #484f58; margin-top: 5px; border-top: 1px solid #21262d; padding-top: 4px; }
+.sup.newf { border-top-color: #d29922; }
+</style>
+</head>
+<body>
+
+<h1>Music League — IA Wireframes <span style="color:#f0883e;">v2</span></h1>
+<p class="subtitle">Six tabs, each answering one question. <span class="real">Green-flagged numbers are real</span> — computed from your export, including 65 of 68 release years pulled from MusicBrainz (no API key). v1 is still at <code>wireframes-final.html</code>.</p>
+
+<div class="callout">
+<strong>What changed from v1, and why</strong>
+<div style="margin-top:8px; font-size:12.5px; color:#c9d1d9;">
+1. <strong>Two Carolines.</strong> Your roster has <em>Caroline</em> (never voted, last, −28) and <em>Caroline Cone</em> (leader, +44). v1's copy mixed them up repeatedly. Prose now always uses full display names, and a clarifier appears wherever both feature.<br>
+2. <strong>Archetypes kept</strong> — now blended from submissions (weight 2) and upvotes (weight 1), which turned out to be more interesting than either alone.<br>
+3. <strong>Downvote targeting added.</strong> Every voter spends exactly 6 downvote points a round, so the question is where they aim, not whether. Arch-nemesis framing kept.<br>
+4. <strong>Rounds folded into Play-by-Play</strong> so per-round results live in one place.<br>
+5. <strong>Overview teases, never duplicates</strong> — one item per category with a link, full lists in the destination tab.<br>
+6. <strong>Real round winners</strong> — and rounds 4, 5 and 6 were all topped on raw score by someone who forfeited. That is the story of your season.
+</div>
+</div>
+
+<!-- ════════════ OVERVIEW ════════════ -->
+<div class="sec">
+<div class="sec-title">1 · Overview</div>
+<div class="sec-q">"What's the story of this league?"</div>
+<div class="tabs"><div class="tab on">Overview</div><div class="tab">The Race</div><div class="tab">The Songs</div><div class="tab">The Room</div><div class="tab">Players</div><div class="tab">Play-by-Play</div></div>
+
+<div class="rule"><strong>Duplication rule:</strong> the Overview shows at most one example per category and links out. Ranked lists live in exactly one tab.</div>
+
+<h3>Superlatives — 4 per tab, 23 in total, none repeated <span class="real">all real</span></h3>
+<div class="sup-strip">
+  <div class="sup">
+    <div class="l">Biggest single haul</div>
+    <div class="v">16 pts</div>
+    <div class="s">Real Love</div>
+    <div class="m">Mary J. Blige · t33nwitch · Born This Way</div>
+    <div class="n">Shine 13 · About A Girl 11</div>
+  </div>
+  <div class="sup">
+    <div class="l">Biggest haul never counted</div>
+    <div class="v">15 pts forfeited</div>
+    <div class="s">I Shall Be Released</div>
+    <div class="m">Nina Simone · Caroline · earned it, then lost it by not voting</div>
+    <div class="n">Bring Em Out 13 · A Milli 13</div>
+  </div>
+  <div class="sup">
+    <div class="l">Best average song</div>
+    <div class="v">7.3 pts a song</div>
+    <div class="s">Caroline Cone</div>
+    <div class="m">6 songs · 2 round wins</div>
+    <div class="n">Cynthia 3.3 · t33nwitch 3.3</div>
+  </div>
+  <div class="sup">
+    <div class="l">Chattiest</div>
+    <div class="v">65 comments</div>
+    <div class="s">Tim Engel</div>
+    <div class="m">the league's commentator-in-chief</div>
+    <div class="n">Caroline Cone 49 · Bob 38</div>
+  </div>
+</div>
+
+<h3>Headlines</h3>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-label">The cost of silence</div>
+    <div class="card-value card-sm">Caroline</div>
+    <div class="card-meta"><span class="real">Real:</span> 0 votes in 6 rounds. 43 upvote points earned and never credited — more than 9 players have scored in total.</div>
+    <span class="card-link">→ Players</span>
+  </div>
+  <div class="card">
+    <div class="card-label">Nobody's second choice</div>
+    <div class="card-value card-sm">Caroline Cone</div>
+    <div class="card-meta"><span class="real">Real:</span> leads on 44, and has taken only <strong>10</strong> downvote points all season — less than a quarter of what Bob and Meredith absorbed (44 each). She wins by not being disliked.</div>
+    <span class="card-link">→ The Race</span>
+  </div>
+  <div class="card">
+    <div class="card-label">Say one thing, vote another</div>
+    <div class="card-value card-sm">The whole league</div>
+    <div class="card-meta"><span class="real">Real:</span> Tim Engel submits from a median of <strong>2021</strong> but spends his upvotes on songs averaging <strong>2004</strong>. He is not alone — 4 players show a 13-year-plus gap.</div>
+    <span class="card-link">→ Players</span>
+  </div>
+</div>
+
+<h3>Showcase — the season's best songs</h3>
+<div class="grid-4">
+  <div class="card">
+    <div class="ph" style="min-height:44px;">art</div>
+    <div style="font-weight:600; font-size:13px; margin-top:6px; color:#fff;">Real Love</div>
+    <div style="font-size:11px;">Mary J. Blige</div>
+    <div style="margin-top:4px;"><span class="tag green">16 pts</span> <span class="tag blue">1994</span> <span class="tag orange">Pop 72</span></div>
+    <div class="anno" style="font-size:10px;">t33nwitch · Born This Way · <span class="real">real</span></div>
+    <div class="anno new" style="font-size:10px;">Certified Gold; Blige's first top-10</div>
+  </div>
+  <div class="card">
+    <div class="ph" style="min-height:44px;">art</div>
+    <div style="font-weight:600; font-size:13px; margin-top:6px; color:#fff;">I Shall Be Released</div>
+    <div style="font-size:11px;">Nina Simone</div>
+    <div style="margin-top:4px;"><span class="tag orange">14 forfeited</span> <span class="tag blue">1969</span> <span class="tag orange">Pop 41</span> <span class="tag purple">cover</span></div>
+    <div class="anno cover" style="font-size:10px;">Original: Bob Dylan, 1967</div>
+    <div class="anno" style="font-size:10px;">Caroline · Secondhand Hits</div>
+  </div>
+  <div class="card">
+    <div class="ph" style="min-height:44px;">art</div>
+    <div style="font-weight:600; font-size:13px; margin-top:6px; color:#fff;">A Milli</div>
+    <div style="font-size:11px;">Lil Wayne</div>
+    <div style="margin-top:4px;"><span class="tag orange">13 forfeited</span> <span class="tag blue">2008</span> <span class="tag orange">Pop 78</span></div>
+    <div class="anno" style="font-size:10px;">Laura M · The Walk-Up Call</div>
+  </div>
+  <div class="card">
+    <div class="ph" style="min-height:44px;">art</div>
+    <div style="font-weight:600; font-size:13px; margin-top:6px; color:#fff;">Kirby Down B</div>
+    <div style="font-size:11px;">Harrison Gordon</div>
+    <div style="margin-top:4px;"><span class="tag green">10 pts</span> <span class="tag blue">2023</span> <span class="tag orange">Pop 19</span></div>
+    <div class="anno" style="font-size:10px;">Caroline Cone · Algorithm &amp; Blues</div>
+  </div>
+</div>
+<div class="anno new">Two of the four best songs of the season were never credited to anyone. That framing only exists because the export knows who voted.</div>
+
+<h3>Gateways</h3>
+<div class="grid">
+  <div class="gw">
+    <div>
+      <div style="font-weight:600; color:#fff; font-size:14px;">The Race</div>
+      <div style="font-size:12px; color:#8b949e;"><span class="real">Real:</span> Caroline Cone 44 · t33nwitch and Cynthia tied on 20 · gap of 24 with 4 rounds left</div>
+      <div class="bar" style="margin-top:6px;">
+        <div style="width:56%; background:#3fb950;">Caroline Cone</div>
+        <div style="width:16%; background:#58a6ff;">t33nwitch</div>
+        <div style="width:15%; background:#a371f7;">Cynthia</div>
+        <div style="width:13%; background:#30363d; color:#8b949e;">others</div>
+      </div>
+      <div style="font-size:10px; color:#6e7681;">width = share of simulated wins, assuming non-voters keep not voting</div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="gw">
+    <div>
+      <div style="font-weight:600; color:#fff; font-size:14px;">The Room</div>
+      <div style="font-size:12px; color:#8b949e;"><span class="real">Real:</span> 8 of 11 voters back every single rival at some point. Greggo backs six people and gives 47% of it to one.</div>
+      <div class="ph" style="min-height:46px; margin-top:6px;">[ mini graph — 12 nodes, clusters coloured ]</div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="gw">
+    <div>
+      <div style="font-weight:600; color:#f0883e; font-size:14px;">The Songs</div>
+      <div style="font-size:12px; color:#8b949e;"><span class="real">Real:</span> the 1990s are the league's best decade (16 songs, avg +4.1). The 2020s are its worst (11 songs, avg −0.9).</div>
+      <div style="font-size:11px; color:#8b949e; margin-top:4px;">65 of 68 songs dated · median year 2004 · <span class="fake">deep cuts average +3.4, hits −1.6</span></div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="gw">
+    <div>
+      <div style="font-weight:600; color:#fff; font-size:14px;">Play-by-Play</div>
+      <div style="font-size:12px; color:#8b949e;"><span class="real">Real:</span> six chapters. In rounds 4, 5 and 6 the highest-scoring song was forfeited, so three different players won rounds they were outscored in.</div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+</div>
+
+<div class="anno">The other 19 superlatives are not on this page — each lives at the top of the tab that owns it, four to a tab. That is what stops the Overview being a copy of everything else.</div>
+</div>
+
+<!-- ════════════ THE RACE ════════════ -->
+<div class="sec">
+<div class="sec-title">2 · The Race</div>
+<div class="sec-q">"Who's going to win?"</div>
+<div class="tabs"><div class="tab">Overview</div><div class="tab on">The Race</div><div class="tab">The Songs</div><div class="tab">The Room</div><div class="tab">Players</div><div class="tab">Play-by-Play</div></div>
+
+<div class="sup-strip">
+  <div class="sup">
+    <div class="l">Most forfeited by not voting</div>
+    <div class="v">−43 pts</div>
+    <div class="s">Caroline</div>
+    <div class="m">5 rounds without voting · earned but never credited</div>
+    <div class="n">Laura M −27 · Greggo −7</div>
+  </div>
+  <div class="sup">
+    <div class="l">Most rounds skipped voting</div>
+    <div class="v">5 rounds</div>
+    <div class="s">Caroline</div>
+    <div class="m">submitted but did not vote, of 5 entered</div>
+    <div class="n">Laura M 3 · Greggo 1</div>
+  </div>
+  <div class="sup">
+    <div class="l">Broadest support base</div>
+    <div class="v">63% of voters</div>
+    <div class="s">Caroline Cone</div>
+    <div class="m">9 distinct supporters all told</div>
+    <div class="n">Cynthia 61% · Laura M 61%</div>
+  </div>
+  <div class="sup">
+    <div class="l">Most polarizing act</div>
+    <div class="v">44% concentrated</div>
+    <div class="s">Brittny Laudani</div>
+    <div class="m">points come from a clique, not the whole room</div>
+    <div class="n">Bob 42% · t33nwitch 40%</div>
+  </div>
+</div>
+
+<h3>Where it stands <span class="real">— all real</span></h3>
+<div class="card wide">
+<table class="t">
+  <tr><th></th><th>Player</th><th class="num">Now</th><th class="num">Per round</th><th class="num">Best round</th><th class="num">Downvotes taken</th><th>Note</th></tr>
+  <tr><td>1</td><td><strong style="color:#fff;">Caroline Cone</strong></td><td class="num" style="color:#3fb950;">44</td><td class="num">7.3</td><td class="num">13</td><td class="num">10</td><td class="dim">most consistent, least disliked</td></tr>
+  <tr><td>2</td><td>t33nwitch</td><td class="num">20</td><td class="num">4.3</td><td class="num">16</td><td class="num">33</td><td class="dim">highest ceiling, skipped a round</td></tr>
+  <tr><td>2</td><td>Cynthia Dallas</td><td class="num">20</td><td class="num">3.3</td><td class="num">9</td><td class="num">23</td><td class="dim">never had a negative round</td></tr>
+  <tr><td>4</td><td>Tim Engel</td><td class="num">14</td><td class="num">2.3</td><td class="num">6</td><td class="num">23</td><td></td></tr>
+  <tr><td>5</td><td>Go_BirdzDH</td><td class="num">7</td><td class="num">1.2</td><td class="num">7</td><td class="num">27</td><td></td></tr>
+  <tr><td colspan="7" class="dim" style="text-align:center;">Brittny −4 · Megan −4 · Bob −7 · Laura M −8 · Meredith −9 · Greggo −12</td></tr>
+  <tr><td>12</td><td>Caroline</td><td class="num" style="color:#f85149;">−28</td><td class="num">3.0 raw</td><td class="num">14 raw</td><td class="num">28</td><td class="dim">has out-earned 9 players and counted none of it</td></tr>
+</table>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label">Can the gap close?</div>
+    <div style="font-size:12.5px; margin-top:6px;">The gap is <strong style="color:#fff;">24 points with 4 rounds to play</strong> — about 6 a round.</div>
+    <div class="card-meta" style="margin-top:6px;">t33nwitch has already produced a 16-point round, so the arithmetic is not the obstacle. But she needs four of them while Caroline Cone, whose worst round was +1, has never given anyone that much room.</div>
+    <div class="card-meta" style="margin-top:6px;">Simulated by resampling whole ballots from the six rounds played, which keeps each round's 8-up / 6-down budget intact.</div>
+  </div>
+  <div class="card">
+    <div class="card-label">The assumption that decides it</div>
+    <div style="font-size:12.5px; margin-top:6px;">Caroline's raw scores are <strong>−11, −9, +10, +11, +14</strong> — she is the form player of the league. She has counted none of it.</div>
+    <div class="card-meta" style="margin-top:6px;">If she votes in all four remaining rounds she projects to finish around <strong style="color:#f0883e;">+20</strong> instead of −40. The single biggest variable in the season is not anyone's taste, it is whether one person opens the app.</div>
+    <div class="card-meta" style="margin-top:6px;">Shown as a toggle: <span class="tag">non-voters stay silent</span> <span class="tag orange">everyone votes from here</span></div>
+  </div>
+</div>
+
+<h3>Timeline</h3>
+<div class="ph tall">📈 Standings over 6 rounds, with a shaded cone for the 4 to come</div>
+<h3>How the scores add up</h3>
+<div class="ph">Existing breakdown table — up / down / forfeited per player</div>
+</div>
+
+<!-- ════════════ THE SONGS ════════════ -->
+<div class="sec">
+<div class="sec-title">3 · The Songs</div>
+<div class="sec-q">"What did people submit, and what does the room actually like?"</div>
+<div class="tabs"><div class="tab">Overview</div><div class="tab">The Race</div><div class="tab on">The Songs</div><div class="tab">The Room</div><div class="tab">Players</div><div class="tab">Play-by-Play</div></div>
+
+<div class="sup-strip">
+  <div class="sup">
+    <div class="l">Widest appeal</div>
+    <div class="v">90% of voters</div>
+    <div class="s">Bring Em Out</div>
+    <div class="m">T.I. · Caroline · 9 of 10 voters chipped in</div>
+    <div class="n">A Milli 90% · About A Girl 88%</div>
+  </div>
+  <div class="sup">
+    <div class="l">Most divisive</div>
+    <div class="v">±3.0 pts</div>
+    <div class="s">O Superman</div>
+    <div class="m">Laurie Anderson · t33nwitch · the room could not agree</div>
+    <div class="n">Nothin' But A Good Time ±2.8 · Passionfruit ±2.6</div>
+  </div>
+  <div class="sup">
+    <div class="l">Most downvoted</div>
+    <div class="v">−13 pts</div>
+    <div class="s">Nothin' But A Good Time</div>
+    <div class="m">Poison · Brittny Laudani · Born This Way</div>
+    <div class="n">Candy Shop −13 · Lost! −13</div>
+  </div>
+  <div class="sup newf">
+    <div class="l">Deepest cut to score <span class="fake">illustrative</span></div>
+    <div class="v">Popularity 12</div>
+    <div class="s">O Superman</div>
+    <div class="m">8 minutes of 1981 minimalism, and it still drew an 8-point vote</div>
+    <div class="n">Kirby Down B 19 · Con Gái Miền Tây 21</div>
+  </div>
+</div>
+<div class="sup-strip">
+  <div class="sup">
+    <div class="l">Narrowest win</div>
+    <div class="v">63% concentrated</div>
+    <div class="s">Lost!</div>
+    <div class="m">Coldplay · Meredith Conde · 4 pts from 2 voters</div>
+    <div class="n">O Superman 55% · Just The Way You Are 51%</div>
+  </div>
+  <div class="sup">
+    <div class="l">Most one-sided single vote</div>
+    <div class="v">8 pts from one voter</div>
+    <div class="s">O Superman</div>
+    <div class="m">Laurie Anderson · someone gave it their entire round</div>
+    <div class="n">Passionfruit 8 · Just The Way You Are 6</div>
+  </div>
+  <div class="sup newf">
+    <div class="l">Biggest hit to bomb <span class="fake">illustrative</span></div>
+    <div class="v">Popularity 95 → −9</div>
+    <div class="s">APT.</div>
+    <div class="m">ROSÉ &amp; Bruno Mars · Caroline · the most-streamed song anyone submitted, last in its round</div>
+    <div class="n">Boom Boom Pow 82 → −9 · Candy Shop 74 → −11</div>
+  </div>
+  <div class="sup newf">
+    <div class="l">The time capsule <span class="real">real year</span></div>
+    <div class="v">1969</div>
+    <div class="s">I Shall Be Released</div>
+    <div class="m">Nina Simone · oldest song of the season, and it won its round</div>
+    <div class="n">Watermelon Man 1973 · Brandy Alexander 1976</div>
+  </div>
+</div>
+
+<h3>What wins here <span class="real">— real, 65 of 68 songs dated</span></h3>
+<div class="card wide">
+  <div class="card-label">Average score by decade</div>
+  <table class="t" style="max-width:560px;">
+    <tr><td>1960s</td><td class="num dim">n=1</td><td class="num" style="color:#3fb950;">+14.0</td><td style="width:50%;"><div style="background:#3fb950; height:9px; width:100%; border-radius:2px;"></div></td></tr>
+    <tr><td>1970s</td><td class="num dim">n=2</td><td class="num" style="color:#3fb950;">+5.0</td><td><div style="background:#3fb950; height:9px; width:36%; border-radius:2px;"></div></td></tr>
+    <tr><td>1980s</td><td class="num dim">n=5</td><td class="num" style="color:#3fb950;">+2.6</td><td><div style="background:#3fb950; height:9px; width:19%; border-radius:2px;"></div></td></tr>
+    <tr><td><strong style="color:#fff;">1990s</strong></td><td class="num dim">n=16</td><td class="num" style="color:#3fb950;">+4.1</td><td><div style="background:#3fb950; height:9px; width:29%; border-radius:2px;"></div></td></tr>
+    <tr><td>2000s</td><td class="num dim">n=16</td><td class="num">+0.6</td><td><div style="background:#484f58; height:9px; width:4%; border-radius:2px;"></div></td></tr>
+    <tr><td>2010s</td><td class="num dim">n=14</td><td class="num">+1.5</td><td><div style="background:#484f58; height:9px; width:11%; border-radius:2px;"></div></td></tr>
+    <tr><td>2020s</td><td class="num dim">n=11</td><td class="num" style="color:#f85149;">−0.9</td><td><div style="background:#f85149; height:9px; width:7%; border-radius:2px;"></div></td></tr>
+  </table>
+  <div class="card-meta" style="margin-top:6px;">The 1990s are the league's happy place: 16 songs at +4.1 each. The 2020s are the only decade under water. Sample sizes are shown because the 1960s row is one Nina Simone song.</div>
+</div>
+
+<div class="card wide" style="margin-top:12px; border-left:3px solid #d29922;">
+  <div class="card-label" style="color:#d29922;">Popularity vs score <span class="fake">illustrative — Spotify popularity is faked here</span></div>
+  <div class="grid" style="margin-top:8px;">
+    <div class="ph" style="min-height:130px;">Scatter — 68 dots<br>x: Spotify popularity 0–100 · y: league score<br>dot colour = submitter, size = upvoters<br>trend line with a shaded band</div>
+    <div>
+      <table class="t">
+        <tr><th>Popularity band</th><th class="num">Songs</th><th class="num">Avg score</th></tr>
+        <tr><td>Under 30 — deep cuts</td><td class="num">14</td><td class="num" style="color:#3fb950;">+3.4</td></tr>
+        <tr><td>30–49</td><td class="num">17</td><td class="num" style="color:#3fb950;">+2.8</td></tr>
+        <tr><td>50–69</td><td class="num">21</td><td class="num">+0.9</td></tr>
+        <tr><td>70 and up — hits</td><td class="num">16</td><td class="num" style="color:#f85149;">−1.6</td></tr>
+      </table>
+      <div class="card-meta" style="margin-top:6px;">Reads as "the room punishes the familiar" — but popularity and release year move together, so this is probably the decade table wearing a different hat. The panel should say so rather than bank it as a second finding.</div>
+      <div class="card-meta" style="margin-top:4px;">Length had no visible effect: the two longest songs of the season, O Superman at 8:21 and Watermelon Man at 7:05, both scored above average.</div>
+    </div>
+  </div>
+</div>
+
+<h3>The collection</h3>
+<div class="fb">
+  <span>Sort:</span><span class="on">Score ↓</span><span>Year</span><span style="color:#d29922;">Popularity</span><span style="color:#d29922;">Length</span><span>Upvotes</span><span>Downvotes</span><span>Breadth</span>
+  <span>|</span><span>Filter:</span><span>Decade ▾</span><span>Genre ▾</span><span>Round ▾</span><span>Submitter ▾</span><span style="color:#a371f7;">Covers</span><span style="color:#f0883e;">Forfeited</span>
+</div>
+
+<div class="song">
+  <div class="art">art</div>
+  <div class="d">
+    <div class="ti">Real Love</div>
+    <div class="ar">Mary J. Blige</div>
+    <div class="su">t33nwitch · Born This Way</div>
+    <div style="margin-top:4px;"><span class="tag blue">1994</span> <span class="tag orange">Pop 72</span> <span class="tag">4:02</span> <span class="tag green">9 of 9 voters</span></div>
+    <div class="anno new">Certified Gold; became Blige's first top-10 on the Hot 100</div>
+  </div>
+  <div class="sc"><div class="scn">16</div><div style="font-size:10px; color:#8b949e;">+16 / −0</div></div>
+</div>
+
+<div class="song">
+  <div class="art">art</div>
+  <div class="d">
+    <div class="ti">I Shall Be Released</div>
+    <div class="ar">Nina Simone</div>
+    <div class="su">Caroline · Secondhand Hits</div>
+    <div style="margin-top:4px;"><span class="tag blue">1969</span> <span class="tag orange">Pop 41</span> <span class="tag">3:38</span> <span class="tag purple">cover</span> <span class="tag red">forfeited</span></div>
+    <div class="anno cover">Original: Bob Dylan, 1967 — written during the Basement Tapes sessions</div>
+    <div class="anno new">Rolling Stone's Jann Wenner compared Dylan's demo vocal to the Bee Gees</div>
+  </div>
+  <div class="sc"><div class="scn forf">14</div><div style="font-size:10px; color:#f0883e;">counted −1</div></div>
+</div>
+
+<div class="song">
+  <div class="art">art</div>
+  <div class="d">
+    <div class="ti">Kirby Down B</div>
+    <div class="ar">Harrison Gordon</div>
+    <div class="su">Caroline Cone · Algorithm &amp; Blues</div>
+    <div style="margin-top:4px;"><span class="tag blue">2023</span> <span class="tag orange">Pop 19</span> <span class="tag">2:31</span> <span class="tag green">round winner</span></div>
+    <div class="anno dim">No Wikipedia entry — most of what this league likes doesn't have one.</div>
+  </div>
+  <div class="sc"><div class="scn">10</div><div style="font-size:10px; color:#8b949e;">+11 / −1</div></div>
+</div>
+
+<div class="song">
+  <div class="art">art</div>
+  <div class="d">
+    <div class="ti">APT.</div>
+    <div class="ar">ROSÉ, Bruno Mars</div>
+    <div class="su">Caroline · Algorithm &amp; Blues</div>
+    <div style="margin-top:4px;"><span class="tag blue">2024</span> <span class="tag orange">Pop 95</span> <span class="tag">2:42</span> <span class="tag red">last in round</span></div>
+    <div class="anno new">Best-selling global single of 2025 — and the worst-scoring song of its round</div>
+  </div>
+  <div class="sc"><div class="scn neg">−9</div><div style="font-size:10px; color:#8b949e;">+1 / −10</div></div>
+</div>
+<div class="dim" style="text-align:center; font-size:11px; margin:8px 0;">… 64 more, no paging</div>
+
+<div class="anno" style="margin-top:10px;"><strong>On the Wikipedia facts:</strong> 40 of 68 songs have one, and the songs <em>without</em> a page average <strong>+2.57</strong> versus <strong>+1.10</strong> for the songs with one. The obscure picks do better here, so facts are garnish that is often absent by design — never a section that implies completeness.</div>
+
+<h3>Genre &amp; artists</h3>
+<div class="grid"><div class="ph">Genre table — 9 reliable genres, as now</div><div class="ph">Artists — with era range per artist</div></div>
+</div>
+
+<!-- ════════════ THE ROOM ════════════ -->
+<div class="sec">
+<div class="sec-title">4 · The Room</div>
+<div class="sec-q">"How do people relate to each other?"</div>
+<div class="tabs"><div class="tab">Overview</div><div class="tab">The Race</div><div class="tab">The Songs</div><div class="tab on">The Room</div><div class="tab">Players</div><div class="tab">Play-by-Play</div></div>
+
+<div class="sup-strip">
+  <div class="sup">
+    <div class="l">Biggest superfan</div>
+    <div class="v">Greggo → t33nwitch</div>
+    <div class="s">15 pts given</div>
+    <div class="m">58% of what the rules allowed · 5.16× an even spread</div>
+    <div class="n">Meredith → t33nwitch 12 · Megan → Caroline Cone 10</div>
+  </div>
+  <div class="sup">
+    <div class="l">Mutual admiration society</div>
+    <div class="v">Meredith ↔ t33nwitch</div>
+    <div class="s">19 pts traded</div>
+    <div class="m">12 / 7, near enough even · each spending 24% of what they could</div>
+    <div class="n">Caroline Cone ↔ Cynthia 13 · Brittny ↔ Bob 13</div>
+  </div>
+  <div class="sup">
+    <div class="l">Most unrequited</div>
+    <div class="v">Greggo → t33nwitch</div>
+    <div class="s">gave 15, got back 1</div>
+    <div class="m">across 4 shared rounds</div>
+    <div class="n">Meredith → Brittny 9/2 · Brittny → Caroline Cone 8/2</div>
+  </div>
+  <div class="sup">
+    <div class="l">Arch-nemesis</div>
+    <div class="v">Go_BirdzDH → Brittny</div>
+    <div class="s">8 downvote pts spent</div>
+    <div class="m">across 6 rounds</div>
+    <div class="n">Go_BirdzDH → Bob 8 · Meredith → Tim 7</div>
+  </div>
+</div>
+<div class="sup-strip">
+  <div class="sup">
+    <div class="l">Most points given (raw)</div>
+    <div class="v">Greggo → t33nwitch</div>
+    <div class="s">15 pts given</div>
+    <div class="m">across 4 shared rounds</div>
+    <div class="n">Meredith → t33nwitch 12 · Megan → Caroline Cone 10</div>
+  </div>
+  <div class="sup">
+    <div class="l">Coldest shoulder</div>
+    <div class="v">Go_BirdzDH → Brittny</div>
+    <div class="s">never once voted for them</div>
+    <div class="m">6 chances · across 6 rounds</div>
+    <div class="n">Go_BirdzDH → Bob · Greggo → Megan</div>
+  </div>
+  <div class="sup" style="border-top-color:#30363d; opacity:0.55;">
+    <div class="l">— slot free —</div>
+    <div class="m" style="margin-top:8px;">Six pair superlatives, so this tab runs two rows of four with two spare slots for the taste-twins and cluster cards below.</div>
+  </div>
+  <div class="sup" style="border-top-color:#30363d; opacity:0.55;">
+    <div class="l">— slot free —</div>
+  </div>
+</div>
+
+<div class="ph hero">🕸️ The graph — full width. Nodes sized by score, edges by mutual warmth, colour by cluster.<br>Click a node to isolate their ties.</div>
+
+<h3>Where the upvotes go <span class="real">— new, all real</span></h3>
+<div class="card wide">
+  <div class="card-label">Every voter has 8 upvote points a round, and every one of them spends all 8. This is where they aimed.</div>
+  <table class="t">
+    <tr><th>Voter</th><th class="num">Spent</th><th class="num">People backed</th><th>Favourite</th><th class="num">Share to them</th><th></th></tr>
+    <tr style="background:#161b22;"><td><strong style="color:#fff;">Greggo</strong></td><td class="num">32</td><td class="num" style="color:#f0883e;">6</td><td>t33nwitch (15)</td><td class="num" style="color:#f0883e;">47%</td><td><span class="tag orange">devotee</span></td></tr>
+    <tr><td>Meredith Conde</td><td class="num">48</td><td class="num">11</td><td>t33nwitch (12)</td><td class="num">25%</td><td></td></tr>
+    <tr><td>Bob</td><td class="num">48</td><td class="num">11</td><td>Caroline Cone (10)</td><td class="num">21%</td><td></td></tr>
+    <tr><td>Megan Pallace</td><td class="num">48</td><td class="num">11</td><td>Caroline Cone (10)</td><td class="num">21%</td><td></td></tr>
+    <tr><td>Go_BirdzDH</td><td class="num">48</td><td class="num">9</td><td>Tim Engel (9)</td><td class="num">19%</td><td></td></tr>
+    <tr><td>Cynthia Dallas</td><td class="num">48</td><td class="num">11</td><td>Go_BirdzDH (8)</td><td class="num">17%</td><td></td></tr>
+    <tr><td>Caroline Cone</td><td class="num">48</td><td class="num">11</td><td>Meredith Conde (7)</td><td class="num">15%</td><td><span class="tag">most even-handed</span></td></tr>
+    <tr><td colspan="6" class="dim">… 4 more · Caroline never voted, so she appears in no row</td></tr>
+  </table>
+  <div class="card-meta" style="margin-top:6px;"><strong style="color:#fff;">Eight of eleven voters back all eleven other players at some point.</strong> Generosity is the norm — which makes Greggo the one real exception: he spreads across 6 people and gives nearly half of everything to one of them.</div>
+</div>
+
+<h3>Upvotes received</h3>
+<div class="grid">
+  <div class="card">
+    <table class="t">
+      <tr><th>Player</th><th class="num">Up</th><th class="num">Down</th><th class="num">Net</th><th class="num">Backers</th></tr>
+      <tr><td>t33nwitch</td><td class="num" style="color:#3fb950;">59</td><td class="num">33</td><td class="num">+26</td><td class="num">10 of 11</td></tr>
+      <tr style="background:#161b22;"><td><strong style="color:#fff;">Caroline Cone</strong></td><td class="num" style="color:#3fb950;">54</td><td class="num" style="color:#3fb950;">10</td><td class="num" style="color:#3fb950;">+44</td><td class="num">9 of 11</td></tr>
+      <tr><td>Cynthia Dallas</td><td class="num">43</td><td class="num">23</td><td class="num">+20</td><td class="num">9 of 11</td></tr>
+      <tr><td><strong style="color:#f0883e;">Caroline</strong></td><td class="num">43</td><td class="num">28</td><td class="num">+15</td><td class="num" style="color:#f0883e;">11 of 11</td></tr>
+      <tr><td>Bob</td><td class="num">37</td><td class="num" style="color:#f85149;">44</td><td class="num">−7</td><td class="num">9 of 11</td></tr>
+      <tr><td>Meredith Conde</td><td class="num">35</td><td class="num" style="color:#f85149;">44</td><td class="num">−9</td><td class="num">9 of 11</td></tr>
+      <tr><td colspan="5" class="dim">… 6 more</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-label">Two ways to be liked</div>
+    <div style="font-size:12.5px; margin-top:6px;"><strong style="color:#fff;">t33nwitch earns the most affection in the league — 59 upvote points — and 33 downvote points with it.</strong> Caroline Cone earns less love and almost no hostility: 54 up, 10 down. Same room, opposite strategies, and the quiet one is 24 points clear.</div>
+    <div class="anno new" style="margin-top:8px;">Caroline is the only player all eleven voters have backed at least once. She has 43 upvote points from a unanimous room and sits last on −28, because she has never voted and none of it counted.</div>
+  </div>
+</div>
+
+<h3>Praise versus blame <span class="real">— real</span></h3>
+<div class="card wide">
+  <div class="card-label">Does anyone aim their 8 upvotes more narrowly than their 6 downvotes?</div>
+  <table class="t" style="max-width:640px;">
+    <tr><th>Voter</th><th class="num">Backed</th><th class="num">Targeted</th><th class="num">Praise focus</th><th class="num">Blame focus</th><th>Verdict</th></tr>
+    <tr style="background:#161b22;"><td>Greggo</td><td class="num">6</td><td class="num">10</td><td class="num" style="color:#3fb950;">29%</td><td class="num">15%</td><td><span class="tag green">focuses praise</span></td></tr>
+    <tr><td>Go_BirdzDH</td><td class="num">9</td><td class="num">9</td><td class="num">12%</td><td class="num" style="color:#f85149;">16%</td><td><span class="tag red">focuses blame</span></td></tr>
+    <tr><td>t33nwitch</td><td class="num">11</td><td class="num">8</td><td class="num">11%</td><td class="num" style="color:#f85149;">15%</td><td><span class="tag red">focuses blame</span></td></tr>
+    <tr><td>Cynthia Dallas</td><td class="num">11</td><td class="num">10</td><td class="num">11%</td><td class="num">12%</td><td><span class="tag">even-handed</span></td></tr>
+    <tr><td>Megan Pallace</td><td class="num">11</td><td class="num">11</td><td class="num">12%</td><td class="num">11%</td><td><span class="tag">even-handed</span></td></tr>
+    <tr><td colspan="6" class="dim">… 6 more</td></tr>
+  </table>
+  <div class="card-meta" style="margin-top:6px;">Almost everyone spreads praise wider than blame — the league gives points to all eleven rivals but takes them from eight or nine. <strong style="color:#fff;">Greggo runs it backwards:</strong> he is the only player who concentrates his affection more than his hostility, and it is aimed at someone who has spent six downvote points on him in return.</div>
+</div>
+
+<h3>The most lopsided relationship in the league <span class="real">— real</span></h3>
+<div class="card wide" style="border-left:3px solid #f0883e;">
+  <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+    <div style="flex:1; min-width:240px;">
+      <div class="card-value card-sm">Greggo → t33nwitch: 15 points across 3 songs</div>
+      <div class="card-value card-sm" style="color:#f85149;">t33nwitch → Greggo: 1 point, and 6 downvotes</div>
+      <div class="card-meta" style="margin-top:6px;">He is her biggest fan by a distance — 47% of everything he has to give. She is his arch-nemesis, having downvoted five of his six songs. It is the same edge on the graph read from both ends.</div>
+    </div>
+    <div style="min-width:180px;">
+      <div style="font-size:10px; color:#8b949e;">Greggo → t33nwitch</div>
+      <div class="bar"><div style="width:94%; background:#3fb950;">15 up</div><div style="width:6%; background:#f85149;"></div></div>
+      <div style="font-size:10px; color:#8b949e; margin-top:6px;">t33nwitch → Greggo</div>
+      <div class="bar"><div style="width:14%; background:#3fb950;">1</div><div style="width:86%; background:#f85149;">6 down</div></div>
+    </div>
+  </div>
+</div>
+
+<h3>Where the downvotes go <span class="real">— new, all real</span></h3>
+<div class="card wide">
+  <div class="card-label">Every voter must spend 6 downvote points a round. This is where they aimed.</div>
+  <table class="t">
+    <tr><th>Voter</th><th class="num">Spent</th><th class="num">Targets</th><th>Favourite target</th><th class="num">Share at one person</th></tr>
+    <tr><td>Go_BirdzDH</td><td class="num">36</td><td class="num">9</td><td>Brittny Laudani (8), Bob (8)</td><td class="num">22%</td></tr>
+    <tr><td>Greggo</td><td class="num">24</td><td class="num">10</td><td>Meredith Conde (6)</td><td class="num">25%</td></tr>
+    <tr><td>t33nwitch</td><td class="num">30</td><td class="num">8</td><td>Greggo (6)</td><td class="num">20%</td></tr>
+    <tr><td>Tim Engel</td><td class="num">36</td><td class="num">10</td><td>Bob (7), t33nwitch (7)</td><td class="num">19%</td></tr>
+    <tr><td>Megan Pallace</td><td class="num">36</td><td class="num">11</td><td>Laura M (6), Caroline (6)</td><td class="num">17%</td></tr>
+    <tr><td colspan="5" class="dim">… 6 more voters</td></tr>
+  </table>
+  <div class="card-meta" style="margin-top:6px;"><strong style="color:#fff;">Nobody has a real nemesis.</strong> The most focused downvoter in the league, Greggo, still spreads three quarters of his negativity elsewhere. Everyone aims at 8–11 different people. The hostility in this league is obligatory and evenly distributed — which makes the few genuinely lopsided pairs below stand out.</div>
+</div>
+
+<div class="grid" style="margin-top:12px;">
+  <div class="card">
+    <div class="card-label">Downvotes received</div>
+    <table class="t">
+      <tr><td>Bob</td><td class="num">44</td><td style="width:60%;"><div style="background:#f85149; height:8px; width:100%;"></div></td></tr>
+      <tr><td>Meredith Conde</td><td class="num">44</td><td><div style="background:#f85149; height:8px; width:100%;"></div></td></tr>
+      <tr><td>Megan Pallace</td><td class="num">37</td><td><div style="background:#f85149; height:8px; width:84%;"></div></td></tr>
+      <tr><td>Brittny Laudani</td><td class="num">37</td><td><div style="background:#f85149; height:8px; width:84%;"></div></td></tr>
+      <tr><td class="dim" colspan="3">…</td></tr>
+      <tr><td><strong style="color:#3fb950;">Caroline Cone</strong></td><td class="num">10</td><td><div style="background:#3fb950; height:8px; width:23%;"></div></td></tr>
+    </table>
+    <div class="card-meta">The leader has absorbed a quarter of what the most-downvoted players have. Winning here looks less like being loved than like being un-hated.</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Pair superlatives — the full set lives here</div>
+    <div class="card-meta" style="margin-top:4px;">Biggest superfan · Greggo → t33nwitch, 15 pts</div>
+    <div class="card-meta">Coldest shoulder · Go_BirdzDH → Brittny, 0 in 6 chances</div>
+    <div class="card-meta">Mutual admiration · Cynthia ↔ Go_BirdzDH</div>
+    <div class="card-meta">Most unrequited · gave 8, got 0 back</div>
+    <div class="card-meta">Arch-nemesis · t33nwitch → Greggo, 6 downvote pts</div>
+    <div class="card-meta">Taste twins · closest voting patterns</div>
+  </div>
+</div>
+<div class="ph tall" style="margin-top:12px;">Affinity heatmap — voters × submitters, net affinity</div>
+</div>
+
+<!-- ════════════ PLAYERS ════════════ -->
+<div class="sec">
+<div class="sec-title">5 · Players</div>
+<div class="sec-q">"Who is this person?"</div>
+<div class="tabs"><div class="tab">Overview</div><div class="tab">The Race</div><div class="tab">The Songs</div><div class="tab">The Room</div><div class="tab on">Players</div><div class="tab">Play-by-Play</div></div>
+
+<div class="sup-strip">
+  <div class="sup">
+    <div class="l">Most generous spread</div>
+    <div class="v">6.4 songs a round</div>
+    <div class="s">t33nwitch</div>
+    <div class="m">1.3 pts per song on average — backs almost everyone, lightly</div>
+    <div class="n">Brittny 5.7 · Megan 5.5</div>
+  </div>
+  <div class="sup">
+    <div class="l">Biggest stacker</div>
+    <div class="v">56% at the cap</div>
+    <div class="s">Greggo</div>
+    <div class="m">backs only 2.5 songs a round and dumps everything on them</div>
+    <div class="n">Caroline Cone 23% · Tim 23%</div>
+  </div>
+  <div class="sup">
+    <div class="l">Most mainstream taste</div>
+    <div class="v">60% with the room</div>
+    <div class="s">Megan Pallace</div>
+    <div class="m">her picks averaged the 60th percentile elsewhere · 50% is average</div>
+    <div class="n">t33nwitch 59% · Go_BirdzDH 58%</div>
+  </div>
+  <div class="sup">
+    <div class="l">Biggest contrarian</div>
+    <div class="v">64% against the room</div>
+    <div class="s">Greggo</div>
+    <div class="m">his picks averaged the 36th percentile elsewhere</div>
+    <div class="n">Meredith 52% · Caroline Cone 48%</div>
+  </div>
+</div>
+
+<h3>The era spectrum <span class="real">— real, blended: submissions ×2 + upvotes ×1</span></h3>
+<div class="spectrum">
+  <span style="left:4%;">Cynthia 1997</span>
+  <span class="low" style="left:14%;">Caroline Cone 2000</span>
+  <span style="left:24%;">Megan 2001</span>
+  <span class="low" style="left:35%;">Go_Birdz 2003</span>
+  <span style="left:46%;">Caroline 2005</span>
+  <span class="low" style="left:55%;">Greggo 2006</span>
+  <span style="left:63%;">t33nwitch 2007</span>
+  <span class="low" style="left:73%;">Bob 2012</span>
+  <span style="left:82%;">Meredith 2013</span>
+  <span class="low" style="left:94%;">Tim 2015</span>
+</div>
+<div class="axis"><span>🏺 Crate digger</span><span>📼 Y2K kid</span><span>📱 Algorithm native</span></div>
+
+<div class="card wide" style="margin-top:12px;">
+<table class="t">
+  <tr><th></th><th>Player</th><th class="num">Score</th><th class="num">Submits</th><th class="num">Upvotes</th><th class="num">Gap</th><th class="num" style="color:#d29922;">Avg pop</th><th>Archetype</th></tr>
+  <tr style="background:#161b22;"><td>1</td><td><strong style="color:#fff;">Caroline Cone</strong></td><td class="num">44</td><td class="num">1998</td><td class="num">2003</td><td class="num">5</td><td class="num" style="color:#d29922;">58</td><td><span class="tag purple">🏺 Crate digger</span></td></tr>
+  <tr><td>2</td><td>t33nwitch</td><td class="num">20</td><td class="num">2009</td><td class="num">2003</td><td class="num">6</td><td class="num" style="color:#d29922;">44</td><td><span class="tag blue">📼 Y2K kid</span></td></tr>
+  <tr><td>2</td><td>Cynthia Dallas</td><td class="num">20</td><td class="num">1996</td><td class="num">2000</td><td class="num">4</td><td class="num" style="color:#d29922;">39</td><td><span class="tag purple">🏺 Crate digger</span></td></tr>
+  <tr><td>4</td><td>Tim Engel</td><td class="num">14</td><td class="num">2021</td><td class="num">2004</td><td class="num" style="color:#f0883e;">17</td><td class="num" style="color:#d29922;">61</td><td><span class="tag orange">📱 Algorithm native</span> <span class="tag">🎭 double agent</span></td></tr>
+  <tr><td>11</td><td>Greggo</td><td class="num">−12</td><td class="num">2011</td><td class="num">1996</td><td class="num" style="color:#f0883e;">15</td><td class="num" style="color:#d29922;">34</td><td><span class="tag blue">📼 Y2K kid</span> <span class="tag">🎭 double agent</span></td></tr>
+  <tr><td>12</td><td>Caroline</td><td class="num">−28</td><td class="num">2005</td><td class="num dim">—</td><td class="num dim">—</td><td class="num" style="color:#d29922;">52</td><td><span class="tag">📼 Y2K kid</span> <span class="tag dim">votes unknown</span></td></tr>
+</table>
+<div class="card-meta">"Double agent" flags a 13-year-plus gap between what someone submits and what they reward. Tim submits from 2021 and votes like it's 2004; Greggo submits from 2011 and votes like it's 1996. Four players qualify — it is the most common personality in the league.</div>
+</div>
+
+<h3>Selected player</h3>
+<div class="pl">
+  <div class="rk">#11</div>
+  <div>
+    <div class="nm">Greggo <span class="dim" style="font-weight:400; font-size:14px;">−12 pts</span></div>
+    <div style="margin-top:6px;">
+      <span class="tag green">+8 up</span><span class="tag red">−29 down</span><span class="tag orange">−7 forfeited</span>
+      <span class="tag blue">📼 Y2K kid</span><span class="tag">🎭 double agent</span>
+    </div>
+    <div style="font-size:12px; color:#8b949e; margin-top:6px;"><span class="real">Real:</span> submits from a median of 2011, spends upvotes on a mean of 1996 — the widest backward gap in the league. Voted in 4 of 6 rounds. Most focused downvoter (25% aimed at Meredith Conde), and t33nwitch's arch-nemesis in return. <span class="fake">Avg popularity 34 — the second-deepest digger in the league.</span></div>
+  </div>
+</div>
+
+<div class="subtabs"><div class="subtab on">Submissions</div><div class="subtab">Votes given</div><div class="subtab">Votes received</div></div>
+
+<div class="song">
+  <div class="art">art</div>
+  <div class="d">
+    <div class="ti">DuckTales <span class="dim" style="font-weight:400;">(Extended Version)</span></div>
+    <div class="ar">Felicia Barton</div>
+    <div class="su">Brain FM · round 4</div>
+    <div style="margin-top:4px;"><span class="tag blue">2017</span> <span class="tag orange">Pop 24</span> <span class="tag red">forfeited</span></div>
+  </div>
+  <div class="sc"><div class="scn forf">7</div><div style="font-size:10px; color:#f0883e;">didn't vote</div></div>
+</div>
+<div class="song">
+  <div class="art">art</div>
+  <div class="d">
+    <div class="ti">Trogdor</div>
+    <div class="ar">Strong Bad</div>
+    <div class="su">Brain FM · round 4</div>
+    <div style="margin-top:4px;"><span class="tag blue">2003</span> <span class="tag orange">Pop 18</span> <span class="tag">2:14</span></div>
+  </div>
+  <div class="sc"><div class="scn neg">−5</div><div style="font-size:10px; color:#8b949e;">+2 / −7</div></div>
+</div>
+<div class="dim" style="text-align:center; font-size:11px; margin:6px 0;">… 3 more · no submission in round 1</div>
+
+<h3>Sub-view: votes given</h3>
+<div class="rr"><div class="rn">Born This Way</div><div class="rs"><span class="chip zero">did not vote</span></div></div>
+<div class="rr"><div class="rn">Served Hot</div><div class="rs">
+  <span class="chip up">+4 Gin and Juice</span><span class="chip up">+3 Watermelon Man</span><span class="chip up">+1 Cherry Bomb</span>
+  <span class="chip down">−3 Candy Shop</span><span class="chip down">−2 Honey</span><span class="chip down">−1 Biscuit</span></div></div>
+<div class="rr"><div class="rn">Algorithm &amp; Blues</div><div class="rs">
+  <span class="chip up">+5 O Superman</span><span class="chip up">+3 Champagne Coast</span>
+  <span class="chip down">−3 APT.</span><span class="chip down">−2 booboo2</span><span class="chip down">−1 Fearless</span></div></div>
+<div class="rr"><div class="rn">Brain FM</div><div class="rs"><span class="chip zero">did not vote — forfeited 7 pts</span></div></div>
+<div class="dim" style="font-size:11px; margin:6px 0;">… 2 more rounds · 8 upvote and 6 downvote points every round he voted, always spent in full</div>
+<div class="anno new">His ballot skews old even when the round doesn't: he backed a 1981 art-rock piece and a 1962 jazz standard, and aimed downvotes at 2024 pop both times it appeared.</div>
+
+<h3>Sub-view: votes received</h3>
+<div class="card wide">
+<table class="t">
+  <tr><th>Voter</th><th class="num">Up</th><th class="num">Down</th><th class="num">Net</th><th>Pattern</th></tr>
+  <tr><td>Meredith Conde</td><td class="num" style="color:#3fb950;">4</td><td class="num">1</td><td class="num">+3</td><td><span class="tag green">warmest</span></td></tr>
+  <tr><td>Go_BirdzDH</td><td class="num" style="color:#3fb950;">4</td><td class="num">2</td><td class="num">+2</td><td></td></tr>
+  <tr><td>Laura M</td><td class="num">1</td><td class="num">0</td><td class="num">+1</td><td><span class="tag dim">voted once all season</span></td></tr>
+  <tr><td>Tim Engel</td><td class="num">3</td><td class="num">3</td><td class="num">0</td><td></td></tr>
+  <tr><td>Bob</td><td class="num">1</td><td class="num" style="color:#f85149;">5</td><td class="num" style="color:#f85149;">−4</td><td></td></tr>
+  <tr><td>t33nwitch</td><td class="num">1</td><td class="num" style="color:#f85149;">6</td><td class="num" style="color:#f85149;">−5</td><td><span class="tag red">arch-nemesis</span></td></tr>
+  <tr><td>Caroline</td><td class="num dim">—</td><td class="num dim">—</td><td class="num dim">—</td><td><span class="tag dim">never voted</span></td></tr>
+</table>
+</div>
+
+<h3>Empty states this view needs</h3>
+<div class="grid-3">
+  <div class="empty"><strong style="color:#f0883e;">Caroline</strong><br>Votes given: <em>nothing to show</em><br><span class="dim">Never voted in 6 rounds. Her 43 earned points went uncredited — see The Race.</span></div>
+  <div class="empty"><strong style="color:#f0883e;">Laura M</strong><br>Votes given: <em>one round only</em><br><span class="dim">Voted in Secondhand Hits and nowhere else. Her ballot is shown but averages are suppressed.</span></div>
+  <div class="empty"><strong style="color:#f0883e;">Greggo</strong><br>Submissions: <em>5 of 6 rounds</em><br><span class="dim">No entry in Born This Way, so round 1 is absent rather than zero.</span></div>
+</div>
+</div>
+
+<!-- ════════════ PLAY-BY-PLAY ════════════ -->
+<div class="sec">
+<div class="sec-title">6 · Play-by-Play</div>
+<div class="sec-q">"What happened each round?"</div>
+<div class="tabs"><div class="tab">Overview</div><div class="tab">The Race</div><div class="tab">The Songs</div><div class="tab">The Room</div><div class="tab">Players</div><div class="tab on">Play-by-Play</div></div>
+
+<div class="sup-strip">
+  <div class="sup newf">
+    <div class="l">Highest-scoring round <span class="real">real</span></div>
+    <div class="v">16 pts</div>
+    <div class="s">Born This Way</div>
+    <div class="m">t33nwitch's Real Love — no round since has produced a bigger score</div>
+    <div class="n">Secondhand Hits 14 · The Walk-Up Call 13</div>
+  </div>
+  <div class="sup newf">
+    <div class="l">Lowest-scoring round <span class="real">real</span></div>
+    <div class="v">8 pts to win</div>
+    <div class="s">Served Hot</div>
+    <div class="m">Meredith's Honey took it — the food theme split the room</div>
+    <div class="n">Algorithm &amp; Blues 10 · Brain FM 10</div>
+  </div>
+  <div class="sup newf">
+    <div class="l">Best turnout <span class="real">real</span></div>
+    <div class="v">11 of 12 voted</div>
+    <div class="s">Secondhand Hits</div>
+    <div class="m">109 vote rows, the season high — covers brought everyone out</div>
+    <div class="n">Walk-Up Call 10 · Algorithm 10</div>
+  </div>
+  <div class="sup newf">
+    <div class="l">Most points lost in one round <span class="real">real</span></div>
+    <div class="v">26 pts forfeited</div>
+    <div class="s">The Walk-Up Call</div>
+    <div class="m">Laura M lost 13 and Caroline 13 — the two best songs, neither credited</div>
+    <div class="n">Brain FM 19 · Secondhand Hits 15</div>
+  </div>
+</div>
+
+<div class="rule">Per-round results live only here — the old Rounds panel is folded in. One angle per player across the whole narrative, so no storyline repeats. No "record" claims before round 3, because everything is a record in round 1. <span class="real">Winners, scores and forfeits below are real.</span></div>
+
+<div class="chap win">
+  <div style="display:flex; justify-content:space-between;">
+    <div><div class="card-label">Round 1 · Born This Way</div><div class="card-value card-sm">🏆 Real Love — Mary J. Blige <span class="dim" style="font-size:12px;">(t33nwitch, 16 pts)</span></div></div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">"A song released the year you were born"<br>9 songs · 9 voters</div>
+  </div>
+  <div style="font-size:12.5px; margin-top:8px;">t33nwitch takes the opening round with <strong>16 points</strong> — still the highest score of the season — and every one of the nine voters put something behind it.</div>
+  <div class="anno">Billy Joel's <em>We Didn't Start the Fire</em> finishes last on −9. The theme dated every entry between 1986 and 1994, so this is the one round where the years say more about the players than their taste.</div>
+  <div class="anno" style="margin-top:6px;">After: t33nwitch 16 · Caroline Cone 11 · Tim 2 · … · Megan −9</div>
+</div>
+
+<div class="chap">
+  <div style="display:flex; justify-content:space-between;">
+    <div><div class="card-label">Round 2 · Served Hot</div><div class="card-value card-sm">🏆 Honey — Mariah Carey <span class="dim" style="font-size:12px;">(Meredith Conde, 8 pts)</span></div></div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">"A food or drink in the title"<br>12 songs · 9 voters</div>
+  </div>
+  <div style="font-size:12.5px; margin-top:8px;">Meredith Conde wins with <strong>8 points</strong>, the lowest winning score of the season — the food theme split the room rather than uniting it.</div>
+  <div class="anno">Two songs called <em>Candy</em>-something landed in the same round. 50 Cent's <em>Candy Shop</em> came last on −11, the worst score anyone has posted.</div>
+  <div class="anno new">Three players forfeited here: t33nwitch lost 6 points, Laura M 5, Caroline 2.</div>
+  <div class="anno" style="margin-top:6px;">After: t33nwitch 19 · Caroline Cone 15 · Cynthia 5 · … · Caroline −13</div>
+</div>
+
+<div class="chap">
+  <div style="display:flex; justify-content:space-between;">
+    <div><div class="card-label">Round 3 · Algorithm &amp; Blues</div><div class="card-value card-sm">🏆 Kirby Down B — Harrison Gordon <span class="dim" style="font-size:12px;">(Caroline Cone, 10 pts)</span></div></div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">"Something an algorithm gave you"<br>12 songs · 10 voters</div>
+  </div>
+  <div style="font-size:12.5px; margin-top:8px;">Caroline Cone wins on <strong>10 points</strong> with a video-game track, and takes the overall lead for the first time. She does not give it back.</div>
+  <div class="anno new">The most-streamed song anyone has submitted, <em>APT.</em> by ROSÉ and Bruno Mars, finishes last on −9. Ten downvote points against one. The room's least favourite thing is a current hit.</div>
+  <div class="anno">Median year of this round: 2023 — the newest round of the season, and it produced the season's biggest rejection.</div>
+  <div class="anno" style="margin-top:6px;">After: Caroline Cone 25 · t33nwitch 22 · Cynthia 11 · … · Caroline −23</div>
+</div>
+
+<div class="chap twist">
+  <div style="display:flex; justify-content:space-between;">
+    <div><div class="card-label">Round 4 · Brain FM</div><div class="card-value card-sm">🏆 Tha Crossroads — Bone Thugs-N-Harmony <span class="dim" style="font-size:12px;">(Go_BirdzDH, 7 pts)</span></div></div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">"The song living rent free in your head"<br>11 songs · 9 voters</div>
+  </div>
+  <div style="font-size:12.5px; margin-top:8px;">Go_BirdzDH takes the round on <strong>7 points</strong> — but the best song in it was Caroline's <em>Mercy</em>, which drew <strong>10</strong> and counted for none of them. She didn't vote, so 12 upvote points evaporated and the trophy moved down the table.</div>
+  <div class="anno">Greggo also sat out, losing 7 points on a <em>DuckTales</em> theme. Between them, 19 earned points vanished from a round where the average song scored 1.6.</div>
+  <div class="anno" style="margin-top:6px;">After: Caroline Cone 26 · t33nwitch 13 · Cynthia 13 · … · Caroline −25</div>
+</div>
+
+<div class="chap twist">
+  <div style="display:flex; justify-content:space-between;">
+    <div><div class="card-label">Round 5 · The Walk-Up Call</div><div class="card-value card-sm">🏆 2.0 — BTS <span class="dim" style="font-size:12px;">(Tim Engel, 5 pts)</span></div></div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">"Your MLB walk-up song"<br>12 songs · 10 voters</div>
+  </div>
+  <div style="font-size:12.5px; margin-top:8px;">The lowest winning score of the season — <strong>5 points</strong> — because the two songs that actually topped the round both belonged to non-voters. Laura M's <em>A Milli</em> drew 13 and Caroline's <em>Bring Em Out</em> drew 13, and all 26 points were forfeited.</div>
+  <div class="anno">Highest participation so far: 101 vote rows. The walk-up theme also produced the tightest year band of any round, 2000–2026.</div>
+  <div class="anno" style="margin-top:6px;">After: Caroline Cone 31 · t33nwitch 17 · Cynthia 11 · … · Caroline −27</div>
+</div>
+
+<div class="chap win">
+  <div style="display:flex; justify-content:space-between;">
+    <div><div class="card-label">Round 6 · Secondhand Hits</div><div class="card-value card-sm">🏆 Shine — Dolly Parton <span class="dim" style="font-size:12px;">(Caroline Cone, 13 pts)</span></div></div>
+    <div style="font-size:11px; color:#8b949e; text-align:right;">"Your favourite cover song"<br>12 songs · 11 voters</div>
+  </div>
+  <div style="font-size:12.5px; margin-top:8px;">Caroline Cone wins her second round of the season with Dolly Parton covering Collective Soul, and stretches her lead to 24. For the third round running the highest raw score belonged to someone who forfeited it — Caroline's Nina Simone cover drew <strong>14</strong> and counted −1.</div>
+  <div class="anno cover">Every entry is a cover, spanning 56 years of source material. The oldest original won on raw score and the second-oldest won outright; the most recent, an acoustic <em>Black Beatles</em>, came last on −7.</div>
+  <div class="anno">Full turnout — 11 voters and 109 vote rows, both season highs.</div>
+  <div class="anno" style="margin-top:6px;">After: Caroline Cone 44 · t33nwitch 20 · Cynthia 20 · Tim 14 · … · Caroline −28</div>
+</div>
+
+<div class="card wide" style="margin-top:14px;">
+  <div class="card-label">How a chapter is assembled</div>
+  <div class="grid" style="margin-top:6px;">
+    <div>
+      <div style="font-size:12px; color:#fff;">Always</div>
+      <div class="card-meta">Winner, score, art · theme text · song and voter counts · standings after</div>
+      <div style="font-size:12px; color:#fff; margin-top:8px;">Picked by unusualness, 2–3 per round</div>
+      <div class="card-meta">Forfeit that changed the round · biggest rejection · lead change · last place · turnout swing · era outlier · cover relationship · kingmaker ballot</div>
+    </div>
+    <div>
+      <div style="font-size:12px; color:#fff;">Guard rails</div>
+      <div class="card-meta">One angle per player for the whole season, so Caroline's forfeits are told once as a pattern rather than six times.</div>
+      <div class="card-meta">Full display names always — <strong>Caroline</strong> and <strong>Caroline Cone</strong> are different people and prose must never shorten either.</div>
+      <div class="card-meta">No superlative claims before round 3.</div>
+      <div class="card-meta">Round-relative language, since a 10-point round can be a win or a mid-table finish depending on turnout.</div>
+      <div class="card-meta" style="color:#f0883e;">Never conflate the best song with the winner. In rounds 4, 5 and 6 the top raw score was forfeited, so the trophy went to a lower-scoring song. The chapter names the credited winner and reports the forfeited score as the twist.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════ STATUS ════════════ -->
+<div class="sec" style="border-color:#484f58;">
+<div class="sec-title" style="color:#c9d1d9;">Superlative audit — all 23 placed, none repeated</div>
+<div class="grid" style="margin-top:10px;">
+<table class="t">
+  <tr><th>#</th><th>Superlative</th><th>Lives on</th></tr>
+  <tr><td>1</td><td>Biggest single haul</td><td>Overview</td></tr>
+  <tr><td>2</td><td>Biggest haul never counted</td><td>Overview</td></tr>
+  <tr><td>20</td><td>Best average song</td><td>Overview</td></tr>
+  <tr><td>23</td><td>Chattiest</td><td>Overview</td></tr>
+  <tr><td>14</td><td>Most forfeited by not voting</td><td>The Race</td></tr>
+  <tr><td>15</td><td>Most rounds skipped voting</td><td>The Race</td></tr>
+  <tr><td>21</td><td>Broadest support base</td><td>The Race</td></tr>
+  <tr><td>22</td><td>Most polarizing act</td><td>The Race</td></tr>
+  <tr><td>3</td><td>Widest appeal</td><td>The Songs</td></tr>
+  <tr><td>4</td><td>Most divisive</td><td>The Songs</td></tr>
+  <tr><td>7</td><td>Most downvoted</td><td>The Songs</td></tr>
+  <tr><td>5</td><td>Narrowest win</td><td>The Songs (row 2)</td></tr>
+</table>
+<table class="t">
+  <tr><th>#</th><th>Superlative</th><th>Lives on</th></tr>
+  <tr><td>6</td><td>Most one-sided single vote</td><td>The Songs (row 2)</td></tr>
+  <tr><td>8</td><td>Biggest superfan</td><td>The Room</td></tr>
+  <tr><td>11</td><td>Mutual admiration society</td><td>The Room</td></tr>
+  <tr><td>12</td><td>Most unrequited</td><td>The Room</td></tr>
+  <tr><td>13</td><td>Arch-nemesis</td><td>The Room</td></tr>
+  <tr><td>9</td><td>Most points given (raw)</td><td>The Room (row 2)</td></tr>
+  <tr><td>10</td><td>Coldest shoulder</td><td>The Room (row 2)</td></tr>
+  <tr><td>16</td><td>Most generous spread</td><td>Players</td></tr>
+  <tr><td>17</td><td>Biggest stacker</td><td>Players</td></tr>
+  <tr><td>18</td><td>Most mainstream taste</td><td>Players</td></tr>
+  <tr><td>19</td><td>Biggest contrarian</td><td>Players</td></tr>
+  <tr><td class="dim">—</td><td class="dim">23 of 23 accounted for</td><td class="dim">✓</td></tr>
+</table>
+</div>
+<div class="anno new">Six new ones join them: Deepest cut to score, Biggest hit to bomb, The time capsule (Songs), plus four round-level ones on Play-by-Play — highest and lowest scoring round, best turnout, most points lost in a round.</div>
+<div class="anno">Two overlaps worth noting in the real data: <strong>Greggo → t33nwitch</strong> wins Biggest superfan, Most points given <em>and</em> Most unrequited, and <strong>Go_BirdzDH → Brittny</strong> wins both Coldest shoulder and Arch-nemesis. Same pair, different questions — the cards should acknowledge each other rather than pretend to be independent findings.</div>
+</div>
+
+<div class="sec" style="border-color:#484f58;">
+<div class="sec-title" style="color:#c9d1d9;">Data status</div>
+<table class="t" style="max-width:760px;">
+  <tr><th>Data</th><th>Source</th><th>Coverage</th><th>Status</th></tr>
+  <tr><td>Release year</td><td>MusicBrainz</td><td><strong style="color:#3fb950;">65 of 68 (96%)</strong></td><td>✓ fetched, no API key needed</td></tr>
+  <tr><td>Album art</td><td>Spotify oEmbed</td><td>68 of 68</td><td>✓ already shipping</td></tr>
+  <tr><td>Genres</td><td>MusicBrainz</td><td>65 of 81 artists</td><td>✓ already shipping</td></tr>
+  <tr><td>Wikipedia facts</td><td>Wikipedia API</td><td>40 of 68 (59%)</td><td>✓ fetched, biased toward the mainstream</td></tr>
+  <tr><td>Cover → original</td><td>Manual + Wikipedia</td><td>11 of 11 in round 6</td><td>✓ done; round 10 remixes reuse the schema</td></tr>
+  <tr><td>Popularity</td><td>Spotify Web API</td><td><span class="fake">faked in these mocks</span></td><td>needs a Premium developer account — shown throughout as illustrative</td></tr>
+  <tr><td>Duration</td><td>Spotify Web API</td><td><span class="fake">faked in these mocks</span></td><td>same dependency; display-only value</td></tr>
+</table>
+<div class="anno" style="margin-top:10px;">Everything not marked <span class="fake">illustrative</span> is buildable today with no new credentials. Year came free from MusicBrainz at 96% coverage. Popularity and duration are drawn in as if we had them so the layouts are right when the key arrives.</div>
+</div>
+
+</body>
+</html>

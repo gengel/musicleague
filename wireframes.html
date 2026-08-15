@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Music League Dashboard — IA Wireframes</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.5; padding: 24px; }
+h1 { font-size: 28px; margin-bottom: 8px; color: #fff; }
+h2 { font-size: 20px; margin: 40px 0 12px; color: #58a6ff; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
+h3 { font-size: 15px; margin: 20px 0 8px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em; }
+.option { border: 1px solid #30363d; border-radius: 12px; padding: 24px; margin: 32px 0; background: #161b22; }
+.option-title { font-size: 22px; color: #f0883e; margin-bottom: 16px; }
+.tabs { display: flex; gap: 2px; margin: 16px 0; background: #21262d; border-radius: 8px; overflow: hidden; }
+.tab { padding: 8px 16px; font-size: 13px; color: #8b949e; cursor: default; }
+.tab.on { background: #30363d; color: #fff; font-weight: 600; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 12px 0; }
+.card { border: 1px solid #30363d; border-radius: 8px; padding: 14px; background: #0d1117; }
+.card-label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.card-value { font-size: 18px; color: #fff; font-weight: 600; }
+.card-subject { font-size: 13px; color: #c9d1d9; margin-top: 2px; }
+.card-meta { font-size: 11px; color: #8b949e; margin-top: 4px; }
+.card-link { font-size: 10px; color: #58a6ff; margin-top: 6px; display: block; }
+.wide { grid-column: 1 / -1; }
+.placeholder { border: 1px dashed #30363d; border-radius: 8px; padding: 20px; text-align: center; color: #484f58; font-style: italic; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+.placeholder.tall { min-height: 160px; }
+.placeholder.hero { min-height: 220px; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+.table th { text-align: left; padding: 6px 8px; color: #8b949e; border-bottom: 1px solid #21262d; font-weight: 500; }
+.table td { padding: 6px 8px; border-bottom: 1px solid #161b22; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.dim { color: #484f58; }
+.tag { display: inline-block; background: #21262d; border-radius: 4px; padding: 2px 6px; font-size: 10px; margin: 2px 2px 2px 0; }
+.tag.green { background: #1b3a2a; color: #3fb950; }
+.tag.orange { background: #3d2a1a; color: #f0883e; }
+.tag.blue { background: #1a2d3d; color: #58a6ff; }
+.scatter { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(5, 20px); gap: 2px; margin: 8px 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.section-note { font-size: 12px; color: #8b949e; margin: 8px 0; font-style: italic; }
+.player-card { display: flex; gap: 12px; border: 1px solid #30363d; border-radius: 8px; padding: 12px; margin: 6px 0; background: #0d1117; }
+.player-card .rank { font-size: 20px; color: #484f58; font-weight: 700; min-width: 28px; }
+.player-card .info { flex: 1; }
+.player-card .name { font-weight: 600; color: #fff; }
+.player-card .traits { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.anno { font-size: 11px; padding: 3px 0; color: #8b949e; border-left: 2px solid #30363d; padding-left: 8px; margin: 4px 0; }
+.new { border-left-color: #f0883e; }
+.gateway { border: 1px solid #21262d; border-radius: 8px; padding: 12px; margin: 6px 0; display: flex; justify-content: space-between; align-items: center; }
+.gateway .arrow { color: #58a6ff; font-size: 18px; }
+.features { columns: 2; column-gap: 20px; font-size: 12px; margin: 8px 0; }
+.features li { margin: 4px 0; break-inside: avoid; }
+.features .new-feat { color: #f0883e; }
+hr { border: none; border-top: 1px solid #21262d; margin: 24px 0; }
+</style>
+</head>
+<body>
+
+<h1>Music League Dashboard — IA Wireframes</h1>
+<p style="color:#8b949e; margin-bottom: 8px;">Three layout options. <span style="color:#f0883e">Orange</span> = new features enabled by music metadata (popularity, year, duration, Wikipedia facts).</p>
+<p style="color:#8b949e; font-size:13px;">All use fake data. Focus is on information architecture, not visual polish.</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION A -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option">
+<div class="option-title">Option A — "Magazine Cover + Deep Dives"</div>
+<p style="font-size:13px; color:#8b949e; margin-bottom:12px;">The Overview is a rich, scrollable front page with gateway cards that tease each section. Relationship data lives in ONE place. Music personality is woven into player profiles.</p>
+
+<div class="tabs">
+  <div class="tab on">Overview</div>
+  <div class="tab">The Race</div>
+  <div class="tab">The Songs</div>
+  <div class="tab">The Room</div>
+  <div class="tab">The Players</div>
+</div>
+
+<h3>Overview — "The Magazine Cover"</h3>
+
+<div class="grid-3">
+  <div class="card">
+    <div class="card-label">The cost of silence</div>
+    <div class="card-value">Caroline</div>
+    <div class="card-meta">Has not cast a single vote in 6 rounds. 43 pts forfeited.</div>
+    <span class="card-link">→ The Players</span>
+  </div>
+  <div class="card">
+    <div class="card-label">Runaway leader</div>
+    <div class="card-value">Caroline C—</div>
+    <div class="card-meta">44 pts against combined −11</div>
+    <span class="card-link">→ The Race</span>
+  </div>
+  <div class="card">
+    <div class="card-label">Mutually assured destruction</div>
+    <div class="card-value">464 up / 348 down</div>
+    <div class="card-meta">Only 105 pts survived. 7 of 12 below zero.</div>
+  </div>
+</div>
+
+<h3>Showcase — Top Songs (with new metadata)</h3>
+<div class="grid" style="grid-template-columns: repeat(4, 1fr);">
+  <div class="card">
+    <div class="placeholder" style="min-height:60px; font-size:11px;">🎵 Album Art</div>
+    <div class="card-value" style="font-size:14px; margin-top:8px;">Real Love</div>
+    <div class="card-subject">Mary J. Blige · 16 pts</div>
+    <div class="card-meta">
+      <span class="tag blue">1992</span>
+      <span class="tag green">Pop: 72</span>
+      <span class="tag">4:02</span>
+    </div>
+    <div class="anno new" style="margin-top:6px;">Certified Gold · peaked #7 Hot 100</div>
+  </div>
+  <div class="card">
+    <div class="placeholder" style="min-height:60px; font-size:11px;">🎵 Album Art</div>
+    <div class="card-value" style="font-size:14px; margin-top:8px;">I Shall Be Released</div>
+    <div class="card-subject">Nina Simone · 15 pts (forfeited)</div>
+    <div class="card-meta">
+      <span class="tag blue">1971</span>
+      <span class="tag green">Pop: 41</span>
+      <span class="tag">3:38</span>
+    </div>
+    <div class="anno new" style="margin-top:6px;">Originally a Bob Dylan demo from the Basement Tapes</div>
+  </div>
+  <div class="card">
+    <div class="placeholder" style="min-height:60px; font-size:11px;">🎵 Album Art</div>
+    <div class="card-value" style="font-size:14px; margin-top:8px;">Shine</div>
+    <div class="card-subject">Dolly Parton · 13 pts</div>
+    <div class="card-meta">
+      <span class="tag blue">2001</span>
+      <span class="tag green">Pop: 28</span>
+      <span class="tag">3:54</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="placeholder" style="min-height:60px; font-size:11px;">🎵 Album Art</div>
+    <div class="card-value" style="font-size:14px; margin-top:8px;">About A Girl</div>
+    <div class="card-subject">Nirvana · 11 pts</div>
+    <div class="card-meta">
+      <span class="tag blue">1989</span>
+      <span class="tag green">Pop: 68</span>
+      <span class="tag">2:48</span>
+    </div>
+    <div class="anno new" style="margin-top:6px;">Written about Tracy Marander; she didn't know until '93</div>
+  </div>
+</div>
+
+<h3>Gateway Cards — Teasers into sub-sections</h3>
+<div class="grid">
+  <div class="gateway">
+    <div>
+      <div style="font-weight:600; color:#fff;">The Room</div>
+      <div style="font-size:12px; color:#8b949e;">2 clusters • strongest tie: Greggo → t33nwitch (15 pts)</div>
+      <div class="placeholder" style="min-height:50px; font-size:10px; margin-top:6px; border:none; padding:0;">[ mini graph: 12 dots with coloured clusters ]</div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+  <div class="gateway">
+    <div>
+      <div style="font-weight:600; color:#f0883e;">The League's Taste</div>
+      <div style="font-size:12px; color:#8b949e;">Obscure picks average −2.1 pts below popular ones</div>
+      <div style="font-size:12px; color:#8b949e; margin-top:4px;">Median release year: 2006 • 74% after 2000</div>
+    </div>
+    <div class="arrow">→</div>
+  </div>
+</div>
+
+<h3>Superlatives (selection — grouped by destination)</h3>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-label">🎵 Biggest single haul → Songs</div>
+    <div class="card-value">16 pts</div>
+    <div class="card-subject">Real Love</div>
+    <div class="card-meta">Mary J. Blige · Born This Way</div>
+  </div>
+  <div class="card">
+    <div class="card-label">🤝 Biggest superfan → The Room</div>
+    <div class="card-value">Greggo → t33nwitch</div>
+    <div class="card-subject">15 pts given</div>
+    <div class="card-meta">58% of what the rules allowed</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">🏺 Deepest cut to score → Songs</div>
+    <div class="card-value">Popularity 12</div>
+    <div class="card-subject">O Superman — Laurie Anderson</div>
+    <div class="card-meta">Scored 3 pts despite being almost unknown on Spotify</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">📅 The Archaeologist → Players</div>
+    <div class="card-value">Median year: 1988</div>
+    <div class="card-subject">Greggo</div>
+    <div class="card-meta">Oldest median era in the league; avg pop 34</div>
+  </div>
+  <div class="card">
+    <div class="card-label">🎯 Biggest contrarian → Players</div>
+    <div class="card-value">64% against the room</div>
+    <div class="card-subject">Greggo</div>
+    <div class="card-meta">Picks averaged 36th percentile</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">💀 Biggest hit to bomb → Songs</div>
+    <div class="card-value">Pop 89 → scored −3</div>
+    <div class="card-subject">Boom Boom Pow</div>
+    <div class="card-meta">The most popular song submitted, and one of the worst scores</div>
+  </div>
+</div>
+
+<hr>
+<h3>The Race tab</h3>
+<div class="placeholder tall">📈 Score timeline (line chart, full width)</div>
+<div style="margin-top:12px;" class="grid">
+  <div class="placeholder">Score breakdown table (up/down/forfeit per player)</div>
+  <div class="placeholder">Round results: winner, ranked songs</div>
+</div>
+<div class="placeholder" style="margin-top:12px;">Future projections: who's alive, kingmaker, form cards</div>
+
+<hr>
+<h3>The Songs tab</h3>
+<div class="section-note" style="color:#f0883e;">New: Taste bias analysis at the top, then the full table, then genre/artists.</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">Does popularity help?</div>
+    <div class="placeholder" style="min-height:100px;">Scatter: X = Spotify popularity, Y = league score<br>Trend line shows slight negative correlation<br>"Popular songs average −0.8 pts below obscure ones in this league"</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">Does era matter?</div>
+    <div class="placeholder" style="min-height:100px;">Bar chart: decade buckets vs avg score<br>"Pre-2000 songs: avg −1.4 · Post-2010: avg +0.3"<br>"The room has a mild recency bias"</div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:12px;">
+  <div class="card-label">Full song table (sortable)</div>
+  <table class="table">
+    <tr>
+      <th></th><th>Song</th><th>Artist</th><th class="num">Score</th><th class="num">Up</th><th class="num">Down</th>
+      <th class="num" style="color:#f0883e;">Year</th>
+      <th class="num" style="color:#f0883e;">Pop.</th>
+      <th class="num" style="color:#f0883e;">Len</th>
+      <th>Round</th>
+    </tr>
+    <tr>
+      <td>🎵</td><td>Real Love</td><td>Mary J. Blige</td><td class="num">16</td><td class="num">16</td><td class="num">0</td>
+      <td class="num" style="color:#f0883e;">1992</td><td class="num" style="color:#f0883e;">72</td><td class="num" style="color:#f0883e;">4:02</td>
+      <td>Born This Way</td>
+    </tr>
+    <tr>
+      <td>🎵</td><td>O Superman</td><td>Laurie Anderson</td><td class="num">3</td><td class="num">8</td><td class="num">5</td>
+      <td class="num" style="color:#f0883e;">1981</td><td class="num" style="color:#f0883e;">12</td><td class="num" style="color:#f0883e;">8:21</td>
+      <td>Algorithm & Blues</td>
+    </tr>
+    <tr>
+      <td>🎵</td><td>APT.</td><td>ROSÉ, Bruno Mars</td><td class="num">1</td><td class="num">1</td><td class="num">0</td>
+      <td class="num" style="color:#f0883e;">2024</td><td class="num" style="color:#f0883e;">95</td><td class="num" style="color:#f0883e;">2:42</td>
+      <td>Algorithm & Blues</td>
+    </tr>
+    <tr><td colspan="10" class="dim" style="text-align:center;">… 65 more rows</td></tr>
+  </table>
+  <div class="anno new">Expandable row shows Wikipedia fact: "APT. was the best-selling global single of 2025, the first time an artist outside North America or Europe topped the IFPI chart."</div>
+</div>
+
+<div style="margin-top:12px;" class="grid">
+  <div class="placeholder">Genre table (as now — performance vs league avg)</div>
+  <div class="placeholder">Artists table (now with era + avg popularity columns)</div>
+</div>
+
+<hr>
+<h3>The Room tab</h3>
+<div class="placeholder hero">🕸️ Force-directed graph — HERO, full width, big<br>Coloured clusters, edge thickness = mutual warmth<br>Click a node → highlights their edges</div>
+<div class="grid" style="margin-top:12px;">
+  <div class="placeholder tall">Affinity heatmap (NxN matrix)</div>
+  <div class="card">
+    <div class="card-label">Pair superlatives</div>
+    <div class="card-meta" style="margin-top:4px;">Biggest superfan: Greggo → t33nwitch (15 pts)</div>
+    <div class="card-meta">Coldest shoulder: Go_BirdzDH → Brittny L— (0 pts, 6 chances)</div>
+    <div class="card-meta">Mutual admiration: Cynthia ↔ Go_BirdzDH</div>
+    <div class="card-meta">Most unrequited: Greggo → Megan (gave 8, got 0 back)</div>
+    <div class="card-meta">Arch-nemesis: t33nwitch → Greggo (6 downvote pts)</div>
+  </div>
+</div>
+
+<hr>
+<h3>The Players tab</h3>
+<div class="section-note">Combined table + profiles. Click to expand. Music personality is inline.</div>
+
+<div class="player-card">
+  <div class="rank">#1</div>
+  <div class="info">
+    <div class="name">Caroline C— <span class="dim" style="font-weight:400;">44 pts</span></div>
+    <div class="traits">
+      <span class="tag green">+54 up</span>
+      <span class="tag" style="background:#3d1a1a; color:#f85149;">−10 down</span>
+      <span class="tag orange">−43 forfeited</span>
+    </div>
+    <div class="anno" style="margin-top:6px;">Best song: Shine (13 pts) · Worst: Friends (1 pt) · Fan: Bob · Sceptic: Greggo</div>
+    <div class="anno new">Era: 2001–2024 (median 2016) · Avg popularity: 64 · "Plays it mainstream and it works"</div>
+  </div>
+</div>
+<div class="player-card">
+  <div class="rank">#12</div>
+  <div class="info">
+    <div class="name">Greggo <span class="dim" style="font-weight:400;">−28 pts</span></div>
+    <div class="traits">
+      <span class="tag green">+8 up</span>
+      <span class="tag" style="background:#3d1a1a; color:#f85149;">−29 down</span>
+      <span class="tag orange">−7 forfeited</span>
+    </div>
+    <div class="anno" style="margin-top:6px;">Best song: Brass Monkey (4 pts) · Worst: Trogdor (−5 pts) · Fan: Laura M · Sceptic: t33nwitch</div>
+    <div class="anno new">Era: 1976–2002 (median 1988) · Avg popularity: 34 · "The league's archaeologist — digs deep, pays the price"</div>
+  </div>
+</div>
+<div class="dim" style="text-align:center; margin:8px 0; font-size:12px;">… 10 more players</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION B -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option">
+<div class="option-title">Option B — "Data Stories First"</div>
+<p style="font-size:13px; color:#8b949e; margin-bottom:12px;">Every tab leads with a narrative insight (a computed "finding"), then offers the data underneath. The Overview becomes a story feed. Music data drives full-width feature panels rather than table columns.</p>
+
+<div class="tabs">
+  <div class="tab on">The Story</div>
+  <div class="tab">Standings</div>
+  <div class="tab">Music</div>
+  <div class="tab">Relationships</div>
+  <div class="tab">Players</div>
+</div>
+
+<h3>The Story — narrative-first overview</h3>
+<div class="section-note">Each "story" is a computed finding with a one-sentence headline, a supporting stat, and a link to explore further. The page reads like an article.</div>
+
+<div class="card wide" style="border-left: 3px solid #f0883e; margin-bottom:12px;">
+  <div class="card-label" style="color:#f0883e;">LEAGUE CHARACTER</div>
+  <div class="card-value" style="font-size:16px;">This league rewards obscure, older music — and punishes the mainstream.</div>
+  <div class="card-meta" style="margin-top:6px;">Songs with Spotify popularity under 40 average +1.2 pts. Over 70 averages −1.8. The room's median submission year is 2006, but pre-2000 songs outscore post-2020 ones by 2.4 points per song.</div>
+  <span class="card-link">→ Explore in Music tab</span>
+</div>
+
+<div class="card wide" style="border-left: 3px solid #58a6ff; margin-bottom:12px;">
+  <div class="card-label">THE RACE</div>
+  <div class="card-value" style="font-size:16px;">Caroline has scored more than the other 11 players combined.</div>
+  <div class="card-meta" style="margin-top:6px;">44 against their combined −11. She's never voted, forfeiting 43 earned points, and she's still first by 30.</div>
+  <span class="card-link">→ Standings</span>
+</div>
+
+<div class="card wide" style="border-left: 3px solid #a371f7; margin-bottom:12px;">
+  <div class="card-label">THE ROOM</div>
+  <div class="card-value" style="font-size:16px;">Two camps: the old-school crew and the pop coalition.</div>
+  <div class="card-meta" style="margin-top:6px;">Greggo, Tim, and Bob form one cluster; Caroline, Cynthia, and Megan form another. Cross-cluster voting averages 0.4× expected.</div>
+  <div class="placeholder" style="min-height:80px; margin-top:8px; font-size:11px;">[ Mini graph: nodes coloured by cluster ]</div>
+  <span class="card-link">→ Relationships</span>
+</div>
+
+<div class="card wide" style="border-left: 3px solid #3fb950; margin-bottom:12px;">
+  <div class="card-label" style="color:#f0883e;">MUSIC PERSONALITY</div>
+  <div class="card-value" style="font-size:16px;">Everyone submits from a different era — and the room knows it.</div>
+  <div class="card-meta" style="margin-top:6px;">
+    <strong>The archaeologists</strong> (median era pre-1995): Greggo, Tim<br>
+    <strong>The curators</strong> (2000–2015, low popularity): t33nwitch, Laura M<br>
+    <strong>The populists</strong> (post-2015, high popularity): Caroline, Megan<br>
+    Each archetype has a distinct scoring pattern.
+  </div>
+  <span class="card-link">→ Players</span>
+</div>
+
+<h3>Superlatives</h3>
+<div class="grid-3">
+  <div class="card">
+    <div class="card-label">Biggest single haul</div>
+    <div class="card-value">16 pts</div>
+    <div class="card-subject">Real Love — Mary J. Blige</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">The time capsule</div>
+    <div class="card-value">1971</div>
+    <div class="card-subject">I Shall Be Released — Nina Simone</div>
+    <div class="card-meta">Oldest song submitted · still scored 15 pts (forfeited)</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Most forfeited</div>
+    <div class="card-value">−43 pts</div>
+    <div class="card-subject">Caroline</div>
+    <div class="card-meta">5 rounds without voting</div>
+  </div>
+</div>
+
+<hr>
+<h3>Music tab — the new centerpiece</h3>
+<div class="section-note" style="color:#f0883e;">This is where all the enriched metadata lives as analysis, not just display.</div>
+
+<div class="card wide" style="margin-bottom:12px;">
+  <div class="card-label" style="color:#f0883e;">TASTE PROFILE: What wins in this league?</div>
+  <div class="grid" style="margin-top:8px;">
+    <div class="placeholder" style="min-height:100px;">Scatter plot<br>X = popularity, Y = score<br>Colour = submitter<br>Trendline + confidence band</div>
+    <div>
+      <div class="card-meta"><strong>Findings:</strong></div>
+      <div class="card-meta" style="margin-top:4px;">• Popularity penalty: −0.04 pts per popularity point</div>
+      <div class="card-meta">• Sweet spot: popularity 30–50 (avg +1.8)</div>
+      <div class="card-meta">• Era sweet spot: 1990–2005 (avg +1.4)</div>
+      <div class="card-meta">• Duration: no significant effect (p > 0.3)</div>
+      <div class="card-meta" style="margin-top:8px; color:#f0883e;"><strong>Strategy tip:</strong> Submit something from the late 90s that peaked at #40 and you'll outscore a current #1 hit by ~3 points on average.</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">Era breakdown</div>
+    <table class="table">
+      <tr><th>Decade</th><th class="num">Songs</th><th class="num">Avg Score</th><th class="num">Avg Pop.</th></tr>
+      <tr><td>Pre-1980</td><td class="num">6</td><td class="num">+0.8</td><td class="num">42</td></tr>
+      <tr><td>1980s</td><td class="num">11</td><td class="num">+1.2</td><td class="num">55</td></tr>
+      <tr><td>1990s</td><td class="num">14</td><td class="num">+1.6</td><td class="num">51</td></tr>
+      <tr><td>2000s</td><td class="num">12</td><td class="num">−0.3</td><td class="num">47</td></tr>
+      <tr><td>2010s</td><td class="num">15</td><td class="num">−0.8</td><td class="num">58</td></tr>
+      <tr><td>2020s</td><td class="num">10</td><td class="num">−1.1</td><td class="num">71</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">Liner Notes — Did You Know?</div>
+    <div style="font-size:12px; margin-top:6px;">
+      <div style="padding:6px 0; border-bottom:1px solid #21262d;"><strong>Tha Crossroads</strong> — debuted at #2, reached #1 for 8 consecutive weeks, the longest for a rap single at the time.</div>
+      <div style="padding:6px 0; border-bottom:1px solid #21262d;"><strong>APT.</strong> — best-selling global single of 2025; first time an artist outside North America or Europe topped the IFPI chart.</div>
+      <div style="padding:6px 0; border-bottom:1px solid #21262d;"><strong>Creep</strong> — Radiohead's debut single. Rolling Stone named it one of the greatest debut singles of all time.</div>
+      <div style="padding:6px 0;"><strong>Black Beatles</strong> — fueled by the Mannequin Challenge going viral; became Rae Sremmurd's first #1.</div>
+    </div>
+  </div>
+</div>
+
+<div class="placeholder" style="margin-top:12px;">Full song table with Year / Pop / Duration columns + expandable fact rows (same as Option A)</div>
+
+<hr>
+<h3>Relationships tab</h3>
+<div class="placeholder hero">🕸️ Graph (hero, full width) + clusters</div>
+<div class="section-note">Below: heatmap, pair leaders. Same as Option A — one location for all relationship data.</div>
+
+<hr>
+<h3>Players tab — music personality integrated</h3>
+<div class="player-card">
+  <div class="rank">#1</div>
+  <div class="info">
+    <div class="name">Caroline C— <span class="dim" style="font-weight:400;">44 pts</span></div>
+    <div class="anno new" style="margin-top:4px;">
+      <strong>The Populist</strong> — median year 2016, avg popularity 64. Submits recent hits. The room rewards it: her avg song scores +3.2 above league mean.
+    </div>
+    <div class="anno" style="margin-top:4px;">Fan: Bob (10 pts) · Sceptic: Greggo · Never voted · Forfeited 43 pts</div>
+  </div>
+</div>
+<div class="player-card">
+  <div class="rank">#12</div>
+  <div class="info">
+    <div class="name">Greggo <span class="dim" style="font-weight:400;">−28 pts</span></div>
+    <div class="anno new" style="margin-top:4px;">
+      <strong>The Archaeologist</strong> — median year 1988, avg popularity 34. Goes deep and old. The room punishes it: his avg song scores −2.8 below league mean.
+    </div>
+    <div class="anno" style="margin-top:4px;">Fan: Laura M (1 pt) · Sceptic: t33nwitch (net −5) · Biggest contrarian (64%)</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- OPTION C -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option">
+<div class="option-title">Option C — "The Collection" (Song-Centric)</div>
+<p style="font-size:13px; color:#8b949e; margin-bottom:12px;">Flips the hierarchy: songs are the primary object, and players/votes are attributes of songs. The front page is a browsable collection. Good if the league cares more about the music than the competition.</p>
+
+<div class="tabs">
+  <div class="tab on">Collection</div>
+  <div class="tab">Leaderboard</div>
+  <div class="tab">Connections</div>
+  <div class="tab">Predictions</div>
+</div>
+
+<h3>Collection — the "record store" front page</h3>
+<div class="section-note">Every song is a card. Filter/sort by era, genre, popularity, score, submitter. The overview stats are a header bar, not a separate section.</div>
+
+<div style="background:#21262d; border-radius:8px; padding:12px 16px; margin:12px 0; display:flex; gap:24px; flex-wrap:wrap; font-size:12px;">
+  <div><strong style="color:#fff;">68</strong> songs</div>
+  <div><strong style="color:#fff;">12</strong> players</div>
+  <div><strong style="color:#fff;">4h 38m</strong> total listening</div>
+  <div style="color:#f0883e;"><strong>1971–2025</strong> era range</div>
+  <div style="color:#f0883e;">median pop: <strong>51</strong></div>
+  <div>leader: <strong style="color:#fff;">Caroline C—</strong> (44 pts)</div>
+</div>
+
+<div style="background:#21262d; border-radius:8px; padding:8px 16px; margin:8px 0; font-size:11px; display:flex; gap:12px; color:#8b949e;">
+  <span>Sort by:</span>
+  <span style="color:#fff; text-decoration:underline;">Score ↓</span>
+  <span>Year</span>
+  <span style="color:#f0883e;">Popularity</span>
+  <span style="color:#f0883e;">Duration</span>
+  <span>Breadth</span>
+  <span>Round</span>
+  <span>|</span>
+  <span>Filter: Genre ▾ · Era ▾ · Submitter ▾</span>
+</div>
+
+<div class="grid" style="grid-template-columns: repeat(3, 1fr); margin-top:12px;">
+  <div class="card">
+    <div style="display:flex; gap:10px;">
+      <div class="placeholder" style="min-height:64px; min-width:64px; max-width:64px; font-size:9px;">art</div>
+      <div>
+        <div style="font-weight:600; font-size:14px; color:#fff;">Real Love</div>
+        <div style="font-size:12px;">Mary J. Blige</div>
+        <div style="font-size:11px; color:#8b949e;">Submitted by t33nwitch</div>
+        <div style="margin-top:4px;">
+          <span class="tag green">16 pts</span>
+          <span class="tag blue">1992</span>
+          <span class="tag orange">Pop 72</span>
+        </div>
+      </div>
+    </div>
+    <div class="anno new" style="margin-top:8px;">Topped the Hot R&B chart · certified Gold · Blige's first top-10 on the Hot 100</div>
+    <div class="anno" style="margin-top:4px;">90% breadth · 9 of 10 voters · Won "Born This Way"</div>
+  </div>
+  <div class="card">
+    <div style="display:flex; gap:10px;">
+      <div class="placeholder" style="min-height:64px; min-width:64px; max-width:64px; font-size:9px;">art</div>
+      <div>
+        <div style="font-weight:600; font-size:14px; color:#fff;">O Superman</div>
+        <div style="font-size:12px;">Laurie Anderson</div>
+        <div style="font-size:11px; color:#8b949e;">Submitted by t33nwitch</div>
+        <div style="margin-top:4px;">
+          <span class="tag green">3 pts</span>
+          <span class="tag blue">1981</span>
+          <span class="tag orange">Pop 12</span>
+          <span class="tag">8:21</span>
+        </div>
+      </div>
+    </div>
+    <div class="anno new" style="margin-top:8px;">Championed by John Peel, reached #2 in the UK despite being an 8-min minimalist piece</div>
+    <div class="anno" style="margin-top:4px;">Most divisive (±3.0) · 8 up, 5 down</div>
+  </div>
+  <div class="card">
+    <div style="display:flex; gap:10px;">
+      <div class="placeholder" style="min-height:64px; min-width:64px; max-width:64px; font-size:9px;">art</div>
+      <div>
+        <div style="font-weight:600; font-size:14px; color:#fff;">APT.</div>
+        <div style="font-size:12px;">ROSÉ, Bruno Mars</div>
+        <div style="font-size:11px; color:#8b949e;">Submitted by Caroline</div>
+        <div style="margin-top:4px;">
+          <span class="tag" style="background:#3d1a1a; color:#f85149;">1 pt</span>
+          <span class="tag blue">2024</span>
+          <span class="tag orange">Pop 95</span>
+        </div>
+      </div>
+    </div>
+    <div class="anno new" style="margin-top:8px;">Best-selling global single of 2025 — first non-Western artist to top the IFPI chart</div>
+    <div class="anno" style="margin-top:4px;">100% concentrated · 1 voter</div>
+  </div>
+</div>
+<div class="dim" style="text-align:center; margin:12px 0; font-size:12px;">… 65 more cards (scrollable, filterable)</div>
+
+<h3>Insights bar (pinned above the collection or as a sidebar)</h3>
+<div class="grid-3">
+  <div class="card" style="border-left:3px solid #f0883e;">
+    <div class="card-label" style="color:#f0883e;">Taste bias</div>
+    <div style="font-size:12px;">Obscure wins. Songs under popularity 40 outscore popular ones by 3 pts on average.</div>
+  </div>
+  <div class="card" style="border-left:3px solid #f0883e;">
+    <div class="card-label" style="color:#f0883e;">Era sweet spot</div>
+    <div style="font-size:12px;">1985–2000: avg +1.4 pts. The golden zone. After 2020: avg −1.1.</div>
+  </div>
+  <div class="card" style="border-left:3px solid #f0883e;">
+    <div class="card-label" style="color:#f0883e;">Duration</div>
+    <div style="font-size:12px;">No penalty for long songs. O Superman (8:21) and Watermelon Man (7:05) both scored well.</div>
+  </div>
+</div>
+
+<hr>
+<h3>Leaderboard tab</h3>
+<div class="section-note">Race + standings + players merged. Superlatives live here as "awards".</div>
+<div class="placeholder tall">Timeline + breakdown + profiles (vertical scroll, unified)</div>
+<div class="grid-3" style="margin-top:8px;">
+  <div class="card">
+    <div class="card-label">🏆 Best average</div>
+    <div class="card-value">Caroline C—</div>
+    <div class="card-meta">7.3 pts/song</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">🏆 Deepest digger</div>
+    <div class="card-value">t33nwitch</div>
+    <div class="card-meta">Avg popularity 29 · still avg +1.2/song</div>
+  </div>
+  <div class="card">
+    <div class="card-label" style="color:#f0883e;">🏆 Era range</div>
+    <div class="card-value">Greggo</div>
+    <div class="card-meta">1976–2002 · 46-year span</div>
+  </div>
+</div>
+
+<hr>
+<h3>Connections tab</h3>
+<div class="placeholder hero">Graph + matrix + pair leaders (same content as Options A/B)</div>
+<div class="section-note">The only place relationship data appears. One source of truth.</div>
+
+<hr>
+<h3>Predictions tab</h3>
+<div class="placeholder tall">Future projections + "if the remaining rounds follow the era/popularity pattern, here's what changes"</div>
+<div class="anno new" style="margin-top:8px;">New angle: "If Greggo shifts to 2000s picks (the era sweet spot), his projected ceiling rises from 2 pts to 14 pts."</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- COMPARISON -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="option" style="border-color:#484f58;">
+<div class="option-title" style="color:#c9d1d9;">Comparison</div>
+
+<table class="table">
+<tr><th></th><th>Option A: Magazine</th><th>Option B: Data Stories</th><th>Option C: Collection</th></tr>
+<tr><td><strong>Primary object</strong></td><td>The league (competition)</td><td>Findings (insights)</td><td>The songs (music)</td></tr>
+<tr><td><strong>Front page hero</strong></td><td>Headlines + superlatives + gateways</td><td>Narrative story cards</td><td>Browsable song grid</td></tr>
+<tr><td><strong>Graph prominence</strong></td><td>Gateway thumbnail → full in The Room</td><td>Inline story card → full in Relationships</td><td>Own tab, full width</td></tr>
+<tr><td><strong>Superlatives</strong></td><td>On Overview, grouped by destination</td><td>On Overview + scattered as "awards"</td><td>On Leaderboard as "awards"</td></tr>
+<tr><td><strong>Music data integration</strong></td><td>Tags on showcase, player personality, gateway card</td><td>Drives lead stories + full analysis tab</td><td>Core of the UI — every card shows it</td></tr>
+<tr><td><strong>Relationship duplication</strong></td><td>Eliminated (one tab)</td><td>Eliminated (one tab)</td><td>Eliminated (one tab)</td></tr>
+<tr><td><strong>Best for</strong></td><td>A league that cares about the competition</td><td>People who want to understand the dynamics</td><td>People who care about the music first</td></tr>
+<tr><td><strong>Risk</strong></td><td>Overview gets long</td><td>Findings feel editorialised</td><td>Standings/competition feels secondary</td></tr>
+</table>
+
+<h3 style="margin-top:16px;">New features enabled by music metadata (all options)</h3>
+<ul class="features">
+  <li class="new-feat">Popularity × score correlation (scatter plot + trend)</li>
+  <li class="new-feat">Era × score bias analysis (decade bars)</li>
+  <li class="new-feat">Duration analysis (does length help/hurt?)</li>
+  <li class="new-feat">Player "music personality" labels (Archaeologist, Curator, Populist)</li>
+  <li class="new-feat">Per-player era fingerprint (their decade distribution)</li>
+  <li class="new-feat">"Deepest cut to score" superlative</li>
+  <li class="new-feat">"Biggest hit to bomb" superlative</li>
+  <li class="new-feat">"Oldest/newest song" superlatives</li>
+  <li class="new-feat">Wikipedia "Liner Notes" — facts inline on songs</li>
+  <li class="new-feat">"Strategy tip" — the optimal profile to win</li>
+  <li class="new-feat">Taste clusters that correlate with era/popularity preference</li>
+  <li class="new-feat">"If Greggo shifted eras, his projection changes by X"</li>
+  <li>Total listening time stat</li>
+  <li>Duration column in song table</li>
+  <li>Year column + decade filter</li>
+  <li>Popularity column + obscurity badge</li>
+</ul>
+</div>
+
+</body>
+</html>
