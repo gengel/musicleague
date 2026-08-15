@@ -1,6 +1,16 @@
 import { useMemo } from 'react';
+import { embeddedGenres } from 'virtual:league-data';
 import type { PairStats, PlayerStats, Stats } from '../lib/stats';
+import { computePlayerTasteProfiles, type PlayerTasteProfile } from '../lib/taste';
 import { Card, Empty, n1, n2, pct0, ScoreParts, SortableTable, type Column } from './ui';
+
+const POP_LABEL: Record<string, string> = {
+  'deep cut': '< 20k',
+  'niche':    '20–100k',
+  'known':    '100–500k',
+  'popular':  '500k–1M',
+  'hit':      '> 1M',
+};
 
 /** Full player table: performance as a submitter and habits as a voter. */
 export function PlayersPanel({ stats }: { stats: Stats }) {
@@ -8,6 +18,14 @@ export function PlayersPanel({ stats }: { stats: Stats }) {
     () => stats.players.filter((p) => p.songs > 0 || p.roundsVoted > 0),
     [stats.players],
   );
+
+  const tasteMap = useMemo(() => {
+    const profiles = computePlayerTasteProfiles(stats, embeddedGenres);
+    return new Map<string, PlayerTasteProfile>(profiles.map((p) => [p.playerId, p]));
+  }, [stats]);
+
+  const hasGenre = [...tasteMap.values()].some((p) => p.submitGenre ?? p.voteGenre);
+  const hasPop   = [...tasteMap.values()].some((p) => p.submitPopBand ?? p.votePopBand);
 
   const columns: Column<PlayerStats>[] = [
     {
@@ -129,6 +147,40 @@ export function PlayersPanel({ stats }: { stats: Stats }) {
       render: (p) => (p.downvotesGiven ? n1(p.downvotesGiven) : '—'),
       align: 'right',
     },
+    ...(hasGenre ? [{
+      key: 'genreSub',
+      label: 'Genre (sub)',
+      title: 'Most common genre across their submitted songs',
+      value: (p: PlayerStats) => tasteMap.get(p.playerId)?.submitGenre ?? '',
+      render: (p: PlayerStats) => tasteMap.get(p.playerId)?.submitGenre ?? <span className="dim">—</span>,
+    } satisfies Column<PlayerStats>] : []),
+    ...(hasGenre ? [{
+      key: 'genreVote',
+      label: 'Genre (vote)',
+      title: 'Most common genre of songs they upvoted (points-weighted)',
+      value: (p: PlayerStats) => tasteMap.get(p.playerId)?.voteGenre ?? '',
+      render: (p: PlayerStats) => tasteMap.get(p.playerId)?.voteGenre ?? <span className="dim">—</span>,
+    } satisfies Column<PlayerStats>] : []),
+    ...(hasPop ? [{
+      key: 'popSub',
+      label: 'Pop (sub)',
+      title: 'Most common popularity band of their submitted songs',
+      value: (p: PlayerStats) => tasteMap.get(p.playerId)?.submitPopBand ?? '',
+      render: (p: PlayerStats) => {
+        const band = tasteMap.get(p.playerId)?.submitPopBand;
+        return band ? POP_LABEL[band] : <span className="dim">—</span>;
+      },
+    } satisfies Column<PlayerStats>] : []),
+    ...(hasPop ? [{
+      key: 'popVote',
+      label: 'Pop (vote)',
+      title: 'Most common popularity band of songs they upvoted (points-weighted)',
+      value: (p: PlayerStats) => tasteMap.get(p.playerId)?.votePopBand ?? '',
+      render: (p: PlayerStats) => {
+        const band = tasteMap.get(p.playerId)?.votePopBand;
+        return band ? POP_LABEL[band] : <span className="dim">—</span>;
+      },
+    } satisfies Column<PlayerStats>] : []),
   ];
 
   if (!rows.length) {
@@ -152,6 +204,11 @@ export function PlayerProfiles({ stats }: { stats: Stats }) {
     () => new Map(stats.players.map((p) => [p.playerId, p.name])),
     [stats.players],
   );
+
+  const tasteMap = useMemo(() => {
+    const profiles = computePlayerTasteProfiles(stats, embeddedGenres);
+    return new Map<string, PlayerTasteProfile>(profiles.map((p) => [p.playerId, p]));
+  }, [stats]);
 
   const ranked = useMemo(
     () => [...stats.players].filter((p) => p.songs > 0).sort((a, b) => b.pointsCounted - a.pointsCounted),
@@ -297,6 +354,34 @@ export function PlayerProfiles({ stats }: { stats: Stats }) {
                     )}
                   </dd>
                 </div>
+                {(() => {
+                  const t = tasteMap.get(p.playerId);
+                  if (!t) return null;
+                  const genreParts = [
+                    t.submitGenre && `${t.submitGenre} (sub)`,
+                    t.voteGenre && t.voteGenre !== t.submitGenre && `${t.voteGenre} (vote)`,
+                  ].filter(Boolean).join(' · ');
+                  const popParts = [
+                    t.submitPopBand && `${POP_LABEL[t.submitPopBand]} (sub)`,
+                    t.votePopBand && t.votePopBand !== t.submitPopBand && `${POP_LABEL[t.votePopBand]} (vote)`,
+                  ].filter(Boolean).join(' · ');
+                  return (
+                    <>
+                      {genreParts && (
+                        <div>
+                          <dt>Genre</dt>
+                          <dd><span className="dim">{genreParts}</span></dd>
+                        </div>
+                      )}
+                      {popParts && (
+                        <div>
+                          <dt>Popularity</dt>
+                          <dd><span className="dim">{popParts}</span></dd>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </dl>
             </article>
           );

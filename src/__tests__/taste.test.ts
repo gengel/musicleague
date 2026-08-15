@@ -156,9 +156,9 @@ describe('classifyQuadrant', () => {
 });
 
 describe('computeQuadrantTable', () => {
-  it('returns an empty array when no song has both a year and obscurity (I6 — degrade to the decade table instead)', () => {
+  it('returns empty rows when no song has both a year and obscurity (I6 — degrade to the decade table instead)', () => {
     const stats = withYears(() => 2000); // years but no obscurity
-    expect(computeQuadrantTable(stats)).toEqual([]);
+    expect(computeQuadrantTable(stats).rows).toEqual([]);
   });
 
   it('produces up to four quadrants when both dimensions are present', () => {
@@ -172,9 +172,11 @@ describe('computeQuadrantTable', () => {
         return song && Number(song.trackId.replace(/\D/g, '') || 0) % 2 === 0 ? 20 : 80;
       },
     );
-    const table = computeQuadrantTable(stats);
-    expect(table.length).toBeGreaterThan(0);
-    expect(table.length).toBeLessThanOrEqual(4);
-    for (const q of table) expect(q.count).toBeGreaterThan(0);
+    const { rows, midpoints } = computeQuadrantTable(stats);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThanOrEqual(4);
+    for (const q of rows) expect(q.count).toBeGreaterThan(0);
+    expect(midpoints.year).toBeGreaterThan(0);
+    expect(midpoints.obscurity).toBeGreaterThan(0);
   });
 });

@@ -1,4 +1,5 @@
 import type { Stats } from './stats';
+import { obscurityBand, type ObscurityBand } from './obscurity';
 
 /**
  * What era a player's taste actually sits in, blending what they submit with
@@ -31,6 +32,8 @@ export interface PlayerEraProfile {
   blendYear?: number;
   /** |submittedYear - upvotedYear| — how far apart what they submit and reward are. */
   eraGap?: number;
+  /** Mean obscurity (listener count) across this player's submitted songs, when any are rated. */
+  avgObscurity?: number;
 }
 
 function median(xs: number[]): number {
@@ -79,6 +82,11 @@ export function computeEraProfiles(stats: Stats): PlayerEraProfile[] {
         ? (2 * submittedYear + upvotedYear) / 3
         : submittedYear;
 
+    const ratedMine = mine.filter((s) => s.obscurity !== undefined);
+    const avgObscurity = ratedMine.length
+      ? ratedMine.reduce((a, s) => a + s.obscurity!.value, 0) / ratedMine.length
+      : undefined;
+
     profiles.push({
       playerId: player.playerId,
       name: player.name,
@@ -91,6 +99,7 @@ export function computeEraProfiles(stats: Stats): PlayerEraProfile[] {
         submittedYear !== undefined && upvotedYear !== undefined
           ? Math.abs(submittedYear - upvotedYear)
           : undefined,
+      avgObscurity,
     });
   }
 
@@ -116,12 +125,14 @@ export interface DecadeStats {
   avgNet: number;
 }
 
-/** Average net score by release decade, across every dated song. */
+/** Average net score by release decade, across every dated song.
+ *  Decades before 1990 are merged into a single pre-1990 bucket (decade=0). */
 export function computeDecadeTable(stats: Stats): DecadeStats[] {
   const byDecade = new Map<number, number[]>();
   for (const song of stats.songs) {
     if (song.year === undefined) continue;
-    const decade = Math.floor(song.year / 10) * 10;
+    const raw = Math.floor(song.year / 10) * 10;
+    const decade = raw < 1990 ? 0 : raw;
     const arr = byDecade.get(decade);
     if (arr) arr.push(song.net);
     else byDecade.set(decade, [song.net]);
@@ -202,22 +213,273 @@ export interface QuadrantStats {
  * and an obscurity reading — callers should fall back to `computeDecadeTable`
  * in that case, which is the honest single-axis version of this same idea.
  */
-export function computeQuadrantTable(stats: Stats): QuadrantStats[] {
+export interface QuadrantMidpoints {
+  year: number;
+  obscurity: number;
+}
+
+/**
+ * The quadrant table. Returns an empty array when no song has both a year
+ * and an obscurity reading (I6). The split midpoints are derived from the
+ * actual data so the quadrant is always four meaningful groups regardless
+ * of the obscurity provider's scale (Last.fm listeners vs Spotify popularity).
+ */
+export function computeQuadrantTable(stats: Stats): { rows: QuadrantStats[]; midpoints: QuadrantMidpoints } {
   const dated = stats.songs.filter((s) => s.year !== undefined && s.obscurity !== undefined);
-  if (!dated.length) return [];
+  if (!dated.length) return { rows: [], midpoints: { year: 0, obscurity: 0 } };
 
   const medianYear = median(dated.map((s) => s.year as number));
+  const medianObscurity = median(dated.map((s) => s.obscurity!.value));
+
   const byQuadrant = new Map<ObscurityQuadrant, number[]>();
   for (const song of dated) {
-    const q = classifyQuadrant(song.year as number, song.obscurity!.value, medianYear);
+    const q = classifyQuadrant(song.year as number, song.obscurity!.value, medianYear, medianObscurity);
     const arr = byQuadrant.get(q);
     if (arr) arr.push(song.net);
     else byQuadrant.set(q, [song.net]);
   }
 
-  return [...byQuadrant.entries()].map(([quadrant, nets]) => ({
+  const rows = [...byQuadrant.entries()].map(([quadrant, nets]) => ({
     quadrant,
     count: nets.length,
     avgNet: nets.reduce((a, b) => a + b, 0) / nets.length,
   }));
+
+  return { rows, midpoints: { year: medianYear, obscurity: medianObscurity } };
+}
+
+export type EraBucket = 'pre-1990' | '1990s' | '2000s' | '2010s' | '2020s';
+export type PopBucket = 'Deep cut' | 'Niche' | 'Known' | 'Popular' | 'Hit';
+
+export const ERA_BUCKETS: EraBucket[] = ['pre-1990', '1990s', '2000s', '2010s', '2020s'];
+export const POP_BUCKETS: PopBucket[] = ['Deep cut', 'Niche', 'Known', 'Popular', 'Hit'];
+
+function eraBucket(year: number): EraBucket {
+  if (year < 1990) return 'pre-1990';
+  if (year < 2000) return '1990s';
+  if (year < 2010) return '2000s';
+  if (year < 2020) return '2010s';
+  return '2020s';
+}
+
+function popBucket(listeners: number, source: string): PopBucket {
+  if (source !== 'lastfm-listeners') return 'Known';
+  if (listeners < 20_000)    return 'Deep cut';
+  if (listeners < 100_000)   return 'Niche';
+  if (listeners < 500_000)   return 'Known';
+  if (listeners < 1_000_000) return 'Popular';
+  return 'Hit';
+}
+
+export interface MatrixCell {
+  era: EraBucket;
+  pop: PopBucket;
+  count: number;
+  avgNet: number;
+}
+
+/**
+ * Era × popularity matrix. Only cells that have at least one song are
+ * returned; the panel is responsible for rendering empty cells as blanks.
+ * Returns empty when no song has both a year and an obscurity reading (I6).
+ */
+export function computeEraPopMatrix(stats: Stats): MatrixCell[] {
+  const rated = stats.songs.filter((s) => s.year !== undefined && s.obscurity !== undefined);
+  if (!rated.length) return [];
+
+  const buckets = new Map<string, number[]>();
+  for (const song of rated) {
+    const key = `${eraBucket(song.year!)}|${popBucket(song.obscurity!.value, song.obscurity!.source)}`;
+    const arr = buckets.get(key);
+    if (arr) arr.push(song.net);
+    else buckets.set(key, [song.net]);
+  }
+
+  return [...buckets.entries()].map(([key, nets]) => {
+    const [era, pop] = key.split('|') as [EraBucket, PopBucket];
+    return { era, pop, count: nets.length, avgNet: nets.reduce((a, b) => a + b, 0) / nets.length };
+  });
+}
+
+export interface EraGenreCell {
+  era: EraBucket;
+  genre: string;
+  count: number;
+  avgNet: number;
+}
+
+/**
+ * Era × genre matrix. Genres are passed in from the virtual:league-data module
+ * so this pure function stays testable without a bundler. Only the top N genres
+ * (by song count) are included to keep the table narrow. Returns empty when no
+ * song has both a year and a genre (I6).
+ */
+export function computeEraGenreMatrix(
+  stats: Stats,
+  genreMap: Record<string, string[]>,
+  topN = 6,
+): { cells: EraGenreCell[]; genres: string[] } {
+  // Pick the top genres by song count across all songs.
+  const genreCounts = new Map<string, number>();
+  for (const song of stats.songs) {
+    if (song.year === undefined) continue;
+    const artist = (song.artist?.split(',')[0] ?? '').trim().toLowerCase();
+    const genres = genreMap[artist] ?? [];
+    for (const g of genres.slice(0, 1)) {
+      genreCounts.set(g, (genreCounts.get(g) ?? 0) + 1);
+    }
+  }
+
+  const topGenres = [...genreCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, topN)
+    .map(([g]) => g);
+
+  if (!topGenres.length) return { cells: [], genres: [] };
+
+  const buckets = new Map<string, number[]>();
+  for (const song of stats.songs) {
+    if (song.year === undefined) continue;
+    const artist = (song.artist?.split(',')[0] ?? '').trim().toLowerCase();
+    const genres = genreMap[artist] ?? [];
+    const genre = genres.find((g) => topGenres.includes(g));
+    if (!genre) continue;
+    const key = `${eraBucket(song.year)}|${genre}`;
+    const arr = buckets.get(key);
+    if (arr) arr.push(song.net);
+    else buckets.set(key, [song.net]);
+  }
+
+  const cells = [...buckets.entries()].map(([key, nets]) => {
+    const [era, genre] = key.split('|') as [EraBucket, string];
+    return { era, genre, count: nets.length, avgNet: nets.reduce((a, b) => a + b, 0) / nets.length };
+  });
+
+  return { cells, genres: topGenres };
+}
+
+export interface PopularityBandStats {
+  band: ObscurityBand;
+  count: number;
+  avgNet: number;
+}
+
+/**
+ * Average score by listener-count band. Returns empty when no song has an
+ * obscurity reading — callers should self-suppress (I6).
+ */
+export function computePopularityBands(stats: Stats): PopularityBandStats[] {
+  const rated = stats.songs.filter((s) => s.obscurity !== undefined);
+  if (!rated.length) return [];
+
+  const buckets = new Map<ObscurityBand, number[]>();
+  for (const song of rated) {
+    const band = obscurityBand(song.obscurity!.value, song.obscurity!.source);
+    const arr = buckets.get(band);
+    if (arr) arr.push(song.net);
+    else buckets.set(band, [song.net]);
+  }
+
+  const ORDER: ObscurityBand[] = ['deep cut', 'niche', 'known', 'popular', 'hit'];
+  return ORDER.filter((b) => buckets.has(b)).map((band) => {
+    const nets = buckets.get(band)!;
+    return { band, count: nets.length, avgNet: nets.reduce((a, b) => a + b, 0) / nets.length };
+  });
+}
+
+export interface PlayerTasteProfile {
+  playerId: string;
+  name: string;
+  /** Top genre across this player's submitted songs (by song count). */
+  submitGenre?: string;
+  /** Top genre across songs they upvoted (points-weighted). */
+  voteGenre?: string;
+  /** Most common pop band across their rated submitted songs. */
+  submitPopBand?: ObscurityBand;
+  /** Most common pop band across songs they upvoted, weighted by points. */
+  votePopBand?: ObscurityBand;
+}
+
+function mostCommon<T>(counts: Map<T, number>): T | undefined {
+  if (!counts.size) return undefined;
+  return [...counts.entries()].reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+}
+
+function genresForArtist(artist: string, genreMap: Record<string, string[]>): string[] {
+  // Artists can be multi-credit ("ROSÉ, Bruno Mars"); try the full string first,
+  // then each individual credit.
+  const full = genreMap[artist.toLowerCase()];
+  if (full?.length) return full;
+  const parts = artist.split(/,|feat\.|ft\.|&/i).map((s) => s.trim().toLowerCase());
+  for (const part of parts) {
+    const hit = genreMap[part];
+    if (hit?.length) return hit;
+  }
+  return [];
+}
+
+/**
+ * Per-player taste profile: favourite genre and popularity band, split by
+ * whether they are submitting or voting. Returns empty when there are no
+ * players with songs.
+ */
+export function computePlayerTasteProfiles(
+  stats: Stats,
+  genreMap: Record<string, string[]>,
+): PlayerTasteProfile[] {
+  const songByKey = new Map(stats.songs.map((s) => [`${s.trackId}|${s.roundId}`, s]));
+
+  return stats.players
+    .filter((p) => p.songs > 0)
+    .sort((a, b) => b.pointsCounted - a.pointsCounted)
+    .map((p) => {
+      const mySongs = stats.songs.filter((s) => s.submitterId === p.playerId);
+      const myUpvotes = stats.league.votes.filter(
+        (v) => v.voterId === p.playerId && v.points > 0,
+      );
+
+      // Genre by submission
+      const sgCounts = new Map<string, number>();
+      for (const song of mySongs) {
+        for (const g of genresForArtist(song.artist, genreMap)) {
+          sgCounts.set(g, (sgCounts.get(g) ?? 0) + 1);
+        }
+      }
+
+      // Genre by vote (points-weighted)
+      const vgCounts = new Map<string, number>();
+      for (const vote of myUpvotes) {
+        const song = songByKey.get(`${vote.trackId}|${vote.roundId}`);
+        if (!song) continue;
+        for (const g of genresForArtist(song.artist, genreMap)) {
+          vgCounts.set(g, (vgCounts.get(g) ?? 0) + vote.points);
+        }
+      }
+
+      // Pop band by submission
+      const spCounts = new Map<ObscurityBand, number>();
+      for (const song of mySongs) {
+        if (!song.obscurity) continue;
+        const band = obscurityBand(song.obscurity.value, song.obscurity.source);
+        spCounts.set(band, (spCounts.get(band) ?? 0) + 1);
+      }
+
+      // Pop band by vote (points-weighted)
+      const vpCounts = new Map<ObscurityBand, number>();
+      for (const vote of myUpvotes) {
+        const song = songByKey.get(`${vote.trackId}|${vote.roundId}`);
+        if (!song?.obscurity) continue;
+        const band = obscurityBand(song.obscurity.value, song.obscurity.source);
+        vpCounts.set(band, (vpCounts.get(band) ?? 0) + vote.points);
+      }
+
+      return {
+        playerId: p.playerId,
+        name: p.name,
+        submitGenre: mostCommon(sgCounts),
+        voteGenre: mostCommon(vgCounts),
+        submitPopBand: mostCommon(spCounts),
+        votePopBand: mostCommon(vpCounts),
+      };
+    });
 }

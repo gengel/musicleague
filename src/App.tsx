@@ -184,7 +184,7 @@ export default function App() {
             />
             <Headlines stats={stats} />
             <TopSongs stats={stats} />
-            <Overview stats={stats} />
+            <Overview stats={stats} onNavigate={(t) => setTab(t as Tab)} />
           </>
         )}
 

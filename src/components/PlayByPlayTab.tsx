@@ -1,9 +1,35 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Stats } from '../lib/stats';
 import { buildPlayByPlay, type RoundChapter, type RoundTwist } from '../lib/recap';
 import { SuperlativeStrip } from './SuperlativeStrip';
-import { SongArt, SongLinks, SongPlayer } from './SongMedia';
+import { SongArt, SongLinks, SongPlayer, SongTags } from './SongMedia';
 import { Card, Empty } from './ui';
+
+/* ------------------------------------------------------------------ *
+ * Helpers
+ * ------------------------------------------------------------------ */
+
+/** Pick one comment left on the winning song — vote comments first, then
+ *  standalone comments. Returns undefined when nothing was written. */
+function winnerComment(
+  winner: Stats['songs'][number],
+  stats: Stats,
+  nameOf: Map<string, string>,
+): { text: string; author: string } | undefined {
+  const voteComments = stats.league.votes
+    .filter((v) => v.trackId === winner.trackId && v.roundId === winner.roundId && v.comment?.trim())
+    .map((v) => ({ text: v.comment!.trim(), author: nameOf.get(v.voterId) ?? 'someone' }));
+
+  const standAlone = stats.league.comments
+    .filter((c) => c.trackId === winner.trackId && c.roundId === winner.roundId && c.text?.trim())
+    .map((c) => ({ text: c.text.trim(), author: nameOf.get(c.authorId) ?? 'someone' }));
+
+  const all = [...voteComments, ...standAlone];
+  if (!all.length) return undefined;
+  // Deterministic "random": pick based on track+round hash so it stays stable.
+  const idx = (winner.trackId.charCodeAt(0) + winner.trackId.charCodeAt(1)) % all.length;
+  return all[idx];
+}
 
 /* ------------------------------------------------------------------ *
  * Prose templates — turn chapter data into narrative sentences.
@@ -29,7 +55,15 @@ function twistSentence(twist: RoundTwist, nameOf: Map<string, string>): string {
  * Chapter card
  * ------------------------------------------------------------------ */
 
-function ChapterCard({ chapter, nameOf }: { chapter: RoundChapter; nameOf: Map<string, string> }) {
+function ChapterCard({
+  chapter,
+  nameOf,
+  comment,
+}: {
+  chapter: RoundChapter;
+  nameOf: Map<string, string>;
+  comment?: { text: string; author: string };
+}) {
   const { round, winner, twist, moments } = chapter;
   const lead = winner ? winnerSentence(chapter, nameOf) : '';
   const twistProse = twist ? twistSentence(twist, nameOf) : '';
@@ -84,6 +118,7 @@ function ChapterCard({ chapter, nameOf }: { chapter: RoundChapter; nameOf: Map<s
                 {' · '}
                 {winner.effectiveNet > 0 ? '+' : ''}{winner.effectiveNet} pts
               </span>
+              <SongTags year={winner.year} obscurity={winner.obscurity} artist={winner.artist} durationMs={winner.durationMs} cover={winner.cover} />
             </div>
             <div className="chapter__winner-links">
               <SongLinks title={winner.title} artist={winner.artist} spotifyId={winner.spotifyId} />
@@ -92,6 +127,12 @@ function ChapterCard({ chapter, nameOf }: { chapter: RoundChapter; nameOf: Map<s
               )}
             </div>
           </div>
+        )}
+        {comment && (
+          <blockquote className="chapter__quote">
+            <p>"{comment.text}"</p>
+            <footer className="dim small">— {comment.author}</footer>
+          </blockquote>
         )}
       </div>
     </Card>
@@ -138,6 +179,7 @@ function ChapterSongs({
                 <strong>{s.title || 'Untitled'}</strong>
                 {s.artist && <span className="dim"> — {s.artist}</span>}
                 <div className="dim small">{nameOf.get(s.submitterId ?? '') ?? 'unknown'}</div>
+                <SongTags year={s.year} obscurity={s.obscurity} artist={s.artist} durationMs={s.durationMs} cover={s.cover} />
               </div>
               <div className="chapter-song__score">
                 {s.forfeited ? (
@@ -165,6 +207,47 @@ function ChapterSongs({
 }
 
 /* ------------------------------------------------------------------ *
+ * Chapter group — owns the expand/collapse state for the song list
+ * ------------------------------------------------------------------ */
+
+function ChapterGroup({
+  chapter,
+  nameOf,
+  stats,
+}: {
+  chapter: RoundChapter;
+  nameOf: Map<string, string>;
+  stats: Stats;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const comment = chapter.winner
+    ? winnerComment(chapter.winner, stats, nameOf)
+    : undefined;
+  const songCount = stats.songs.filter((s) => s.roundId === chapter.round.round.id).length;
+
+  return (
+    <div className="chapter-group">
+      <ChapterCard chapter={chapter} nameOf={nameOf} comment={comment} />
+      {chapter.round.hasVotes && songCount > 0 && (
+        <>
+          <div style={{ textAlign: 'center', margin: '-6px 0 8px' }}>
+            <button
+              className="seg__btn"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? `Hide all ${songCount} songs ↑` : `Show all ${songCount} songs ↓`}
+            </button>
+          </div>
+          {expanded && (
+            <ChapterSongs chapter={chapter} nameOf={nameOf} allSongs={stats.songs} />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ *
  * Tab root
  * ------------------------------------------------------------------ */
 
@@ -188,12 +271,13 @@ export function PlayByPlayTab({ stats }: { stats: Stats }) {
       />
 
       {chapters.map((chapter) => (
-        <div key={chapter.round.round.id} className="chapter-group">
-          <ChapterCard chapter={chapter} nameOf={nameOf} />
-          <ChapterSongs chapter={chapter} nameOf={nameOf} allSongs={stats.songs} />
-        </div>
+        <ChapterGroup
+          key={chapter.round.round.id}
+          chapter={chapter}
+          nameOf={nameOf}
+          stats={stats}
+        />
       ))}
-
     </>
   );
 }

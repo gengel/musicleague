@@ -1,22 +1,50 @@
 import { useMemo, useState } from 'react';
 import type { SongStats, Stats } from '../lib/stats';
+import { embeddedGenres } from 'virtual:league-data';
+import { obscurityBand } from '../lib/obscurity';
 import { Card, Empty, n1, n2, pct0, ScoreParts, SortableTable, type Column } from './ui';
-import { SongArt, SongLinks, SongPlayer } from './SongMedia';
+import { SongArt, SongLinks, SongTags } from './SongMedia';
 import { Icon } from './Icons';
 
+
+type ContentFilter = 'all' | 'covers' | 'forfeited' | `genre:${string}`;
 
 /** Song-level leaderboard: hauls, breadth, concentration, divisiveness. */
 export function SongsPanel({ stats }: { stats: Stats }) {
   const [roundFilter, setRoundFilter] = useState<string>('all');
+  const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
   const nameOf = useMemo(
     () => new Map(stats.players.map((p) => [p.playerId, p.name])),
     [stats.players],
   );
 
-  const rows = useMemo(
-    () => (roundFilter === 'all' ? stats.songs : stats.songs.filter((s) => s.roundId === roundFilter)),
-    [stats.songs, roundFilter],
-  );
+  // Top genres appearing on at least 3 songs, for filter chips.
+  const topGenres = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of stats.songs) {
+      const genres = embeddedGenres[(s.artist?.split(',')[0] ?? '').trim().toLowerCase()] ?? [];
+      for (const g of genres.slice(0, 1)) counts.set(g, (counts.get(g) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .filter(([, n]) => n >= 3)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([g]) => g);
+  }, [stats.songs]);
+
+  const rows = useMemo(() => {
+    let songs = roundFilter === 'all' ? stats.songs : stats.songs.filter((s) => s.roundId === roundFilter);
+    if (contentFilter === 'covers') songs = songs.filter((s) => s.cover !== undefined);
+    else if (contentFilter === 'forfeited') songs = songs.filter((s) => s.forfeited);
+    else if (contentFilter.startsWith('genre:')) {
+      const g = contentFilter.slice(6);
+      songs = songs.filter((s) => {
+        const genres = embeddedGenres[(s.artist?.split(',')[0] ?? '').trim().toLowerCase()] ?? [];
+        return genres.includes(g);
+      });
+    }
+    return songs;
+  }, [stats.songs, roundFilter, contentFilter]);
 
   const columns: Column<SongStats>[] = [
     {
@@ -30,17 +58,10 @@ export function SongsPanel({ stats }: { stats: Stats }) {
             <strong>{s.title || 'Untitled'}</strong>
             {s.artist && <span className="dim"> — {s.artist}</span>}{' '}
             <SongLinks title={s.title} artist={s.artist} spotifyId={s.spotifyId} />
+            <SongTags year={s.year} obscurity={s.obscurity} artist={s.artist} durationMs={s.durationMs} cover={s.cover} />
           </span>
         </span>
       ),
-    },
-    {
-      key: 'play',
-      label: 'Play',
-      title: 'Nothing is requested from Spotify until you press play',
-      value: (s) => (s.spotifyId ? 1 : 0),
-      render: (s) =>
-        s.spotifyId ? <SongPlayer title={s.title} spotifyId={s.spotifyId} compact /> : null,
     },
     {
       key: 'by',
@@ -48,6 +69,34 @@ export function SongsPanel({ stats }: { stats: Stats }) {
       value: (s) => (s.submitterId ? nameOf.get(s.submitterId) ?? '' : 'anonymous'),
     },
     { key: 'round', label: 'Round', value: (s) => s.roundSequence, render: (s) => s.roundName },
+    {
+      key: 'year',
+      label: 'Year',
+      value: (s) => s.year ?? 0,
+      render: (s) => s.year ? <span className="dim small">{s.year}</span> : <span className="dim">—</span>,
+      align: 'right' as const,
+    },
+    {
+      key: 'popularity',
+      label: 'Popularity',
+      title: 'Last.fm listener count band',
+      value: (s) => s.obscurity?.value ?? -1,
+      render: (s) => {
+        if (!s.obscurity) return <span className="dim">—</span>;
+        const band = obscurityBand(s.obscurity.value, s.obscurity.source);
+        const cls = band === 'deep cut' ? 'song-tag song-tag--obscurity' : 'dim small';
+        return <span className={cls}>{band}</span>;
+      },
+    },
+    {
+      key: 'genre',
+      label: 'Genre',
+      value: (s) => (embeddedGenres[(s.artist?.split(',')[0] ?? '').trim().toLowerCase()]?.[0] ?? ''),
+      render: (s) => {
+        const g = embeddedGenres[(s.artist?.split(',')[0] ?? '').trim().toLowerCase()]?.[0];
+        return g ? <span className="dim small">{g}</span> : <span className="dim">—</span>;
+      },
+    },
     {
       key: 'net',
       label: 'Score',
@@ -70,34 +119,10 @@ export function SongsPanel({ stats }: { stats: Stats }) {
       align: 'right',
     },
     {
-      key: 'up',
-      label: 'Upvotes',
-      title: 'Upvote points received',
-      value: (s) => s.upvotes,
-      render: (s) => <span className="pos">+{n1(s.upvotes)}</span>,
-      align: 'right',
-    },
-    {
-      key: 'down',
-      label: 'Downvotes',
-      title: 'Downvote points received',
-      value: (s) => s.downvotes,
-      render: (s) => (s.downvotes ? <span className="neg">−{n1(s.downvotes)}</span> : <span className="dim">—</span>),
-      align: 'right',
-    },
-    {
       key: 'place',
       label: 'Place',
       value: (s) => -s.roundRank,
       render: (s) => `#${s.roundRank}`,
-      align: 'right',
-    },
-    {
-      key: 'share',
-      label: 'Share of round',
-      title: "Portion of all upvotes cast in that round which landed on this song",
-      value: (s) => s.shareOfRound,
-      render: (s) => pct0(s.shareOfRound),
       align: 'right',
     },
     {
@@ -144,22 +169,23 @@ export function SongsPanel({ stats }: { stats: Stats }) {
       subtitle="Every song in the league. Sort by any column — spread and concentration are where the arguments live."
       wide
     >
-      <div className="seg seg--wrap">
-        <button
-          className={roundFilter === 'all' ? 'seg__btn seg__btn--on' : 'seg__btn'}
-          onClick={() => setRoundFilter('all')}
-        >
-          All rounds
-        </button>
-        {stats.league.rounds.map((r) => (
-          <button
-            key={r.id}
-            className={roundFilter === r.id ? 'seg__btn seg__btn--on' : 'seg__btn'}
-            onClick={() => setRoundFilter(r.id)}
-          >
-            {r.name}
-          </button>
-        ))}
+      <div className="song-filters">
+        <div className="seg seg--wrap">
+          <span className="seg__label">Round</span>
+          <button className={roundFilter === 'all' ? 'seg__btn seg__btn--on' : 'seg__btn'} onClick={() => setRoundFilter('all')}>All</button>
+          {stats.league.rounds.map((r) => (
+            <button key={r.id} className={roundFilter === r.id ? 'seg__btn seg__btn--on' : 'seg__btn'} onClick={() => setRoundFilter(r.id)}>{r.name}</button>
+          ))}
+        </div>
+        <div className="seg seg--wrap">
+          <span className="seg__label">Show</span>
+          {([['all', 'All'], ['covers', 'Covers'], ['forfeited', 'Forfeited']] as [ContentFilter, string][]).map(([key, label]) => (
+            <button key={key} className={contentFilter === key ? 'seg__btn seg__btn--on' : 'seg__btn'} onClick={() => setContentFilter(key)}>{label}</button>
+          ))}
+          {topGenres.map((g) => (
+            <button key={g} className={contentFilter === `genre:${g}` ? 'seg__btn seg__btn--on' : 'seg__btn'} onClick={() => setContentFilter(`genre:${g}`)}>{g}</button>
+          ))}
+        </div>
       </div>
       <SortableTable columns={columns} rows={rows} initialSort="net" rowKey={(s) => s.trackId} />
     </Card>

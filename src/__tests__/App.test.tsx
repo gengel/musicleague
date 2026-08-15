@@ -162,14 +162,11 @@ describe('dashboard with the sample league', () => {
     expect(coldRows.some((r) => r.includes('Ada') && r.includes('Gus'))).toBe(true);
   });
 
-  it('reports the non-voting forfeit and names the worst offender', async () => {
+  it('shows the forfeit superlative on The Race tab', async () => {
     const user = await openDemo();
-    // Participation panel now lives on The Race tab (forfeits are a standings story)
     await user.click(screen.getByRole('button', { name: 'The Race' }));
-    expect(screen.getByText(/no point penalty for skipping a vote/)).toBeDefined();
-    const card = screen.getByText('The cost of not voting').closest('.card') as HTMLElement;
-    // Sorted by points forfeited, Gus skipped three rounds in the fixture.
-    expect(card.querySelectorAll('tbody tr')[0].textContent).toContain('Gus');
+    // Forfeit story is told via the superlative strip on The Race tab
+    expect(screen.getByText(/Most forfeited by not voting/)).toBeDefined();
   });
 
   it('shows every song, with no paging', async () => {
@@ -186,15 +183,15 @@ describe('dashboard with the sample league', () => {
     const card = screen.getByText('Every song').closest('.card') as HTMLElement;
     await user.click(within(card).getByRole('button', { name: 'One-hit wonders' }));
     expect(card.querySelectorAll('tbody tr').length).toBe(7);
-    await user.click(within(card).getByRole('button', { name: 'All rounds' }));
+    // Two "All" buttons exist (Round + Show rows); click the first one (Round).
+    await user.click(within(card).getAllByRole('button', { name: 'All' })[0]);
     expect(card.querySelectorAll('tbody tr').length).toBe(41);
   });
 
-  it('sorts songs by upvotes and by downvotes independently', async () => {
+  it('sorts songs by score and by place independently', async () => {
     const user = await openDemo();
     await user.click(screen.getByRole('button', { name: 'The Songs' }));
     const card = screen.getByText('Every song').closest('.card') as HTMLElement;
-    // Resolve columns by their header, so inserting one cannot break this.
     const indexOf = (label: string) =>
       [...card.querySelectorAll('thead th')].findIndex((th) =>
         (th.textContent ?? '').replace(/[▼▲]/g, '').trim().startsWith(label),
@@ -207,13 +204,18 @@ describe('dashboard with the sample league', () => {
       );
     };
 
-    await user.click(within(card).getByRole('columnheader', { name: /Downvotes/ }));
-    const down = column('Downvotes');
-    expect(down[0]).toBe(Math.max(...down));
+    // Expand to all rounds first
+    await user.click(within(card).getAllByRole('button', { name: 'All' })[0]);
+    // Click Score twice: first click may toggle from the existing default sort
+    await user.click(within(card).getByRole('columnheader', { name: /^Score/ }));
+    await user.click(within(card).getByRole('columnheader', { name: /^Score/ }));
+    const scores = column('Score');
+    expect(scores[0]).toBe(Math.max(...scores));
 
-    await user.click(within(card).getByRole('columnheader', { name: /Upvotes/ }));
-    const up = column('Upvotes');
-    expect(up[0]).toBe(Math.max(...up));
+    // Place sorts ascending (rank #1 first), so one click suffices
+    await user.click(within(card).getByRole('columnheader', { name: /^Place/ }));
+    const places = column('Place');
+    expect(places[0]).toBe(Math.min(...places));
   });
 
   it('marks a forfeited song without adding a sortable column for it', async () => {
@@ -272,13 +274,15 @@ describe('dashboard with the sample league', () => {
     }
   });
 
-  it('shows the full player table and profile cards', async () => {
+  it('shows the full player table and per-player profiles', async () => {
     const user = await openDemo();
     await user.click(screen.getByRole('button', { name: 'Players' }));
     expect(screen.getByText('Players, end to end')).toBeDefined();
-    expect(screen.getByText('Player profiles')).toBeDefined();
-    expect(document.querySelectorAll('.profile').length).toBe(7);
-    expect(screen.getAllByText('Biggest fan').length).toBe(7);
+    // Profile tab is per-player — click the first player button then the Profile subtab
+    const playerBtns = document.querySelectorAll('.player-btn');
+    await user.click(playerBtns[0] as HTMLElement);
+    await user.click(screen.getByRole('button', { name: 'Profile' }));
+    expect(screen.getByText('Biggest fan')).toBeDefined();
   });
 
   it('breaks every score into its parts', async () => {

@@ -4,7 +4,7 @@ import { genreReport } from '../lib/genres';
 import { embeddedGenres } from 'virtual:league-data';
 import { Card, n1 } from './ui';
 import { LabelIcon } from './Icons';
-import { artFor, SongArt, SongLinks, SongPlayer } from './SongMedia';
+import { artFor, SongArt, SongLinks, SongPlayer, SongTags } from './SongMedia';
 
 /** The three or four things worth saying before any table. */
 export function Headlines({ stats }: { stats: Stats }) {
@@ -65,6 +65,7 @@ export function TopSongs({ stats }: { stats: Stats }) {
             <div className="showcase__title">
               <strong>{song.title || 'Untitled'}</strong>
               {song.artist && <div className="dim">{song.artist}</div>}
+              <SongTags year={song.year} obscurity={song.obscurity} artist={song.artist} durationMs={song.durationMs} cover={song.cover} />
             </div>
             <span className="showcase__meta">
               {song.submitterId ? nameOf.get(song.submitterId) : 'anonymous'} · {song.roundName} ·{' '}
@@ -84,57 +85,66 @@ export function TopSongs({ stats }: { stats: Stats }) {
 }
 
 /** Gateway cards linking to each section. */
-export function Overview({ stats }: { stats: Stats }) {
+export function Overview({ stats, onNavigate }: { stats: Stats; onNavigate: (tab: string) => void }) {
   const totalForfeited = stats.players.reduce((a, p) => a + p.breakdown.forfeited, 0);
-  const leader = [...stats.players].sort((a, b) => b.pointsCounted - a.pointsCounted)[0];
-  const second = [...stats.players].sort((a, b) => b.pointsCounted - a.pointsCounted)[1];
+  const ranked = [...stats.players].sort((a, b) => b.pointsCounted - a.pointsCounted);
+  const leader = ranked[0];
+  const second = ranked[1];
   const gap = leader && second ? leader.pointsCounted - second.pointsCounted : 0;
 
   const topSong = [...stats.songs].sort((a, b) => b.effectiveNet - a.effectiveNet)[0];
 
+  const activePlayers = stats.players.filter((p) => p.songs > 0);
+  const topAvg = [...activePlayers].sort((a, b) => b.avgPerSong - a.avgPerSong)[0];
+
+  const tiles: { tab: string; title: string; body: string | null }[] = [
+    {
+      tab: 'The Race',
+      title: 'The Race',
+      body: leader
+        ? `${leader.name} leads on ${n1(leader.pointsCounted)}${gap > 0 && second ? ` — ${gap} pts ahead of ${second.name}${stats.inProgress ? ' with rounds to play' : ''}` : ''}.`
+        : null,
+    },
+    {
+      tab: 'The Songs',
+      title: 'The Songs',
+      body: topSong
+        ? `Best song so far: ${topSong.title}${topSong.artist ? ` by ${topSong.artist}` : ''} — ${n1(topSong.effectiveNet)} pts.`
+        : null,
+    },
+    {
+      tab: 'The Room',
+      title: 'The Room',
+      body: stats.hasVotes
+        ? `${stats.pairs.length} voter–player relationships tracked across ${stats.roundsPlayed} round${stats.roundsPlayed === 1 ? '' : 's'}.`
+        : null,
+    },
+    {
+      tab: 'Players',
+      title: 'Players',
+      body: topAvg
+        ? `${activePlayers.length} players. ${topAvg.name} averages ${topAvg.avgPerSong.toFixed(1)} pts per song — the best conversion rate in the league.`
+        : `${activePlayers.length} players.`,
+    },
+    {
+      tab: 'Play-by-Play',
+      title: 'Play-by-Play',
+      body: `${stats.roundsPlayed} round${stats.roundsPlayed === 1 ? '' : 's'}, one chapter each.${stats.scoring === 'competitive' && totalForfeited > 0 ? ` ${n1(totalForfeited)} pts forfeited by non-voters.` : ''}`,
+    },
+  ];
+
   return (
     <>
-      <Card title="Gateways" subtitle="One finding per section — full details on each tab." wide>
+      <Card title="Gateways" subtitle="One finding per section — click to go there." wide>
         <div className="gateways">
-          {leader && (
-            <div className="gateway">
-              <strong className="gateway__title">The Race</strong>
-              <p className="gateway__body dim">
-                {leader.name} leads on {n1(leader.pointsCounted)}
-                {gap > 0 && second
-                  ? ` — ${gap} points ahead of ${second.name} with ${stats.inProgress ? 'rounds to play' : 'the season over'}`
-                  : ''}
-                .
-              </p>
-            </div>
+          {tiles.map(({ tab, title, body }) =>
+            body === null ? null : (
+              <button key={tab} className="gateway" onClick={() => onNavigate(tab)}>
+                <strong className="gateway__title">{title} →</strong>
+                <p className="gateway__body dim">{body}</p>
+              </button>
+            ),
           )}
-          {topSong && (
-            <div className="gateway">
-              <strong className="gateway__title">The Songs</strong>
-              <p className="gateway__body dim">
-                Best song of the season: {topSong.title}
-                {topSong.artist ? ` by ${topSong.artist}` : ''} — {n1(topSong.effectiveNet)} pts.
-              </p>
-            </div>
-          )}
-          {stats.hasVotes && (
-            <div className="gateway">
-              <strong className="gateway__title">The Room</strong>
-              <p className="gateway__body dim">
-                {stats.pairs.length} voter–player relationships tracked across{' '}
-                {stats.roundsPlayed} round{stats.roundsPlayed === 1 ? '' : 's'}.
-              </p>
-            </div>
-          )}
-          <div className="gateway">
-            <strong className="gateway__title">Play-by-Play</strong>
-            <p className="gateway__body dim">
-              {stats.roundsPlayed} chapter{stats.roundsPlayed === 1 ? '' : 's'}, one per round.
-              {stats.scoring === 'competitive' && totalForfeited > 0
-                ? ` ${n1(totalForfeited)} pts forfeited by non-voters.`
-                : ''}
-            </p>
-          </div>
         </div>
       </Card>
     </>

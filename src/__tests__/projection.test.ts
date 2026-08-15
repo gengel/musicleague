@@ -33,7 +33,7 @@ describe('simulateRound (I3 — a simulated round must preserve the real vote bu
     ];
     const rng = seededRng(1);
     const voterCount = 20;
-    const net = simulateRound(6, voterCount, shapes, rng);
+    const results = simulateRound(6, voterCount, shapes, rng);
 
     // Reconstruct exactly which shapes were drawn, using a fresh rng seeded
     // the same way, so the expected total can be checked independently of
@@ -52,19 +52,26 @@ describe('simulateRound (I3 — a simulated round must preserve the real vote bu
         expectedDown += pts;
       }
     }
-    // Net per song mixes up and down, so check the grand total (up - down)
-    // instead of trying to separate them back out per song.
-    expect(sum(net)).toBe(expectedUp - expectedDown);
+    // Check gross totals separately — ups and downs now tracked per song.
+    const totalUps = results.reduce((acc, r) => acc + r.ups, 0);
+    const totalDowns = results.reduce((acc, r) => acc + r.downs, 0);
+    expect(totalUps).toBe(expectedUp);
+    expect(totalDowns).toBe(expectedDown);
   });
 
   it('never distributes points to a song index outside the round', () => {
     const shapes = [{ ups: [5, 3], downs: [4] }];
-    const net = simulateRound(4, 30, shapes, seededRng(7));
-    expect(net).toHaveLength(4);
+    const results = simulateRound(4, 30, shapes, seededRng(7));
+    expect(results).toHaveLength(4);
   });
 
   it('returns an all-zero round when there is nothing to draw from', () => {
-    expect(simulateRound(4, 10, [], seededRng(1))).toEqual([0, 0, 0, 0]);
+    const results = simulateRound(4, 10, [], seededRng(1));
+    expect(results).toHaveLength(4);
+    for (const r of results) {
+      expect(r.ups).toBe(0);
+      expect(r.downs).toBe(0);
+    }
   });
 
   it('draws only from real historical ballots, so the resampled budget always matches one that was actually cast', () => {
@@ -75,11 +82,11 @@ describe('simulateRound (I3 — a simulated round must preserve the real vote bu
     // point by point.
     const shapes = [{ ups: [3, 3, 2], downs: [3, 3] }];
     const voterCount = 15;
-    const net = simulateRound(5, voterCount, shapes, seededRng(3));
-    const total = sum(net);
-    const maxPossibleNet = voterCount * (8 - 6);
-    expect(total).toBeLessThanOrEqual(voterCount * 8);
-    expect(total).toBe(maxPossibleNet); // every voter here casts the identical shape
+    const results = simulateRound(5, voterCount, shapes, seededRng(3));
+    const totalUps = results.reduce((acc, r) => acc + r.ups, 0);
+    const totalDowns = results.reduce((acc, r) => acc + r.downs, 0);
+    expect(totalUps).toBe(voterCount * 8);
+    expect(totalDowns).toBe(voterCount * 6);
   });
 });
 
@@ -87,19 +94,19 @@ describe('projectStandings', () => {
   it('produces a win share for every active player, summing to 1 across the field', () => {
     const result = projectStandings(demoStats, { roundsLeft: 2, runs: 200, rng: seededRng(5) });
     expect(result.insufficientData).toBe(false);
-    const total = sum(result.shares.map((s) => s.winShare));
+    const total = sum(result.forecasts.map((s) => s.winShare));
     expect(total).toBeCloseTo(1, 5);
   });
 
   it('is deterministic for the same seed', () => {
     const a = projectStandings(demoStats, { roundsLeft: 2, runs: 100, rng: seededRng(99) });
     const b = projectStandings(demoStats, { roundsLeft: 2, runs: 100, rng: seededRng(99) });
-    expect(a.shares).toEqual(b.shares);
+    expect(a.forecasts).toEqual(b.forecasts);
   });
 
   it('gives the actual leader a materially higher win share than the actual last place', () => {
     const result = projectStandings(demoStats, { roundsLeft: 3, runs: 500, rng: seededRng(11) });
-    const byPoints = [...result.shares].sort((a, b) => b.currentPoints - a.currentPoints);
+    const byPoints = [...result.forecasts].sort((a, b) => b.currentPoints - a.currentPoints);
     const leader = byPoints[0];
     const last = byPoints[byPoints.length - 1];
     expect(leader.winShare).toBeGreaterThan(last.winShare);
@@ -115,12 +122,49 @@ describe('projectStandings', () => {
     const stats = computeStats(noVotesLeague);
     const result = projectStandings(stats);
     expect(result.insufficientData).toBe(true);
-    expect(result.shares.every((s) => s.winShare === 0)).toBe(true);
+    expect(result.forecasts.every((s) => s.winShare === 0)).toBe(true);
   });
 
   it('does nothing destructive with zero rounds left', () => {
     const result = projectStandings(demoStats, { roundsLeft: 0 });
     expect(result.insufficientData).toBe(true);
+  });
+
+  it('percentiles are monotonic (p10 ≤ p25 ≤ median ≤ p75 ≤ p90)', () => {
+    const result = projectStandings(demoStats, { roundsLeft: 3, runs: 300, rng: seededRng(7) });
+    expect(result.insufficientData).toBe(false);
+    for (const f of result.forecasts) {
+      const { p10, p25, median, p75, p90 } = f.finalScore;
+      expect(p10).toBeLessThanOrEqual(p25);
+      expect(p25).toBeLessThanOrEqual(median);
+      expect(median).toBeLessThanOrEqual(p75);
+      expect(p75).toBeLessThanOrEqual(p90);
+    }
+  });
+
+  it('trajectory length equals roundsLeft', () => {
+    const roundsLeft = 4;
+    const result = projectStandings(demoStats, { roundsLeft, runs: 100, rng: seededRng(13) });
+    expect(result.insufficientData).toBe(false);
+    for (const f of result.forecasts) {
+      expect(f.trajectory).toHaveLength(roundsLeft);
+    }
+  });
+
+  it('a player with a higher miss rate projects with wider score spread than a perfect voter', () => {
+    // In competitive mode, a player who sometimes forfeits gets a random
+    // forfeit per simulated round, adding variance to their final score.
+    const misser = demoStats.players.find((p) => p.songs > 0 && p.roundsMissedVoting > 0);
+    const voter  = demoStats.players.find((p) => p.songs > 0 && p.roundsMissedVoting === 0);
+    if (!misser || !voter) return; // skip if demo has no misser
+
+    const result = projectStandings(demoStats, { roundsLeft: 4, runs: 600, rng: seededRng(33) });
+    const mf = result.forecasts.find((f) => f.playerId === misser.playerId)!;
+    const vf = result.forecasts.find((f) => f.playerId === voter.playerId)!;
+    // Forfeit randomness widens the projected range for the misser
+    const misserSpread = mf.finalScore.p90 - mf.finalScore.p10;
+    const voterSpread  = vf.finalScore.p90 - vf.finalScore.p10;
+    expect(misserSpread).toBeGreaterThan(voterSpread);
   });
 });
 

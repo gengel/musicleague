@@ -168,7 +168,7 @@ export async function fetchGenres(artists, opts = {}) {
     const key = artist.toLowerCase();
     if (cache[key]) {
       if (cache[key].length) {
-        genres[artist] = cache[key];
+        genres[key] = cache[key];
         fromCache += 1;
       } else {
         unresolved.push(artist);
@@ -180,7 +180,7 @@ export async function fetchGenres(artists, opts = {}) {
     const found = await lookup(artist, timeoutMs);
     cache[key] = found;
     if (found.length) {
-      genres[artist] = found;
+      genres[key] = found;
       resolved += 1;
     } else {
       unresolved.push(artist);

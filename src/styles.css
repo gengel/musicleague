@@ -1548,16 +1548,29 @@ tbody tr.row--flag td {
 
 .gateways {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
   margin-top: 4px;
+  align-items: start;
 }
 
 .gateway {
   background: var(--bg-raised);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 12px 14px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color 0.12s, background 0.12s;
+}
+.gateway:hover {
+  border-color: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.06);
+}
+.gateway:focus-visible {
+  outline: 2px solid var(--accent, #7c6af7);
+  outline-offset: 2px;
 }
 
 .gateway__title {
@@ -1637,6 +1650,49 @@ td.archetype-col {
   color: var(--dim);
   padding: 6px 4px 0;
 }
+
+/* ---------------- song filter controls ---------------- */
+
+.song-filters {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.seg__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  padding: 6px 8px;
+  user-select: none;
+}
+
+/* ---------------- song tags (year / obscurity / genre / duration / cover) ---------------- */
+
+.song-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.song-tag {
+  display: inline-block;
+  font-size: 10.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--dim);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  white-space: nowrap;
+}
+
+.song-tag--year    { color: #b9a4d0; }
+.song-tag--obscurity { color: #d29922; }
+.song-tag--genre   { color: var(--accent-2); }
+.song-tag--duration { color: var(--dim); }
+.song-tag--cover   { color: var(--accent); font-style: italic; }
 
 /* ---------------- player picker ---------------- */
 
@@ -1752,6 +1808,42 @@ td.archetype-col {
 
 /* ---------------- vote chips ---------------- */
 
+.vote-breakdowns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.vote-breakdown__title {
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+.vote-breakdown__row {
+  display: grid;
+  grid-template-columns: 90px 1fr 36px;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.vote-breakdown__bar-wrap {
+  background: rgba(255,255,255,0.05);
+  border-radius: 2px;
+  height: 7px;
+  overflow: hidden;
+}
+.vote-breakdown__bar {
+  height: 100%;
+  background: var(--accent, #7c6af7);
+  border-radius: 2px;
+}
+.vote-breakdown__pts {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .vote-rounds {
   display: grid;
   gap: 12px;
@@ -1830,6 +1922,96 @@ td.archetype-col {
 
 .decade-table td {
   vertical-align: middle;
+}
+
+/* ---------------- era × popularity matrix ---------------- */
+
+.era-pop-matrix {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.epm-table {
+  border-collapse: separate;
+  border-spacing: 4px;
+  font-size: 13px;
+  width: 100%;
+}
+
+.epm-corner {
+  border: none;
+  cursor: default;
+}
+
+.epm-colhead {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  padding: 0 8px 8px;
+  border: none;
+  cursor: default;
+}
+
+.epm-rowhead {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dim);
+  padding: 0 10px 0 0;
+  white-space: nowrap;
+  border: none;
+  cursor: default;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.epm-cell {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: center;
+  padding: 10px 12px;
+  vertical-align: middle;
+  min-width: 80px;
+}
+
+.epm-cell--empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.epm-cell--win {
+  background: rgba(99, 214, 143, 0.12);
+  border-color: rgba(99, 214, 143, 0.35);
+}
+
+.epm-cell--lose {
+  background: rgba(242, 112, 127, 0.12);
+  border-color: rgba(242, 112, 127, 0.35);
+}
+
+.epm-score {
+  display: block;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.epm-cell--win .epm-score  { color: var(--pos); }
+.epm-cell--lose .epm-score { color: var(--neg); }
+
+.epm-count {
+  display: block;
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 2px;
+}
+
+.epm-empty {
+  color: var(--line);
 }
 
 /* ---------------- Play-by-Play chapters ---------------- */
@@ -1934,6 +2116,17 @@ td.archetype-col {
   align-items: center;
 }
 
+.chapter__quote {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-left: 3px solid rgba(255,255,255,0.12);
+  font-style: italic;
+  color: var(--dim);
+  font-size: 13.5px;
+}
+.chapter__quote p { margin: 0 0 4px; }
+.chapter__quote footer { font-style: normal; }
+
 .chapter-songs {
   padding: 0;
 }
@@ -1997,6 +2190,34 @@ td.archetype-col {
   background: rgba(242, 112, 127, 0.04);
 }
 
+.race-forecast {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.race-forecast__row {
+  display: grid;
+  grid-template-columns: 140px 1fr 44px;
+  gap: 10px;
+  align-items: center;
+  font-size: 13.5px;
+}
+.race-forecast__bar {
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.race-forecast__fill {
+  height: 100%;
+  border-radius: 3px;
+}
+.race-forecast__pct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+}
+
 @media (max-width: 620px) {
   .grid {
     grid-template-columns: 1fr;
@@ -2010,5 +2231,8 @@ td.archetype-col {
   }
   .era-axis {
     display: none;
+  }
+  .gateways {
+    grid-template-columns: 1fr 1fr;
   }
 }

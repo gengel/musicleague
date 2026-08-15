@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react';
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import type { Stats } from '../lib/stats';
+import { projectStandings } from '../lib/projection';
 import { Card, Empty, playerColor, sortByRankOrder } from './ui';
 
 type Mode = 'cumulative' | 'rank' | 'perRound';
@@ -48,7 +51,10 @@ export function TimelineTooltip({
   roundNameOf: (round: string | number | undefined) => string | undefined;
 }) {
   if (!active || !payload?.length) return null;
-  const entries = sortByRankOrder(payload, (e) => String(e.name), rankOrder);
+  // Filter out projection cone keys (__lo, __diff, __median, __anchor)
+  const visible = payload.filter((e) => !String(e.name).includes('__'));
+  if (!visible.length) return null;
+  const entries = sortByRankOrder(visible, (e) => String(e.name), rankOrder);
   const roundName = roundNameOf(label);
 
   return (
@@ -134,6 +140,46 @@ export function ScoreTimeline({ stats }: { stats: Stats }) {
     return [...rows.values()].sort((a, b) => Number(a.round) - Number(b.round));
   }, [stats, mode]);
 
+  // Projection cone: only in cumulative mode when the season is in progress
+  const coneData = useMemo(() => {
+    if (mode !== 'cumulative' || !stats.inProgress) return null;
+    const roundsLeft =
+      stats.totalRounds != null ? stats.totalRounds - stats.roundsPlayed : 0;
+    if (roundsLeft <= 0) return null;
+    const projection = projectStandings(stats, { roundsLeft, runs: 300 });
+    if (projection.insufficientData) return null;
+
+    const lastRound = stats.roundsPlayed;
+
+    // Bridge row at lastRound: zero-width cone, median = current score.
+    // This pins the dashed line and shading to the exact endpoint of each
+    // player's solid line so there is no gap at the round boundary.
+    const bridgeRow: Record<string, number | string> = { round: lastRound };
+    for (const f of projection.forecasts) {
+      const tl = stats.timelines.get(f.playerId) ?? [];
+      const current = tl[tl.length - 1]?.cumulative ?? f.currentPoints;
+      bridgeRow[`${f.name}__lo`] = current;
+      bridgeRow[`${f.name}__diff`] = 0;
+      bridgeRow[`${f.name}__median`] = current;
+    }
+
+    const rows: Record<string, number | string>[] = [bridgeRow];
+    for (let i = 0; i < roundsLeft; i += 1) {
+      const roundNum = lastRound + i + 1;
+      const row: Record<string, number | string> = { round: roundNum };
+      for (const f of projection.forecasts) {
+        const traj = f.trajectory[i];
+        if (!traj) continue;
+        row[`${f.name}__lo`] = traj.p10;
+        row[`${f.name}__diff`] = traj.p90 - traj.p10;
+        row[`${f.name}__median`] = traj.median;
+      }
+      rows.push(row);
+    }
+
+    return { rows, forecasts: projection.forecasts, lastRound };
+  }, [stats, mode]);
+
   const series = useMemo<SeriesEntry[]>(
     () => players.map((p, i) => ({ name: p.name, color: playerColor(i, players.length) })),
     [players],
@@ -179,7 +225,16 @@ export function ScoreTimeline({ stats }: { stats: Stats }) {
 
       <div className="chart chart--tall">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 16, bottom: 4, left: 0 }}>
+          <ComposedChart
+            data={coneData ? [
+              // Merge bridge row into the last actual data row so R6 appears once
+              // with both the solid-line value and the cone starting point.
+              ...data.slice(0, -1),
+              { ...data[data.length - 1], ...coneData.rows[0] },
+              ...coneData.rows.slice(1),
+            ] : data}
+            margin={{ top: 8, right: 16, bottom: 4, left: 0 }}
+          >
             <CartesianGrid stroke="#26262e" vertical={false} />
             <XAxis
               dataKey="round"
@@ -204,6 +259,57 @@ export function ScoreTimeline({ stats }: { stats: Stats }) {
                 <TimelineLegend series={series} hidden={hidden} onToggle={toggle} />
               }
             />
+            {coneData && (
+              <ReferenceLine
+                x={coneData.lastRound}
+                stroke="#444"
+                strokeDasharray="4 3"
+              />
+            )}
+            {/* Projection cone: stacked areas per player, rendered behind the lines */}
+            {coneData &&
+              series.map((entry) => [
+                <Area
+                  key={`${entry.name}__lo`}
+                  type="monotone"
+                  dataKey={`${entry.name}__lo`}
+                  stackId={`cone_${entry.name}`}
+                  stroke="none"
+                  fill="transparent"
+                  dot={false}
+                  activeDot={false}
+                  isAnimationActive={false}
+                  legendType="none"
+                  hide={hidden.has(entry.name)}
+                />,
+                <Area
+                  key={`${entry.name}__diff`}
+                  type="monotone"
+                  dataKey={`${entry.name}__diff`}
+                  stackId={`cone_${entry.name}`}
+                  stroke="none"
+                  fill={entry.color}
+                  fillOpacity={0.15}
+                  dot={false}
+                  activeDot={false}
+                  isAnimationActive={false}
+                  legendType="none"
+                  hide={hidden.has(entry.name)}
+                />,
+                <Line
+                  key={`${entry.name}__median`}
+                  type="monotone"
+                  dataKey={`${entry.name}__median`}
+                  stroke={entry.color}
+                  strokeWidth={1.5}
+                  strokeDasharray="5 3"
+                  dot={false}
+                  activeDot={false}
+                  isAnimationActive={false}
+                  legendType="none"
+                  hide={hidden.has(entry.name)}
+                />,
+              ])}
             {series.map((entry) => (
               <Line
                 key={entry.name}
@@ -220,7 +326,7 @@ export function ScoreTimeline({ stats }: { stats: Stats }) {
                 isAnimationActive={false}
               />
             ))}
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
       <p className="note">

@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { embeddedArt } from 'virtual:league-data';
+import { embeddedArt, embeddedGenres } from 'virtual:league-data';
 import { Icon } from './Icons';
+import { obscurityBand } from '../lib/obscurity';
+import type { CoverInfo, ObscurityInfo } from '../lib/enrich';
 
 /**
  * Album art, links and players for a submitted song.
@@ -107,6 +109,72 @@ export function SongLinks({
       >
         <Icon name="youtube" size={15} />
       </a>
+    </span>
+  );
+}
+
+/**
+ * Compact tag line for a song: year · obscurity band · genre chips ·
+ * notable duration · cover-of. Only chips with data render; if none have
+ * data the whole component returns null (I6).
+ */
+export function SongTags({
+  year,
+  obscurity,
+  artist,
+  durationMs,
+  cover,
+}: {
+  year?: number;
+  obscurity?: ObscurityInfo;
+  artist?: string;
+  durationMs?: number;
+  cover?: CoverInfo;
+}): JSX.Element | null {
+  const chips: { kind: string; text: string }[] = [];
+
+  if (year !== undefined) {
+    chips.push({ kind: 'year', text: String(year) });
+  }
+
+  if (obscurity !== undefined) {
+    const band = obscurityBand(obscurity.value, obscurity.source);
+    if (band !== 'known') chips.push({ kind: 'obscurity', text: band });
+  }
+
+  if (artist) {
+    const genres = embeddedGenres[(artist.split(',')[0]).trim().toLowerCase()] ?? [];
+    for (const g of genres.slice(0, 2)) {
+      chips.push({ kind: 'genre', text: g.toLowerCase() });
+    }
+  }
+
+  if (durationMs !== undefined) {
+    if (durationMs < 120_000) {
+      const s = Math.round(durationMs / 1000);
+      chips.push({ kind: 'duration', text: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` });
+    } else if (durationMs > 360_000) {
+      const s = Math.round(durationMs / 1000);
+      chips.push({ kind: 'duration', text: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` });
+    }
+  }
+
+  if (cover?.originalTitle) {
+    const label = cover.originalArtist
+      ? `covers "${cover.originalTitle}" (${cover.originalArtist})`
+      : `covers "${cover.originalTitle}"`;
+    chips.push({ kind: 'cover', text: label });
+  }
+
+  if (!chips.length) return null;
+
+  return (
+    <span className="song-tags">
+      {chips.map((c) => (
+        <span key={c.kind + c.text} className={`song-tag song-tag--${c.kind}`}>
+          {c.text}
+        </span>
+      ))}
     </span>
   );
 }
