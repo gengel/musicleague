@@ -18,11 +18,13 @@ describe('parseEnrichment (I6 — absent data is a supported state)', () => {
   });
 
   it('parses whichever files are actually present, independently', () => {
+    // Enrichment JSON uses full spotify:track: URIs as keys; parseEnrichment
+    // normalizes them to the bare id used by SongStats.spotifyId.
     const data = parseEnrichment({
       years: { 'spotify:track:a': 1994 },
       // covers, facts, obscurity, rounds all absent
     });
-    expect(data.years.get('spotify:track:a')).toBe(1994);
+    expect(data.years.get('a')).toBe(1994);
     expect(data.covers.size).toBe(0);
   });
 
@@ -42,9 +44,10 @@ describe('parseEnrichment (I6 — absent data is a supported state)', () => {
       },
       rounds: { r6: { kind: 'covers' } },
     });
-    expect(data.covers.get('spotify:track:a')?.originalArtist).toBe('The Beatles');
-    expect(data.facts.get('spotify:track:a')).toContain('1969');
-    expect(data.obscurity.get('spotify:track:a')?.source).toBe('spotify-popularity');
+    expect(data.covers.get('a')?.originalArtist).toBe('The Beatles');
+    expect(data.facts.get('a')).toContain('1969');
+    expect(data.obscurity.get('a')?.source).toBe('spotify-popularity');
+    // Round ids are not normalized (they aren't spotify URIs).
     expect(data.rounds.get('r6')?.kind).toBe('covers');
   });
 });

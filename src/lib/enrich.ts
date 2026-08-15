@@ -81,16 +81,25 @@ export interface RawEnrichmentFiles {
  * missing or malformed file is treated as absent rather than an error — this
  * is the boundary that keeps every dimension optional (I6).
  */
+/**
+ * Strips the `spotify:track:` prefix so keys line up with SongStats.spotifyId,
+ * which carries only the bare ID. Legacy enrichment JSON files use full URIs
+ * as keys; normalizing here keeps every attach call a plain `.get(id)`.
+ */
+function normKey(uri: string): string {
+  return uri.replace(/^spotify:track:/, '');
+}
+
 export function parseEnrichment(raw: RawEnrichmentFiles): EnrichmentData {
   const data = emptyEnrichment();
-  if (raw.years) for (const [uri, year] of Object.entries(raw.years)) data.years.set(uri, year);
-  if (raw.covers) for (const [uri, info] of Object.entries(raw.covers)) data.covers.set(uri, info);
-  if (raw.facts) for (const [uri, fact] of Object.entries(raw.facts)) data.facts.set(uri, fact);
+  if (raw.years) for (const [uri, year] of Object.entries(raw.years)) data.years.set(normKey(uri), year);
+  if (raw.covers) for (const [uri, info] of Object.entries(raw.covers)) data.covers.set(normKey(uri), info);
+  if (raw.facts) for (const [uri, fact] of Object.entries(raw.facts)) data.facts.set(normKey(uri), fact);
   if (raw.obscurity) {
-    for (const [uri, info] of Object.entries(raw.obscurity)) data.obscurity.set(uri, info);
+    for (const [uri, info] of Object.entries(raw.obscurity)) data.obscurity.set(normKey(uri), info);
   }
   if (raw.durations) {
-    for (const [uri, ms] of Object.entries(raw.durations)) data.durations.set(uri, ms);
+    for (const [uri, ms] of Object.entries(raw.durations)) data.durations.set(normKey(uri), ms);
   }
   if (raw.rounds) for (const [id, meta] of Object.entries(raw.rounds)) data.rounds.set(id, meta);
   return data;
