@@ -24,19 +24,28 @@ if (!jsFile || !cssFile) {
   process.exit(1);
 }
 
-const js = readFileSync(join(assetsDir, jsFile), 'utf8');
+// Escape any </script> occurrences inside the bundle — otherwise the HTML
+// parser terminates the outer <script> tag early and dumps the rest into
+// the DOM as text. Recharts' innerHTML fallback contains this exact string.
+const escapeScriptClose = (s) => s.replace(/<\/script/gi, '<\\/script');
+
+const js  = escapeScriptClose(readFileSync(join(assetsDir, jsFile), 'utf8'));
 const css = readFileSync(join(assetsDir, cssFile), 'utf8');
 
 // Replace the <script src=...> and <link href=...> tags with inline blocks.
 // The script must remain type="module" — the bundle uses import syntax.
+// Pass a function to .replace() so the JS payload is inserted verbatim; a
+// string replacement would treat $&, $1, etc. as capture-group references,
+// and the bundled recharts code contains literal $& sequences that would
+// re-inject the matched <script src="..."></script> tag mid-bundle.
 const inlined = html
   .replace(
     /<script[^>]*src="[^"]*\.js"[^>]*><\/script>/,
-    `<script type="module">${js}</script>`,
+    () => `<script type="module">${js}</script>`,
   )
   .replace(
     /<link[^>]*href="[^"]*\.css"[^>]*>/,
-    `<style>${css}</style>`,
+    () => `<style>${css}</style>`,
   );
 
 const outPath = join(out, 'musicleague.html');
