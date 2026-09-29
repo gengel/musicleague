@@ -15,6 +15,27 @@ declare module 'virtual:league-data' {
   export const embeddedFlooring: 'song' | 'none' | null;
   /** Rounds the league will run in total, when stated at bake time. */
   export const embeddedTotalRounds: number | null;
+  /** Per-round theme bonus rules, when the league applies one. */
+  export const embeddedTheme: {
+    source: 'title';
+    win: number;
+    lose: number;
+    skip: number;
+    overrides: Record<string, string>;
+  } | null;
+  /** Per-voter vote budget, when the league fixes one. */
+  export const embeddedBudget: { upvotes: number; downvotes: number } | null;
+  /** Earlier leagues embedded as history, in display order. */
+  export const embeddedHistory: {
+    id: string;
+    label: string;
+    files: { name: string; text: string }[];
+    scoring: 'competitive' | 'friendly' | null;
+    flooring: 'song' | 'none' | null;
+    totalRounds: number | null;
+    enrichment: Record<string, unknown>;
+    genres: Record<string, string[]>;
+  }[];
   /** Album art fetched at bake time, written to dist/art and keyed here by
    *  Spotify track id. Values are filenames relative to the site's art/
    *  directory, not inlined data — see `artFor` in SongMedia.tsx. */

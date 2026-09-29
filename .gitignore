@@ -6,6 +6,7 @@ node_modules
 # src/data is where the working copy of an export lives.
 *.csv
 src/data/
+data/
 .cache/
 
 # Snapshots hold a full copy of the export for whatever round they archive —

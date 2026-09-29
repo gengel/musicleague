@@ -1,0 +1,11 @@
+{
+  "id": "league1",
+  "label": "Music League",
+  "export": "data/league1/export",
+  "enrich": "enrich/league1",
+  "totalRounds": 11,
+  "scoring": "competitive",
+  "flooring": "none",
+  "redact": true,
+  "publish": { "out": "docs/v2/league1", "single": true }
+}

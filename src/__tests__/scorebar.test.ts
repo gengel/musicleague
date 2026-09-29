@@ -7,6 +7,7 @@ const make = (p: Partial<ScoreBreakdown>): ScoreBreakdown => ({
   downvotes: 0,
   forfeited: 0,
   absorbed: 0,
+  theme: 0,
   total: 0,
   ...p,
 });

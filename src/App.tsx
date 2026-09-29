@@ -7,6 +7,8 @@ import {
   embeddedRedacted,
   embeddedScoring,
   embeddedTotalRounds,
+  embeddedTheme,
+  embeddedBudget,
 } from 'virtual:league-data';
 import { parseLeague, type NamedFile } from './lib/parse';
 import { computeStats, computeSuperlatives, type FloorMode, type ScoringMode } from './lib/stats';
@@ -82,6 +84,8 @@ export default function App() {
         scoring: scoringChoice ?? 'auto',
         flooring: flooringChoice ?? 'auto',
         totalRounds: embeddedTotalRounds ?? undefined,
+        theme: embeddedTheme ?? undefined,
+        budget: embeddedBudget ?? undefined,
       });
       const enrichment = parseEnrichment(
         embeddedFiles?.length ? embeddedEnrichment : isDemo ? buildDemoEnrichment() : {},

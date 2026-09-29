@@ -30,9 +30,13 @@ export interface LeagueSummary {
   flooring: 'song' | 'none';
   flooringInferred: boolean;
   /** Season totals under the chosen model, best first. */
-  totals: { name: string; total: number; upvotes: number; downvotes: number; forfeited: number; absorbed: number }[];
+  totals: { name: string; total: number; upvotes: number; downvotes: number; forfeited: number; absorbed: number; theme: number }[];
   /** Round winners under that model, for eyeballing before publishing. */
   winners: { round: string; winner: string; points: number }[];
+  /** Theme bonus outcomes, one per themed round with results. */
+  themeOutcomes: { round: string; player: string; outcome: 'won' | 'lost' | 'skipped'; points: number; reason: string }[];
+  /** Round names whose theme player could not be identified. */
+  themeUnresolved: string[];
   warnings: string[];
   /** Problems that should stop a build. */
   errors: string[];
@@ -92,9 +96,11 @@ export function describeLeague(
   scoring: 'competitive' | 'friendly' | 'auto' = 'auto',
   flooring: 'song' | 'none' | 'auto' = 'auto',
   totalRounds?: number,
+  theme?: import('./theme').ThemeRules,
+  budget?: { upvotes: number; downvotes: number },
 ): LeagueSummary {
   const league = parseLeague(files);
-  const stats = computeStats(league, { scoring, flooring, totalRounds });
+  const stats = computeStats(league, { scoring, flooring, totalRounds, theme, budget });
   const errors: string[] = [];
 
   if (!league.submissions.length) {
@@ -142,6 +148,7 @@ export function describeLeague(
         downvotes: p.breakdown.downvotes,
         forfeited: p.breakdown.forfeited,
         absorbed: p.breakdown.absorbed,
+        theme: p.breakdown.theme,
       })),
     winners: stats.rounds
       .filter((r) => r.winnerTrackId)
@@ -153,6 +160,14 @@ export function describeLeague(
           points: song?.effectiveNet ?? 0,
         };
       }),
+    themeOutcomes: stats.themeOutcomes.map((o) => ({
+      round: o.roundName,
+      player: o.playerName,
+      outcome: o.outcome,
+      points: o.points,
+      reason: o.reason,
+    })),
+    themeUnresolved: stats.themeUnresolved,
     warnings: league.warnings,
     errors,
   };

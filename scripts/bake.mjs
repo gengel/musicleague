@@ -67,6 +67,7 @@ function parseArgs(argv) {
   // "origin" output can distinguish defaults from command-line overrides.
   const opts = {
     inputs: [],
+    league: null,
     out: 'dist',
     base: '/',
     label: null,
@@ -82,6 +83,13 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     switch (arg) {
+      case '--league': {
+        const value = argv[i + 1];
+        if (!value || value.startsWith('--')) fail('--league needs a league id');
+        opts.league = value;
+        i += 1;
+        break;
+      }
       case '--rounds': {
         const value = argv[i + 1];
         if (!value || !/^\d+$/.test(value)) fail('--rounds needs a number');
@@ -142,6 +150,68 @@ function parseArgs(argv) {
 
 const opts = parseArgs(process.argv.slice(2));
 
+/* ---------------------------- league config ---------------------------- */
+// The app's parser and config validator are bundled once, on the fly, so the
+// CLI cannot drift from the page. Loaded up front because --league sets the
+// inputs and rules before anything else runs.
+const work = mkdtempSync(join(tmpdir(), 'ml-bake-'));
+process.on('exit', () => rmSync(work, { recursive: true, force: true }));
+
+async function loadApi() {
+  const { rolldown } = await import('rolldown');
+  const bundle = await rolldown({
+    input: join(root, 'src/lib/node-api.ts'),
+    platform: 'node',
+    logLevel: 'silent',
+  });
+  const outFile = join(work, 'node-api.mjs');
+  await bundle.write({ file: outFile, format: 'esm' });
+  await bundle.close();
+  return import(`file://${outFile}`);
+}
+
+let api;
+try {
+  api = await loadApi();
+} catch (err) {
+  fail(`Could not load the app library: ${err instanceof Error ? err.message : String(err)}`);
+}
+
+/** Loads and validates leagues/<id>.json. */
+function loadLeagueConfig(id) {
+  const path = join(root, 'leagues', `${id}.json`);
+  if (!existsSync(path)) fail(`No league config: leagues/${id}.json`);
+  let raw;
+  try {
+    raw = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (err) {
+    fail(`leagues/${id}.json is not valid JSON: ${err instanceof Error ? err.message : err}`);
+  }
+  try {
+    return api.validateLeagueConfig(raw);
+  } catch (err) {
+    fail(err instanceof Error ? err.message : String(err));
+  }
+}
+
+let config = null;
+if (opts.league) {
+  config = loadLeagueConfig(opts.league);
+  // The config supplies defaults; explicit CLI flags still win.
+  if (!opts.inputs.length) opts.inputs.push(join(root, config.export));
+  if (!opts.scoringExplicit && config.scoring) opts.scoring = config.scoring;
+  if (!opts.flooringExplicit && config.flooring) opts.flooring = config.flooring;
+  if (opts.rounds == null && config.totalRounds != null) opts.rounds = config.totalRounds;
+  if (config.redact) opts.redact = true;
+  if (opts.label == null) opts.label = config.label;
+  if (config.publish?.out && opts.out === 'dist') opts.out = config.publish.out;
+  opts.theme = config.theme ?? null;
+  opts.budget = config.budget ?? null;
+  opts.enrichDir = config.enrich ? join(root, config.enrich) : null;
+  opts.history = config.history ?? [];
+  opts.single = config.publish?.single ?? false;
+}
+
 if (!opts.inputs.length) {
   fail(
     'No CSV given.',
@@ -197,32 +267,15 @@ for (const [i, file] of files.entries()) {
  * produce a working page fails here rather than after publishing.
  * ------------------------------------------------------------------ */
 
-const work = mkdtempSync(join(tmpdir(), 'ml-bake-'));
-process.on('exit', () => rmSync(work, { recursive: true, force: true }));
-
-/** Bundles the app's own parser so the CLI cannot drift from the page. */
-async function loadApi() {
-  const { rolldown } = await import('rolldown');
-  const bundle = await rolldown({
-    input: join(root, 'src/lib/node-api.ts'),
-    platform: 'node',
-    logLevel: 'silent',
-  });
-  const outFile = join(work, 'node-api.mjs');
-  await bundle.write({ file: outFile, format: 'esm' });
-  await bundle.close();
-  return import(`file://${outFile}`);
-}
-
-let api;
 let summary;
 try {
-  api = await loadApi();
   summary = api.describeLeague(
     files,
     opts.scoring ?? 'auto',
     opts.flooring ?? 'auto',
     opts.rounds ?? undefined,
+    opts.theme ?? undefined,
+    opts.budget ?? undefined,
   );
 } catch (err) {
   fail(`Could not parse the export: ${err instanceof Error ? err.message : String(err)}`);
@@ -308,8 +361,9 @@ if (summary.nonVoters.length || anyDownvotes) {
         : 'Standings this build will show',
     )}`,
   );
+  const anyTheme = summary.totals.some((t) => t.theme);
   console.log(
-    `    ${'player'.padEnd(16)} ${'total'.padStart(6)}   ${c.dim('upvotes  downvotes  forfeited  floored')}`,
+    `    ${'player'.padEnd(16)} ${'total'.padStart(6)}   ${c.dim(`upvotes  downvotes  forfeited  floored${anyTheme ? '  theme' : ''}`)}`,
   );
   for (const t of summary.totals) {
     const total = t.total < 0 ? c.red(String(t.total).padStart(6)) : String(t.total).padStart(6);
@@ -318,6 +372,7 @@ if (summary.nonVoters.length || anyDownvotes) {
       t.downvotes ? `−${t.downvotes}`.padStart(9) : ''.padStart(9),
       t.forfeited ? `−${t.forfeited}`.padStart(10) : ''.padStart(10),
       t.absorbed ? `+${t.absorbed}`.padStart(8) : ''.padStart(8),
+      anyTheme ? (t.theme ? `${t.theme > 0 ? '+' : '−'}${Math.abs(t.theme)}`.padStart(6) : ''.padStart(6)) : '',
     ].join(' ');
     console.log(`    ${t.name.padEnd(16)} ${total}   ${c.dim(parts)}`);
   }
@@ -332,6 +387,19 @@ if (summary.nonVoters.length || anyDownvotes) {
     console.log(`\n  ${c.bold('Round winners')}`);
     for (const w of summary.winners) {
       console.log(`    ${w.round.padEnd(26)} ${c.dim(`${w.winner} — ${w.points} pts`)}`);
+    }
+  }
+
+  if (summary.themeOutcomes?.length) {
+    console.log(`\n  ${c.bold('Theme rounds')} ${c.dim('(±3, applied by this page, not Music League)')}`);
+    for (const t of summary.themeOutcomes) {
+      const sign = t.points > 0 ? c.green(`+${t.points}`) : c.red(`${t.points}`);
+      console.log(`    ${t.player.padEnd(16)} ${sign}  ${c.dim(t.reason)}`);
+    }
+  }
+  if (summary.themeUnresolved?.length) {
+    for (const w of summary.themeUnresolved) {
+      console.log(`    ${c.yellow('!')} ${w}`);
     }
   }
 }
@@ -359,6 +427,8 @@ if (opts.redact) {
     opts.scoring ?? 'auto',
     opts.flooring ?? 'auto',
     opts.rounds ?? undefined,
+    opts.theme ?? undefined,
+    opts.budget ?? undefined,
   );
   const drift = [];
   if (after.errors.length) drift.push(...after.errors);
@@ -524,7 +594,7 @@ if (opts.genres) {
 
 let enrichment = {};
 
-const enrichDir = join(root, 'enrich');
+const enrichDir = opts.enrichDir ?? join(root, 'enrich');
 if (existsSync(enrichDir)) {
   const readJson = (name) => {
     const path = join(enrichDir, name);
@@ -559,6 +629,7 @@ const label =
   (files.length === 1 ? basename(files[0].name, extname(files[0].name)).replace(/[_-]+/g, ' ') : null);
 
 const manifestPath = join(work, 'manifest.json');
+const historyManifest = [];
 writeFileSync(
   manifestPath,
   JSON.stringify({
@@ -568,6 +639,9 @@ writeFileSync(
     scoring: opts.scoring,
     flooring: opts.flooring,
     totalRounds: opts.rounds,
+    theme: opts.theme ?? null,
+    budget: opts.budget ?? null,
+    history: historyManifest,
     art: artwork,
     genres: genreMap,
     enrichment,

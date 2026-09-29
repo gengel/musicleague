@@ -8,3 +8,5 @@ export { artistNames, artworkTargets, describeLeague, type LeagueSummary } from 
 export type { FloorMode, ScoringMode } from './stats';
 export { buildRedactionMap, redactCsvText, redactName } from './redact';
 export type { NamedFile } from './parse';
+export { validateLeagueConfig, type LeagueConfig } from './config';
+export type { ThemeRules, ThemeOutcome } from './theme';

@@ -1,4 +1,11 @@
 import type { League, Round, Submission, Vote } from './types';
+import {
+  computeThemeOutcome,
+  resolveThemePlayer,
+  type ThemeOutcome,
+  type ThemeRules,
+  type ThemeSong,
+} from './theme';
 import type { CoverInfo, ObscurityInfo } from './enrich';
 
 /**
@@ -35,17 +42,35 @@ export interface StatsOptions {
    * from the file alone.
    */
   totalRounds?: number;
+  /**
+   * The per-round theme bonus, when the league applies one. Absent for a
+   * league without themed rounds (e.g. league 1), so its figures are
+   * unchanged.
+   */
+  theme?: ThemeRules;
+  /**
+   * The per-voter vote budget, when the league fixes one. Used to bound
+   * downvote devotion and to validate ballots. The upvote cap is still
+   * inferred per round from the largest vote cast, so this does not replace
+   * `observedPerSongCap`.
+   */
+  budget?: { upvotes: number; downvotes: number };
 }
 
 /**
  * Where a score came from, in terms that add up exactly:
  *
- *   total = upvotes − downvotes − forfeited + absorbed
+ *   total = upvotes − downvotes − forfeited + absorbed + theme
  *
  * `absorbed` is the part of the downvotes that never landed, because a song's
  * score floors at zero rather than going negative. Without that term the
  * figures look like they do not reconcile, which is worse than not showing a
  * breakdown at all. With flooring off, `absorbed` is always zero.
+ *
+ * `theme` is the per-round themed-player bonus (±3 in league 2). It belongs
+ * to the player, not any single song, so a song's breakdown always carries
+ * `theme: 0`; a player's breakdown carries the sum of their theme rounds. It
+ * is zero for a league without themed rounds.
  */
 export interface ScoreBreakdown {
   /** Upvote points the songs received. */
@@ -56,6 +81,8 @@ export interface ScoreBreakdown {
   forfeited: number;
   /** Downvotes discarded by the zero floor. */
   absorbed: number;
+  /** Themed-round bonus (±3), on the player total only. */
+  theme: number;
   /** What the league counted. May be negative when flooring is off. */
   total: number;
 }
@@ -77,15 +104,16 @@ function breakDownSong(
       downvotes,
       forfeited: upvotes,
       absorbed: floorAtZero ? downvotes : 0,
+      theme: 0,
       total: floorAtZero ? 0 : -downvotes || 0,
     };
   }
   const net = upvotes - downvotes;
   if (net >= 0 || !floorAtZero) {
-    return { upvotes, downvotes, forfeited: 0, absorbed: 0, total: net };
+    return { upvotes, downvotes, forfeited: 0, absorbed: 0, theme: 0, total: net };
   }
   // Downvotes can only take a song to zero, never below it.
-  return { upvotes, downvotes, forfeited: 0, absorbed: downvotes - upvotes, total: 0 };
+  return { upvotes, downvotes, forfeited: 0, absorbed: downvotes - upvotes, theme: 0, total: 0 };
 }
 
 function sumBreakdowns(parts: ScoreBreakdown[]): ScoreBreakdown {
@@ -95,9 +123,10 @@ function sumBreakdowns(parts: ScoreBreakdown[]): ScoreBreakdown {
       downvotes: acc.downvotes + p.downvotes,
       forfeited: acc.forfeited + p.forfeited,
       absorbed: acc.absorbed + p.absorbed,
+      theme: acc.theme + p.theme,
       total: acc.total + p.total,
     }),
-    { upvotes: 0, downvotes: 0, forfeited: 0, absorbed: 0, total: 0 },
+    { upvotes: 0, downvotes: 0, forfeited: 0, absorbed: 0, theme: 0, total: 0 },
   );
 }
 
@@ -194,6 +223,10 @@ export interface RoundStats {
   /** Median upvote budget actually spent, used to infer the round's budget. */
   typicalBudget: number;
   winnerTrackId?: string;
+  /** The player this round is themed around, when the league themes rounds. */
+  themePlayerId?: string;
+  /** The theme bonus outcome for this round, once it has results. */
+  theme?: ThemeOutcome;
 }
 
 export interface PlayerStats {
@@ -213,6 +246,14 @@ export interface PlayerStats {
    * rank by. It can be negative when flooring is off.
    */
   pointsCounted: number;
+  /**
+   * The signed theme bonus this player earned across the season (±3 per themed
+   * round they owned). Included in `pointsCounted` and `breakdown.theme`.
+   * Zero in a league without themed rounds.
+   */
+  themeBonus: number;
+  /** The round this player is the theme of, when the league themes rounds. */
+  themeRoundId?: string;
   /**
    * How that season score is made up. `breakdown.total` equals
    * `pointsCounted`, and the parts reconcile exactly.
@@ -373,6 +414,13 @@ export interface Stats {
   superlatives: Superlative[];
   artistCounts: { artist: string; count: number; submitters: string[] }[];
   hasVotes: boolean;
+  /** Theme bonus outcomes, one per themed round that has results. */
+  themeOutcomes: ThemeOutcome[];
+  /**
+   * Round names whose theme player could not be identified from the title.
+   * Surfaced as a warning rather than silently scored.
+   */
+  themeUnresolved: string[];
 }
 
 /* ------------------------------------------------------------------ *
@@ -632,6 +680,58 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
 
   const songByTrack = new Map(songs.map((s) => [s.trackId, s]));
 
+  /* ---------------- theme bonus ----------------
+   *
+   * Each round may be themed around one player, named in its title. That
+   * player gains points for winning their own round and loses them otherwise.
+   * The bonus is not in the export; it is a league rule applied here, judged
+   * on the counted score so it agrees with the round ranking.
+   */
+  const themeOutcomes: ThemeOutcome[] = [];
+  const themeUnresolved: string[] = [];
+  const themeByPlayer = new Map<string, ThemeOutcome>();
+  const themeRoundOfPlayer = new Map<string, string>();
+  if (options.theme) {
+    const themeSongs: ThemeSong[] = songs.map((s) => ({
+      roundId: s.roundId,
+      submitterId: s.submitterId,
+      effectiveNet: s.effectiveNet,
+      roundRank: s.roundRank,
+    }));
+    for (const round of league.rounds) {
+      const { playerId, candidates } = resolveThemePlayer(round, league.players, options.theme);
+      const rs = roundStatsById.get(round.id);
+      if (!playerId) {
+        // Only worth flagging for rounds that otherwise have results; a
+        // pending round with an unreadable title can wait.
+        if (rs?.hasVotes) {
+          themeUnresolved.push(
+            candidates.length > 1
+              ? `${round.name}: theme player ambiguous (${candidates.join(', ')})`
+              : `${round.name}: no theme player found in the title`,
+          );
+        }
+        continue;
+      }
+      if (rs) rs.themePlayerId = playerId;
+      themeRoundOfPlayer.set(playerId, round.id);
+      const outcome = computeThemeOutcome(
+        round,
+        playerId,
+        nameOf.get(playerId) ?? playerId,
+        themeSongs,
+        options.theme,
+        rs?.hasVotes ?? false,
+        (id) => nameOf.get(id) ?? id,
+      );
+      if (outcome) {
+        themeOutcomes.push(outcome);
+        themeByPlayer.set(playerId, outcome);
+        if (rs) rs.theme = outcome;
+      }
+    }
+  }
+
   /* ---------------- pair-level (who votes for whom) ----------------
    *
    * Raw point totals reward whoever simply shared the most rounds with
@@ -810,7 +910,16 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
     }
 
     const netReceived = sum(mySongs.map((s) => s.net));
-    const breakdown = sumBreakdowns(mySongs.map((s) => s.breakdown));
+    const songBreakdown = sumBreakdowns(mySongs.map((s) => s.breakdown));
+    const themeOutcome = themeByPlayer.get(player.id);
+    const themeBonus = themeOutcome?.points ?? 0;
+    // The theme bonus is the player's, not any song's: fold it into the
+    // player breakdown so total still reconciles with the parts.
+    const breakdown: ScoreBreakdown = {
+      ...songBreakdown,
+      theme: themeBonus,
+      total: songBreakdown.total + themeBonus,
+    };
     // Rounds with results, for rank-based averages.
     const rankedSongs = mySongs.filter((s) => s.roundRank > 0);
 
@@ -822,6 +931,8 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
       songs: mySongs.length,
       pointsReceived: netReceived,
       pointsCounted: breakdown.total,
+      themeBonus,
+      themeRoundId: themeRoundOfPlayer.get(player.id),
       breakdown,
       upvotesReceived: sum(mySongs.map((s) => s.upvotes)),
       downvotesReceived: sum(mySongs.map((s) => s.downvotes)),
@@ -871,6 +982,9 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
       if (!s.submitterId) continue;
       bump(earned, s.submitterId, s.countedScore);
     }
+    // The theme bonus lands in the round it was decided.
+    const roundTheme = roundStatsById.get(round.id)?.theme;
+    if (roundTheme) bump(earned, roundTheme.playerId, roundTheme.points);
     for (const [playerId, pts] of earned) bump(running, playerId, pts);
 
     const ranked = [...running.entries()].sort((a, b) => b[1] - a[1]);
@@ -952,6 +1066,8 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
     }),
     artistCounts,
     hasVotes,
+    themeOutcomes,
+    themeUnresolved,
   };
 }
 

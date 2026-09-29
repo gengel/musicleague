@@ -204,8 +204,9 @@ describe('score breakdown', () => {
     downvotes: number;
     forfeited: number;
     absorbed: number;
+    theme: number;
     total: number;
-  }) => b.upvotes - b.downvotes - b.forfeited + b.absorbed;
+  }) => b.upvotes - b.downvotes - b.forfeited + b.absorbed + b.theme;
 
   it('reconciles for a plain song with no downvotes', () => {
     const s = song(competitive, 'Shine');
@@ -214,6 +215,7 @@ describe('score breakdown', () => {
       downvotes: 0,
       forfeited: 0,
       absorbed: 0,
+      theme: 0,
       total: 5,
     });
     expect(reconciles(s.breakdown)).toBe(s.breakdown.total);
@@ -226,6 +228,7 @@ describe('score breakdown', () => {
       downvotes: 0,
       forfeited: 14,
       absorbed: 0,
+      theme: 0,
       total: 0,
     });
     expect(reconciles(s.breakdown)).toBe(0);
@@ -258,6 +261,7 @@ R1,Dan,Dan,Fine,0
       downvotes: 5,
       forfeited: 0,
       absorbed: 3,
+      theme: 0,
       total: 0,
     });
     expect(reconciles(sunk.breakdown)).toBe(0);
