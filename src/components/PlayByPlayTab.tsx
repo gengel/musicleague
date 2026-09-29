@@ -259,26 +259,32 @@ function ChapterGroup({
  * Tab root
  * ------------------------------------------------------------------ */
 
-export function PlayByPlayTab({ stats }: { stats: Stats }) {
+export function PlayByPlayTab({ stats, focusSequence }: { stats: Stats; focusSequence?: number }) {
   const chapters = useMemo(() => buildPlayByPlay(stats), [stats]);
   const nameOf = useMemo(
     () => new Map(stats.players.map((p) => [p.playerId, p.name])),
     [stats.players],
   );
 
+  const shown = focusSequence
+    ? chapters.filter((c) => c.round.round.sequence === focusSequence)
+    : chapters;
+
   return (
     <>
-      <SuperlativeStrip
-        stats={stats}
-        labels={[
-          'Highest-scoring round',
-          'Lowest-scoring round',
-          'Best turnout',
-          'Most points lost in a round',
-        ]}
-      />
+      {!focusSequence && (
+        <SuperlativeStrip
+          stats={stats}
+          labels={[
+            'Highest-scoring round',
+            'Lowest-scoring round',
+            'Best turnout',
+            'Most points lost in a round',
+          ]}
+        />
+      )}
 
-      {chapters.map((chapter) => (
+      {shown.map((chapter) => (
         <ChapterGroup
           key={chapter.round.round.id}
           chapter={chapter}

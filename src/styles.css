@@ -2284,3 +2284,78 @@ td.archetype-col {
 .dbar__fill--theme {
   background: var(--theme);
 }
+
+/* ---- Deep player page ---- */
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-2);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.linklike:hover {
+  text-decoration: underline;
+}
+
+.player-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.player-head__name {
+  margin: 0.1rem 0;
+  font-size: 1.4rem;
+}
+.player-head__meta span strong {
+  color: var(--text);
+}
+.player-head__score {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+.player-record {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+.player-tags {
+  margin: 0.2rem 0 0.8rem;
+}
+.player-sub {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.brief-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.brief-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.3rem 0 0;
+}
+.brief-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.brief-list__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.brief-list__val {
+  flex: none;
+}

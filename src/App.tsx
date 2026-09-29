@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   embeddedEnrichment,
   embeddedFiles,
@@ -9,50 +9,25 @@ import {
   embeddedTotalRounds,
   embeddedTheme,
   embeddedBudget,
+  embeddedHistory,
 } from 'virtual:league-data';
 import { parseLeague, type NamedFile } from './lib/parse';
 import { computeStats, computeSuperlatives, type FloorMode, type ScoringMode } from './lib/stats';
+import { buildHistoryLeagues, joinHistory, type History } from './lib/history';
+import { resolveSlug } from './lib/playerProfile';
+import { parseHash, tabSlug, TABS, type Route, type TabId } from './lib/route';
 import { attachEnrichment, parseEnrichment } from './lib/enrich';
 import { buildDemoCsv, buildDemoEnrichment } from './lib/demo';
 import { FileDrop } from './components/FileDrop';
-import { Headlines, TopSongs, Overview } from './components/Overview';
-import { SuperlativeStrip } from './components/SuperlativeStrip';
+import { Overview } from './components/Overview';
+import { ThisRoundTab } from './components/ThisRoundTab';
 import { TheRaceTab } from './components/TheRaceTab';
 import { TheSongsTab } from './components/TheSongsTab';
 import { TheRoomTab } from './components/TheRoomTab';
 import { PlayersTab } from './components/PlayersTab';
 import { PlayByPlayTab } from './components/PlayByPlayTab';
-
-const TABS = ['Overview', 'The Race', 'The Songs', 'The Room', 'Players', 'Play-by-Play'] as const;
-type Tab = (typeof TABS)[number];
-
-/**
- * Legacy hash fragments from old 8-tab layout → new 6-tab names.
- * Keeps any bookmarks or shared links working after the restructure.
- */
-const HASH_REDIRECTS: Record<string, Tab> = {
-  standings: 'The Race',
-  future: 'The Race',
-  voting: 'The Room',
-  network: 'The Room',
-  songs: 'The Songs',
-  participation: 'Play-by-Play',
-  players: 'Players',
-  overview: 'Overview',
-  'the race': 'The Race',
-  'the songs': 'The Songs',
-  'the room': 'The Room',
-  'play-by-play': 'Play-by-Play',
-};
-
-function readHash(): { demo: boolean; tab: Tab } {
-  const raw = decodeURIComponent(window.location.hash.replace(/^#/, ''));
-  const [name, tabRaw] = raw.split(':');
-  const tabKey = (tabRaw ?? '').toLowerCase();
-  const redirected = HASH_REDIRECTS[tabKey];
-  const direct = TABS.find((t) => t.toLowerCase() === tabKey);
-  return { demo: name.toLowerCase() === 'demo', tab: redirected ?? direct ?? 'Overview' };
-}
+import { PlayerPage } from './components/PlayerPage';
+import { FuturePanel } from './components/FuturePanel';
 
 function initialFiles(demo: boolean): NamedFile[] | null {
   if (embeddedFiles?.length) return embeddedFiles;
@@ -61,14 +36,26 @@ function initialFiles(demo: boolean): NamedFile[] | null {
 }
 
 export default function App() {
-  const initial = readHash();
+  const initial = parseHash(window.location.hash);
   const [files, setFiles] = useState<NamedFile[] | null>(() => initialFiles(initial.demo));
   const [isDemo, setIsDemo] = useState(initial.demo && !embeddedFiles?.length);
-  const [tab, setTab] = useState<Tab>(initial.tab);
+  const [route, setRoute] = useState<Route>(initial.route);
   const [error, setError] = useState<string | undefined>();
   const scoringChoice: ScoringMode | undefined = embeddedScoring ?? undefined;
   const flooringChoice: FloorMode | undefined = embeddedFlooring ?? undefined;
   const isBaked = Boolean(embeddedFiles?.length) && files === embeddedFiles;
+
+  // Keep the URL and the route in step, both ways.
+  useEffect(() => {
+    const onHash = () => setRoute(parseHash(window.location.hash).route);
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const navigate = (hash: string) => {
+    if (window.location.hash.replace(/^#/, '') !== hash) window.location.hash = hash;
+    else setRoute(parseHash(hash).route);
+  };
+  const goTab = (tab: TabId) => navigate(tabSlug(tab));
 
   const stats = useMemo(() => {
     if (!files) return null;
@@ -99,6 +86,34 @@ export default function App() {
     }
   }, [files, scoringChoice, flooringChoice]);
 
+  // Prior leagues embedded for the player pages, joined to this roster by id.
+  const history = useMemo<History | null>(() => {
+    if (!stats || !embeddedHistory?.length) return null;
+    const leagues = buildHistoryLeagues(
+      embeddedHistory.map((h) => ({
+        id: h.id,
+        label: h.label,
+        files: h.files,
+        options: {
+          scoring: h.scoring ?? 'auto',
+          flooring: h.flooring ?? 'auto',
+          totalRounds: h.totalRounds ?? undefined,
+        },
+      })),
+    );
+    return joinHistory(
+      stats.players.map((p) => ({ id: p.playerId, name: p.name })),
+      leagues,
+    );
+  }, [stats]);
+
+  // Genres per history league, keyed by league id, for the profile builder.
+  const historyGenres = useMemo(() => {
+    const map = new Map<string, Record<string, string[]>>();
+    for (const h of embeddedHistory ?? []) map.set(h.id, h.genres ?? {});
+    return map;
+  }, []);
+
   if (!stats) {
     return (
       <FileDrop
@@ -117,6 +132,8 @@ export default function App() {
     );
   }
 
+  const activeTab: TabId = route.kind === 'tab' ? route.tab : 'Players';
+
   return (
     <div className="app">
       <header className="topbar">
@@ -128,15 +145,27 @@ export default function App() {
               ? `${stats.roundsPlayed} of ${stats.totalRounds} rounds`
               : `${stats.league.rounds.length} rounds`}{' '}
             · {stats.songs.length} songs
+            {stats.themeOutcomes.length > 0 && <span className="badge">themed rounds</span>}
             {isDemo && <span className="badge">sample data</span>}
           </span>
         </div>
-        <nav className="tabs">
+        <nav className="tabs" role="tablist" aria-label="Sections">
           {TABS.map((t) => (
             <button
               key={t}
-              className={tab === t ? 'tab tab--on' : 'tab'}
-              onClick={() => setTab(t)}
+              role="tab"
+              aria-selected={activeTab === t}
+              tabIndex={activeTab === t ? 0 : -1}
+              className={activeTab === t ? 'tab tab--on' : 'tab'}
+              onClick={() => goTab(t)}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  const i = TABS.indexOf(t);
+                  const next = e.key === 'ArrowRight' ? (i + 1) % TABS.length : (i - 1 + TABS.length) % TABS.length;
+                  goTab(TABS[next]);
+                }
+              }}
             >
               {t}
             </button>
@@ -164,6 +193,16 @@ export default function App() {
         </p>
       )}
 
+      {stats.themeUnresolved.length > 0 && (
+        <div className="warnings">
+          {stats.themeUnresolved.map((w) => (
+            <p className="alert" key={w}>
+              Theme bonus: {w}
+            </p>
+          ))}
+        </div>
+      )}
+
       {stats.league.warnings.length > 0 && (
         <div className="warnings">
           {stats.league.warnings.map((w) => (
@@ -175,28 +214,45 @@ export default function App() {
       )}
 
       <main className="grid">
-        {tab === 'Overview' && (
+        {route.kind === 'player' ? (
+          (() => {
+            const id = resolveSlug(route.slug, stats);
+            if (!id) return <Overview stats={stats} onNavigate={(t) => goTab(t as TabId)} />;
+            return (
+              <PlayerPage
+                playerId={id}
+                stats={stats}
+                currentLabel={isBaked && embeddedLabel ? embeddedLabel : stats.league.name}
+                history={history}
+                historyGenres={historyGenres}
+                onNavigate={(slug) => navigate(`player/${slug}`)}
+              />
+            );
+          })()
+        ) : route.kind === 'round' ? (
+          <PlayByPlayTab stats={stats} focusSequence={route.sequence} />
+        ) : activeTab === 'This Round' ? (
+          <ThisRoundTab
+            stats={stats}
+            history={history}
+            historyGenres={historyGenres}
+            currentLabel={isBaked && embeddedLabel ? embeddedLabel : stats.league.name}
+            onNavigate={navigate}
+          />
+        ) : activeTab === 'Standings' ? (
           <>
-            <SuperlativeStrip
-              stats={stats}
-              labels={[
-                'Biggest single haul',
-                'Biggest haul never counted',
-                'Best average song',
-                'Chattiest',
-              ]}
-            />
-            <Headlines stats={stats} />
-            <TopSongs stats={stats} />
-            <Overview stats={stats} onNavigate={(t) => setTab(t as Tab)} />
+            <TheRaceTab stats={stats} />
+            <FuturePanel stats={stats} />
           </>
-        )}
-
-        {tab === 'The Race' && <TheRaceTab stats={stats} />}
-        {tab === 'The Songs' && <TheSongsTab stats={stats} />}
-        {tab === 'The Room' && <TheRoomTab stats={stats} />}
-        {tab === 'Players' && <PlayersTab stats={stats} />}
-        {tab === 'Play-by-Play' && <PlayByPlayTab stats={stats} />}
+        ) : activeTab === 'Songs' ? (
+          <TheSongsTab stats={stats} />
+        ) : activeTab === 'Room' ? (
+          <TheRoomTab stats={stats} />
+        ) : activeTab === 'Players' ? (
+          <PlayersTab stats={stats} onOpenPlayer={(slug) => navigate(`player/${slug}`)} />
+        ) : activeTab === 'Rounds' ? (
+          <PlayByPlayTab stats={stats} />
+        ) : null}
       </main>
 
       <footer className="foot">

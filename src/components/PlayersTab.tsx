@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { embeddedGenres } from 'virtual:league-data';
+import { playerSlug as playerSlugOf } from '../lib/playerProfile';
 import type { Stats } from '../lib/stats';
 import {
   computeEraProfiles,
@@ -485,7 +486,13 @@ function PlayerDetail({ stats, playerId }: { stats: Stats; playerId: string }) {
   );
 }
 
-export function PlayersTab({ stats }: { stats: Stats }) {
+export function PlayersTab({
+  stats,
+  onOpenPlayer,
+}: {
+  stats: Stats;
+  onOpenPlayer?: (slug: string) => void;
+}) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const ranked = useMemo(
     () =>
@@ -510,14 +517,16 @@ export function PlayersTab({ stats }: { stats: Stats }) {
       <EraSpectrum stats={stats} />
       <EraTable stats={stats} />
 
-      <Card title="Select a player" wide>
+      <Card title="Select a player" subtitle={onOpenPlayer ? 'Opens their full profile, with league history.' : undefined} wide>
         <div className="player-picker">
           {ranked.map((p) => (
             <button
               key={p.playerId}
               className={`player-btn${selectedId === p.playerId ? ' player-btn--on' : ''}`}
               onClick={() =>
-                setSelectedId(selectedId === p.playerId ? null : p.playerId)
+                onOpenPlayer
+                  ? onOpenPlayer(playerSlugOf(p.name))
+                  : setSelectedId(selectedId === p.playerId ? null : p.playerId)
               }
             >
               <span className="player-btn__name">{p.name}</span>
@@ -529,7 +538,7 @@ export function PlayersTab({ stats }: { stats: Stats }) {
         </div>
       </Card>
 
-      {selectedId && <PlayerDetail stats={stats} playerId={selectedId} />}
+      {selectedId && !onOpenPlayer && <PlayerDetail stats={stats} playerId={selectedId} />}
 
       <PlayersPanel stats={stats} />
     </>
