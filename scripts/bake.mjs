@@ -212,6 +212,31 @@ if (opts.league) {
   opts.single = config.publish?.single ?? false;
 }
 
+/* ---------------------- history leagues (raw load) ----------------------
+ * Each earlier league named in config.history is loaded here so it can be
+ * embedded as a scouting report. Redaction happens later, with the same map
+ * as the current league, so a player has one redacted name across seasons.
+ */
+const historyLeagues = [];
+for (const histId of opts.history ?? []) {
+  const histConfig = loadLeagueConfig(histId);
+  const histExport = join(root, histConfig.export);
+  if (!existsSync(histExport)) fail(`History league ${histId}: no export at ${histConfig.export}`);
+  const histFiles = collectFiles([histExport]).map((path) => ({
+    name: basename(path),
+    text: readFileSync(path, 'utf8'),
+  }));
+  historyLeagues.push({
+    id: histId,
+    label: histConfig.label,
+    scoring: histConfig.scoring ?? 'auto',
+    flooring: histConfig.flooring ?? 'auto',
+    totalRounds: histConfig.totalRounds ?? null,
+    enrichPath: histConfig.enrich ? join(root, histConfig.enrich) : null,
+    files: histFiles,
+  });
+}
+
 if (!opts.inputs.length) {
   fail(
     'No CSV given.',
@@ -411,13 +436,29 @@ if (summary.nonVoters.length || anyDownvotes) {
  * ------------------------------------------------------------------ */
 
 let published = files;
+let publishedHistory = historyLeagues.map((h) => ({ ...h, files: h.files }));
 
 if (opts.redact) {
-  const map = api.buildRedactionMap(summary.players);
+  // One map across every league, so a player keeps a single redacted name and
+  // colliding surnames stay distinct across seasons too.
+  const historyPlayerNames = [];
+  for (const h of historyLeagues) {
+    const s = api.describeLeague(h.files, h.scoring, h.flooring, h.totalRounds ?? undefined);
+    historyPlayerNames.push(...s.players);
+  }
+  const allNames = [...new Set([...summary.players, ...historyPlayerNames])];
+  const map = api.buildRedactionMap(allNames);
   const report = { proseChanges: [] };
   published = files.map((file) => ({
     name: file.name,
     text: api.redactCsvText(file.text, map, file.name, report),
+  }));
+  publishedHistory = historyLeagues.map((h) => ({
+    ...h,
+    files: h.files.map((file) => ({
+      name: file.name,
+      text: api.redactCsvText(file.text, map, file.name, report),
+    })),
   }));
 
   // Re-parse the rewritten export: if redaction broke a join, the player
@@ -515,7 +556,8 @@ const sharedArtDir = existsSync(join(root, 'snapshots'))
   : join(root, '.cache/art');
 
 if (opts.art) {
-  const tracks = api.artworkTargets(published);
+  const historyFiles = publishedHistory.flatMap((h) => h.files);
+  const tracks = api.artworkTargets([...published, ...historyFiles]);
   if (tracks.length) {
     process.stdout.write(`\n${c.bold('Artwork')}\n  fetching for ${tracks.length} tracks `);
     let done = 0;
@@ -551,7 +593,8 @@ if (opts.art) {
 let genreMap = {};
 
 if (opts.genres) {
-  const artists = api.artistNames(published);
+  const historyFiles = publishedHistory.flatMap((h) => h.files);
+  const artists = api.artistNames([...published, ...historyFiles]);
   if (artists.length) {
     process.stdout.write(
       `\n${c.bold('Genres')}\n  looking up ${artists.length} artists on MusicBrainz `,
@@ -594,19 +637,20 @@ if (opts.genres) {
 
 let enrichment = {};
 
-const enrichDir = opts.enrichDir ?? join(root, 'enrich');
-if (existsSync(enrichDir)) {
+/** Reads a league's enrich/*.json bundle from a directory. */
+function readEnrichmentDir(dir) {
+  if (!dir || !existsSync(dir)) return {};
   const readJson = (name) => {
-    const path = join(enrichDir, name);
+    const path = join(dir, name);
     if (!existsSync(path)) return undefined;
     try {
       return JSON.parse(readFileSync(path, 'utf8'));
     } catch {
-      console.log(`  ${c.yellow('!')} enrich/${name} did not parse as JSON — ignoring it`);
+      console.log(`  ${c.yellow('!')} ${name} in ${dir} did not parse as JSON — ignoring it`);
       return undefined;
     }
   };
-  enrichment = {
+  return {
     years: readJson('years.json'),
     covers: readJson('covers.json'),
     facts: readJson('facts.json'),
@@ -614,6 +658,11 @@ if (existsSync(enrichDir)) {
     durations: readJson('durations.json'),
     rounds: readJson('rounds.json'),
   };
+}
+
+const enrichDir = opts.enrichDir ?? join(root, 'enrich');
+if (existsSync(enrichDir)) {
+  enrichment = readEnrichmentDir(enrichDir);
   const counts = Object.entries(enrichment)
     .filter(([, v]) => v)
     .map(([k, v]) => `${Object.keys(v).length} ${k}`);
@@ -629,7 +678,23 @@ const label =
   (files.length === 1 ? basename(files[0].name, extname(files[0].name)).replace(/[_-]+/g, ' ') : null);
 
 const manifestPath = join(work, 'manifest.json');
-const historyManifest = [];
+const historyManifest = publishedHistory.map((h) => ({
+  id: h.id,
+  label: h.label,
+  files: h.files,
+  scoring: h.scoring === 'auto' ? null : h.scoring,
+  flooring: h.flooring === 'auto' ? null : h.flooring,
+  totalRounds: h.totalRounds,
+  enrichment: readEnrichmentDir(h.enrichPath),
+  genres: genreMap,
+}));
+if (historyManifest.length) {
+  console.log(
+    `\n${c.bold('History')}\n  ${c.green('✓')} ${c.dim(
+      historyManifest.map((h) => `${h.label} (${h.files.length} files)`).join(', '),
+    )} embedded for player pages`,
+  );
+}
 writeFileSync(
   manifestPath,
   JSON.stringify({
