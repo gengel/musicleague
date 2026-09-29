@@ -276,3 +276,128 @@ describe('swing honesty', () => {
     }
   });
 });
+
+/* ------------------------------------------------------------------ *
+ * Regressions from the statistical review.
+ * ------------------------------------------------------------------ */
+
+const pairOf = (graph: ReturnType<typeof socialGraph>, x: string, y: string) => {
+  const nameOf = new Map(graph.nodes.map((n) => [n.id, n.name]));
+  return graph.edges.find(
+    (e) => [nameOf.get(e.a), nameOf.get(e.b)].sort().join('+') === [x, y].sort().join('+'),
+  );
+};
+
+describe('mutual warmth', () => {
+  it('ranks a one-way pair below a reciprocated one, however generous the one side', () => {
+    // Ada maxes Bo every round and Bo gives nothing back; Cleo and Dev trade
+    // modestly both ways. Summing both directions (12/24 against 8/24) put
+    // Ada+Bo first.
+    const csv = `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+R1,Ada,A1,x,s1
+R1,Bo,B1,x,s2
+R1,Cleo,C1,x,s3
+R1,Dev,D1,x,s4
+R2,Ada,A2,x,s5
+R2,Bo,B2,x,s6
+R2,Cleo,C2,x,s7
+R2,Dev,D2,x,s8
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+R1,Ada,Bo,B1,6
+R1,Bo,Cleo,C1,6
+R1,Cleo,Dev,D1,2
+R1,Cleo,Ada,A1,4
+R1,Dev,Cleo,C1,2
+R1,Dev,Bo,B1,4
+R2,Ada,Bo,B2,6
+R2,Bo,Dev,D2,6
+R2,Cleo,Dev,D2,2
+R2,Cleo,Bo,B2,4
+R2,Dev,Cleo,C2,2
+R2,Dev,Ada,A2,4
+`;
+    const graph = socialGraph(computeStats(parseLeague([{ name: 'w.csv', text: csv }])));
+    const oneWay = pairOf(graph, 'Ada', 'Bo')!;
+    const mutual = pairOf(graph, 'Cleo', 'Dev')!;
+    expect(oneWay.traded).toBeGreaterThan(mutual.traded);
+    expect(oneWay.strength).toBeLessThan(mutual.strength);
+    // Nothing that is entirely one-way should head the list.
+    expect(graph.edges[0].weaker).toBeGreaterThan(0);
+  });
+
+  it('does not let a single shared round outrank a season-long relationship', () => {
+    // Ada and Bo back each other fully for four rounds. Eve turns up for one
+    // round and she and Ada happen to max each other.
+    const rounds = [1, 2, 3, 4];
+    const subs = rounds
+      .flatMap((r) => ['Ada', 'Bo', 'Cleo'].map((p) => `R${r},${p},${p}${r},x,${p}${r}`))
+      .concat(['R4,Eve,Eve4,x,Eve4']);
+    const votes = rounds.flatMap((r) => [
+      `R${r},Ada,${r === 4 ? 'Eve' : 'Bo'},${r === 4 ? 'Eve4' : `Bo${r}`},4`,
+      `R${r},Bo,Ada,Ada${r},4`,
+      `R${r},Cleo,Bo,Bo${r},2`,
+      `R${r},Cleo,Ada,Ada${r},2`,
+    ]);
+    // Round 4: Ada spends on Eve, but Bo still got 4 from Ada in rounds 1-3.
+    votes.push('R4,Eve,Ada,Ada4,4');
+    const csv = `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+${subs.join('\n')}
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+${votes.join('\n')}
+`;
+    const graph = socialGraph(computeStats(parseLeague([{ name: 's.csv', text: csv }])));
+    const longRun = pairOf(graph, 'Ada', 'Bo')!;
+    const oneNight = pairOf(graph, 'Ada', 'Eve')!;
+    expect(longRun.strength).toBeGreaterThan(oneNight.strength);
+  });
+
+  it('keeps every strength between 0 and 1', () => {
+    for (const edge of socialGraph(demoStats).edges) {
+      expect(edge.strength).toBeGreaterThanOrEqual(0);
+      expect(edge.strength).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+describe('"Where games are won"', () => {
+  const card = (csv: string) =>
+    future(computeStats(parseLeague([{ name: 'g.csv', text: csv }]), { flooring: 'none' }))
+      .projections.find((p) => p.label === 'Where games are won');
+
+  const league = (downPoints: number) => `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+R1,Ada,A1,x,s1
+R1,Bo,B1,x,s2
+R1,Cleo,C1,x,s3
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+R1,Ada,Bo,B1,5
+R1,Bo,Cleo,C1,5
+R1,Cleo,Ada,A1,5
+R1,Ada,Cleo,C1,-${downPoints}
+`;
+
+  it('stays silent when downvotes are a side-show', () => {
+    // 1 downvote point against 15 upvote points decides nothing.
+    expect(card(league(1))).toBeUndefined();
+  });
+
+  it('does not claim downvotes outweigh upvotes when they do not', () => {
+    // 10 against 15: a big share, but still less than the upvotes.
+    const projection = card(league(10))!;
+    expect(projection).toBeDefined();
+    expect(projection.headline).not.toMatch(/more than/);
+    expect(projection.headline).toMatch(/67%/);
+  });
+
+  it('says downvotes outweigh upvotes only when they do', () => {
+    expect(card(league(20))!.headline).toMatch(/more than upvotes/);
+  });
+});

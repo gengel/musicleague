@@ -92,14 +92,22 @@ export function headlineFacts(
   /* ---- 2. A champion who beat the whole room ---- */
   const [leader, ...rest] = ranked;
   if (leader && rest.length >= 3) {
-    const restTotal = rest.reduce((a, p) => a + p.pointsCounted, 0);
-    if (leader.pointsCounted > restTotal && leader.pointsCounted > 0) {
+    // Only positive totals count towards "put together". Summing signed
+    // totals lets players below zero cancel out everyone else's points, which
+    // would crown a leader on 62 over a field that scored 135 between them.
+    const restPositive = rest.reduce((a, p) => a + Math.max(0, p.pointsCounted), 0);
+    const restBelowZero = rest.filter((p) => p.pointsCounted < 0).length;
+    if (leader.pointsCounted > restPositive && leader.pointsCounted > 0) {
       facts.push({
         label: live ? 'Runaway leader' : 'Runaway winner',
         subject: leader.playerId,
         headline: `${leader.name} has scored more than the other ${rest.length} players put together.`,
-        detail: `${leader.pointsCounted} against their combined ${restTotal}, off ${leader.breakdown.upvotes} upvotes and only ${leader.breakdown.downvotes} against.`,
-        interest: 58 + (leader.pointsCounted - restTotal) / 4,
+        detail: `${leader.pointsCounted} against their combined ${restPositive}${
+          restBelowZero > 0
+            ? ` (counting the ${restBelowZero} below zero as nothing rather than as a deduction)`
+            : ''
+        }, off ${leader.breakdown.upvotes} upvotes and only ${leader.breakdown.downvotes} against.`,
+        interest: 58 + (leader.pointsCounted - restPositive) / 4,
       });
     }
   }

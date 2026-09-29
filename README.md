@@ -193,9 +193,12 @@ gracefully:
 ## The network and future tabs
 
 **Network** draws the league as a graph. An edge is the *mutual* warmth between
-two players — what they gave each other as a share of what the rules allowed —
-so a one-way crush does not read as a friendship, and players with different
-numbers of shared rounds stay comparable.
+two players: each side's points given as a share of what the rules allowed, and
+the edge takes the colder of the two, so a one-way crush does not read as a
+friendship. That figure is then blended with three rounds' worth of the
+league's average tie, so a pair who shared one round sits mid-table rather than
+topping the chart on a single ballot, while a season-long relationship is
+barely moved.
 
 Clusters are built from each player's warmest few ties, then by following the
 connections. Label propagation was tried first and does not work here: everyone

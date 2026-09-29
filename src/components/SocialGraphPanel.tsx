@@ -56,7 +56,7 @@ export function SocialGraphPanel({ stats }: { stats: Stats }) {
     <>
       <Card
         title="Who votes with whom"
-        subtitle="Thicker lines mean a pair gave each other more of what the rules allowed. Colours mark clusters that vote together. Hover a name to isolate it."
+        subtitle="Thicker lines mean both players gave each other more of what the rules allowed — a tie is only as warm as its colder side. Colours mark clusters that vote together. Hover a name to isolate it."
         wide
       >
         <div className="seg">
@@ -137,8 +137,9 @@ export function SocialGraphPanel({ stats }: { stats: Stats }) {
         </div>
 
         <p className="note">
-          Circle size is points scored. The average pair gave each other {pct0(graph.average)} of
-          what the rules allowed.
+          Circle size is points scored. In the average pair, the colder side gave{' '}
+          {pct0(graph.average)} of what the rules allowed. Pairs who have shared only a round or
+          two are pulled towards the league average, so one ballot cannot make a friendship.
         </p>
       </Card>
 
@@ -172,7 +173,7 @@ export function SocialGraphPanel({ stats }: { stats: Stats }) {
         </ul>
       </Card>
 
-      <Card title="Strongest ties" subtitle="Pairs who gave each other the most, relative to what they were allowed.">
+      <Card title="Strongest ties" subtitle="Pairs where both sides gave the other the most of what they were allowed.">
         <ol className="ranklist">
           {[...graph.edges]
             .sort((a, b) => b.strength - a.strength)

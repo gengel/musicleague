@@ -61,26 +61,65 @@ export interface SocialGraph {
   distinct: boolean;
 }
 
+/**
+ * How many rounds' worth of league-average warmth an edge is assumed to start
+ * with before the pair's own votes are counted.
+ *
+ * A pair who shared a single round can show 3 points given of 3 allowed —
+ * "100% devotion" — on one ballot. Without shrinkage those one-round pairs
+ * outrank season-long relationships and dominate the graph. Blending with
+ * this much league-average warmth leaves a well-observed pair almost
+ * untouched and pulls a thinly observed one back to the middle of the table,
+ * so a newcomer is neither a soulmate nor a stranger.
+ *
+ * The blend is applied to the mutual figure, not to each direction: shrinking
+ * both sides to the average and then taking the colder one leaves an unknown
+ * pair *above* most real pairs, whose colder side is usually below average.
+ */
+export const PRIOR_ROUNDS = 3;
+
 /** Mutual warmth for every pair that could vote for each other. */
 function buildEdges(stats: Stats): GraphEdge[] {
-  const byPair = new Map<string, GraphEdge>();
+  const index = new Map(stats.pairs.map((p) => [`${p.voterId}\u0000${p.targetId}`, p]));
 
+  // Mutual means both directions: the raw edge is only as warm as its colder
+  // side, and only as well evidenced as its less-observed side. A sum would
+  // let one player's generosity paper over the other's indifference.
+  const raw: { a: string; b: string; mutual: number; evidence: number; traded: number; weaker: number }[] = [];
+  const seen = new Set<string>();
   for (const pair of stats.pairs) {
     const [first, second] = [pair.voterId, pair.targetId].sort();
     const key = `${first}\u0000${second}`;
-    const reverse = stats.pairs.find(
-      (p) => p.voterId === pair.targetId && p.targetId === pair.voterId,
-    );
-    if (!reverse || byPair.has(key)) continue;
-
-    const allowed = pair.maxPossible + reverse.maxPossible;
-    if (allowed <= 0) continue;
-    byPair.set(key, {
+    if (seen.has(key)) continue;
+    const reverse = index.get(`${pair.targetId}\u0000${pair.voterId}`);
+    if (!reverse || pair.maxPossible <= 0 || reverse.maxPossible <= 0) continue;
+    seen.add(key);
+    raw.push({
       a: first,
       b: second,
-      strength: (pair.upvotes + reverse.upvotes) / allowed,
+      mutual: Math.min(pair.upvotes / pair.maxPossible, reverse.upvotes / reverse.maxPossible),
+      evidence: Math.min(pair.maxPossible, reverse.maxPossible),
       traded: pair.upvotes + reverse.upvotes,
       weaker: Math.min(pair.upvotes, reverse.upvotes),
+    });
+  }
+
+  // League baseline: the evidence-weighted average mutual warmth, and the
+  // typical allowance per shared round, which sizes the prior.
+  const totalEvidence = raw.reduce((a, e) => a + e.evidence, 0);
+  const baseline = totalEvidence > 0 ? raw.reduce((a, e) => a + e.mutual * e.evidence, 0) / totalEvidence : 0;
+  const totalAllowed = stats.pairs.reduce((a, p) => a + p.maxPossible, 0);
+  const totalOpportunities = stats.pairs.reduce((a, p) => a + p.opportunities, 0);
+  const prior = totalOpportunities > 0 ? (totalAllowed / totalOpportunities) * PRIOR_ROUNDS : 0;
+
+  const byPair = new Map<string, GraphEdge>();
+  for (const e of raw) {
+    byPair.set(`${e.a}\u0000${e.b}`, {
+      a: e.a,
+      b: e.b,
+      strength: (e.mutual * e.evidence + baseline * prior) / (e.evidence + prior),
+      traded: e.traded,
+      weaker: e.weaker,
     });
   }
 
@@ -108,12 +147,15 @@ function findClusters(
     (x, y) => y.strength - x.strength || x.a.localeCompare(y.a) || x.b.localeCompare(y.b),
   );
 
-  // Each player nominates their warmest few. An edge survives if either end
-  // nominated it, so a lopsided-but-strong tie still connects.
+  // Each player nominates their warmest few. Only ties where both sides gave
+  // something qualify: shrinkage gives every pair a little baseline warmth, and
+  // two players who never once backed each other are not a group.
   const kept = new Set<GraphEdge>();
   for (const id of ids) {
-    const mine = byStrength.filter((e) => e.a === id || e.b === id).slice(0, keepPerNode);
-    for (const edge of mine) if (edge.strength > 0) kept.add(edge);
+    const mine = byStrength
+      .filter((e) => (e.a === id || e.b === id) && e.weaker > 0)
+      .slice(0, keepPerNode);
+    for (const edge of mine) kept.add(edge);
   }
 
   // Union-find over the surviving edges.

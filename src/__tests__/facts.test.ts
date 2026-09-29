@@ -332,3 +332,46 @@ R2,Ada,Bo,D,5
     expect(best!.headline).not.toContain('so far');
   });
 });
+
+describe('runaway leader', () => {
+  // Ada scores 10. Bo and Cleo score 6 each (12 between them), Dev and Eve
+  // are driven to −8 each. Signed, the rest sum to −4 and Ada "beats them all".
+  const csv = `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+R1,Ada,A1,x,s1
+R1,Bo,B1,x,s2
+R1,Cleo,C1,x,s3
+R1,Dev,D1,x,s4
+R1,Eve,E1,x,s5
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+R1,Bo,Ada,A1,5
+R1,Cleo,Ada,A1,5
+R1,Ada,Bo,B1,6
+R1,Dev,Cleo,C1,6
+R1,Ada,Dev,D1,-4
+R1,Bo,Dev,D1,-4
+R1,Cleo,Eve,E1,-4
+R1,Dev,Eve,E1,-4
+R1,Eve,Bo,B1,1
+`;
+  const facts = (text: string) =>
+    headlineFacts(
+      computeStats(parseLeague([{ name: 'r.csv', text }]), { flooring: 'none' }),
+      10,
+    );
+
+  it('does not let negative totals manufacture a runaway', () => {
+    expect(facts(csv).some((f) => /Runaway/.test(f.label))).toBe(false);
+  });
+
+  it('still fires when the leader genuinely outscores the rest', () => {
+    const dominant = csv.replace('R1,Cleo,Ada,A1,5', 'R1,Cleo,Ada,A1,15');
+    const runaway = facts(dominant).find((f) => /Runaway/.test(f.label))!;
+    expect(runaway).toBeDefined();
+    // The combined figure quoted is the positive total, not a signed one.
+    expect(runaway.detail).toMatch(/against their combined 13/);
+    expect(runaway.detail).toMatch(/below zero as nothing/);
+  });
+});

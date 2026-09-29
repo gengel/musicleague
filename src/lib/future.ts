@@ -51,6 +51,13 @@ export interface Future {
   projections: Projection[];
 }
 
+/**
+ * Downvotes must have taken back at least this share of all upvote points
+ * before the "Where games are won" card is worth showing. Below it, downvotes
+ * are a side-show rather than where the league is decided.
+ */
+export const DOWNVOTE_LEVERAGE = 0.5;
+
 /** 1st, 2nd, 3rd… for describing places in the table. */
 function ordinalPlace(n: number): string {
   const suffix =
@@ -300,16 +307,39 @@ export function future(stats: Stats): Future {
     });
   }
 
-  /* ---- Where the real leverage is ---- */
-  if (stats.songs.some((s) => s.downvotes > 0)) {
-    const downTotal = ranked.reduce((sum, p) => sum + p.breakdown.downvotes, 0);
-    const upTotal = ranked.reduce((sum, p) => sum + p.breakdown.upvotes, 0);
+  /* ---- Where the real leverage is ----
+   *
+   * Only worth saying when downvotes are a large share of the scoring, and
+   * the headline has to follow the numbers: a league with 624 downvote points
+   * against 832 upvote points has not been decided more by downvotes. Only
+   * downvotes that landed are counted — any the zero floor absorbed took
+   * nothing away from anybody.
+   */
+  const upTotal = ranked.reduce((sum, p) => sum + p.breakdown.upvotes, 0);
+  const downLanded = ranked.reduce(
+    (sum, p) => sum + p.breakdown.downvotes - p.breakdown.absorbed,
+    0,
+  );
+  const downShare = upTotal > 0 ? downLanded / upTotal : downLanded > 0 ? Infinity : 0;
+  if (downLanded > 0 && downShare >= DOWNVOTE_LEVERAGE) {
+    const headline =
+      downShare >= 1
+        ? 'Downvotes have taken away more than upvotes have given in this league.'
+        : `Downvotes have taken back ${Math.round(downShare * 100)}% of every upvote point in this league.`;
+    // The pile-on comparison only makes sense when a song can actually go
+    // below zero; with the floor on, the worst song is simply zero.
+    const pileOn =
+      worstObserved < 0 && bestObserved > 0
+        ? ` The best song so far scored ${bestObserved} and the worst ${worstObserved}, so ${
+            -worstObserved >= bestObserved
+              ? 'a pile-on costs as much as a win earns'
+              : `a pile-on costs ${Math.round((-worstObserved / bestObserved) * 100)}% of what the best song earned`
+          }.`
+        : '';
     projections.push({
       label: 'Where games are won',
-      headline: `Downvotes have decided more than upvotes in this league.`,
-      detail: `${downTotal} downvote points have been spent against ${upTotal} upvote points earned. Avoiding the pile-on matters as much as winning rounds: the difference between a song scoring ${bestObserved} and ${worstObserved} is ${
-        bestObserved - worstObserved
-      } points, most of a round's swing.`,
+      headline,
+      detail: `${downLanded} downvote points have landed against ${upTotal} upvote points earned.${pileOn}`,
       status: 'info',
       subject: '__league__',
       interest: 60,
