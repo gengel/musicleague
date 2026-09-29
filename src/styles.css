@@ -9,6 +9,7 @@
   --accent-2: #6fd3c7;
   --pos: #63d68f;
   --neg: #f2707f;
+  --theme: #e0b341;
   --radius: 14px;
   color-scheme: dark;
 }
@@ -2235,4 +2236,51 @@ td.archetype-col {
   .gateways {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* ---- Theme bonus (league 2's themed rounds) ---- */
+.theme-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  padding: 0.05em 0.45em;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.theme-chip--win {
+  color: #1c1200;
+  background: var(--theme);
+}
+.theme-chip--lose {
+  color: var(--neg);
+  border-color: var(--neg);
+  background: transparent;
+}
+.theme-chip__tag {
+  font-weight: 500;
+  font-size: 0.82em;
+  opacity: 0.8;
+  text-transform: lowercase;
+}
+
+.theme-banner {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--theme) 12%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--theme) 40%, var(--line));
+  line-height: 1.5;
+}
+.theme-banner--lost,
+.theme-banner--skipped {
+  background: color-mix(in srgb, var(--neg) 10%, var(--bg-card));
+  border-color: color-mix(in srgb, var(--neg) 35%, var(--line));
+}
+
+/* Theme bonus segment in the diverging score bar. */
+.dbar__fill--theme {
+  background: var(--theme);
 }

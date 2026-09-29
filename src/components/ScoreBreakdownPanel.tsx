@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { PlayerStats, Stats } from '../lib/stats';
+import { ThemeChip } from './ThemeChip';
 import {
   Card,
   divergingScale,
@@ -30,7 +31,10 @@ export function ScoreBreakdownPanel({ stats }: { stats: Stats }) {
   const anyDownvotes = rows.some((p) => p.breakdown.downvotes > 0);
   const anyForfeits = rows.some((p) => p.breakdown.forfeited > 0);
   const anyAbsorbed = rows.some((p) => p.breakdown.absorbed > 0);
+  const anyTheme = rows.some((p) => p.breakdown.theme !== 0);
   const anyBelowZero = rows.some((p) => p.breakdown.total < 0);
+
+  const themeReason = new Map(stats.themeOutcomes.map((o) => [o.playerId, o.reason]));
 
   const columns: Column<PlayerStats>[] = [
     {
@@ -56,6 +60,7 @@ export function ScoreBreakdownPanel({ stats }: { stats: Stats }) {
               parts.forfeited > 0 ? `forfeited ${n1(parts.forfeited)}` : '',
               parts.cancelled > 0 ? `${n1(parts.cancelled)} cancelled by downvotes` : '',
               parts.belowZero > 0 ? `${n1(parts.belowZero)} below zero` : '',
+              parts.theme !== 0 ? `${parts.theme > 0 ? '+' : ''}${n1(parts.theme)} theme bonus` : '',
               `total ${n1(p.breakdown.total)}`,
             ]
               .filter(Boolean)
@@ -124,6 +129,21 @@ export function ScoreBreakdownPanel({ stats }: { stats: Stats }) {
           },
         ]
       : []),
+    ...(anyTheme
+      ? [
+          {
+            key: 'theme',
+            label: 'Theme',
+            title:
+              'Themed-round bonus: +3 for winning your own round, −3 otherwise. Applied by this page, not by Music League.',
+            value: (p: PlayerStats) => p.breakdown.theme,
+            render: (p: PlayerStats) => (
+              <ThemeChip points={p.breakdown.theme} reason={themeReason.get(p.playerId)} compact />
+            ),
+            align: 'right' as const,
+          },
+        ]
+      : []),
     {
       key: 'total',
       label: 'Total score',
@@ -150,9 +170,10 @@ export function ScoreBreakdownPanel({ stats }: { stats: Stats }) {
       downvotes: acc.downvotes + p.breakdown.downvotes,
       forfeited: acc.forfeited + p.breakdown.forfeited,
       absorbed: acc.absorbed + p.breakdown.absorbed,
+      theme: acc.theme + p.breakdown.theme,
       total: acc.total + p.breakdown.total,
     }),
-    { upvotes: 0, downvotes: 0, forfeited: 0, absorbed: 0, total: 0 },
+    { upvotes: 0, downvotes: 0, forfeited: 0, absorbed: 0, theme: 0, total: 0 },
   );
   // Signed totals cancel out, so the sum of the column can be smaller than a
   // single player's score. Report the positive side separately to say so.
@@ -184,6 +205,11 @@ export function ScoreBreakdownPanel({ stats }: { stats: Stats }) {
           <i style={{ border: '1px dashed #4d4d59', background: 'transparent' }} /> earned in
           upvotes, before downvotes{anyForfeits ? ' and forfeits' : ''}
         </span>
+        {anyTheme && (
+          <span className="k">
+            <i style={{ background: 'var(--theme)' }} /> ±3 themed-round bonus
+          </span>
+        )}
       </div>
 
       <p className="note">

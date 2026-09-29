@@ -3,6 +3,7 @@ import type { Stats } from '../lib/stats';
 import { buildPlayByPlay, type RoundChapter, type RoundTwist } from '../lib/recap';
 import { SuperlativeStrip } from './SuperlativeStrip';
 import { SongArt, SongLinks, SongPlayer, SongTags } from './SongMedia';
+import { ThemeBanner } from './ThemeChip';
 import { Card, Empty } from './ui';
 
 /* ------------------------------------------------------------------ *
@@ -80,6 +81,13 @@ function ChapterCard({
             {round.songCount} songs · {round.voters.length} voter{round.voters.length !== 1 ? 's' : ''}
           </div>
         </header>
+
+        {(round.theme || round.themePlayerId) && (
+          <ThemeBanner
+            outcome={round.theme}
+            themeName={round.themePlayerId ? nameOf.get(round.themePlayerId) : undefined}
+          />
+        )}
 
         {!round.hasVotes ? (
           <Empty>No votes recorded for this round.</Empty>

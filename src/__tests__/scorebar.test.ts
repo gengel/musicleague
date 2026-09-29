@@ -35,6 +35,7 @@ describe('scoreBarSegments', () => {
       cancelled: 37,
       forfeited: 0,
       belowZero: 7,
+      theme: 0,
     });
   });
 
@@ -44,6 +45,7 @@ describe('scoreBarSegments', () => {
       cancelled: 7,
       forfeited: 27,
       belowZero: 8,
+      theme: 0,
     });
   });
 
@@ -54,6 +56,7 @@ describe('scoreBarSegments', () => {
       cancelled: 2,
       forfeited: 0,
       belowZero: 0,
+      theme: 0,
     });
   });
 });

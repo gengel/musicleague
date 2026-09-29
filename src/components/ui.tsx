@@ -231,12 +231,16 @@ export function scoreBarSegments(breakdown: ScoreBreakdown): {
   cancelled: number;
   forfeited: number;
   belowZero: number;
+  theme: number;
 } {
-  const { upvotes, forfeited, total } = breakdown;
-  const kept = Math.max(0, total);
+  const { upvotes, forfeited, total, theme } = breakdown;
+  // The score before the theme bonus, so the vote-derived segments are sized
+  // against votes alone and the bonus is shown as its own piece.
+  const preTheme = total - theme;
+  const kept = Math.max(0, preTheme);
   // Upvotes that survived the forfeit but were wiped out by downvotes.
   const cancelled = Math.max(0, upvotes - forfeited - kept);
-  return { kept, cancelled, forfeited, belowZero: Math.max(0, -total) };
+  return { kept, cancelled, forfeited, belowZero: Math.max(0, -preTheme), theme };
 }
 
 /**
