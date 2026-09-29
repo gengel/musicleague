@@ -400,6 +400,8 @@ export interface Stats {
   roundsPlayed: number;
   /** Rounds the league will run in total, when that is known. */
   totalRounds?: number;
+  /** The per-voter vote budget, when the league fixes one. */
+  budget?: { upvotes: number; downvotes: number };
   /**
    * True when the league still has rounds to come, so every standing is a
    * running total rather than a result.
@@ -1048,6 +1050,7 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
     flooringInferred,
     roundsPlayed,
     totalRounds,
+    budget: options.budget,
     inProgress,
     songs,
     rounds: roundStats,

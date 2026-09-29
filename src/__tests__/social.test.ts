@@ -400,4 +400,21 @@ R1,Ada,Cleo,C1,-${downPoints}
   it('says downvotes outweigh upvotes only when they do', () => {
     expect(card(league(20))!.headline).toMatch(/more than upvotes/);
   });
+
+  it('reads "every upvote point" when downvotes exactly match upvotes', () => {
+    // 15 down against 15 up, share exactly 1.
+    expect(card(league(15))!.headline).toMatch(/taken back every upvote point/);
+  });
+
+  it('stays silent in a fixed equal-budget (zero-sum) league', () => {
+    // Same downvote-heavy league, but with an explicit equal budget: the
+    // balance is then the rules, not a signal, so the card is suppressed.
+    const withBudget = future(
+      computeStats(parseLeague([{ name: 'g.csv', text: league(20) }]), {
+        flooring: 'none',
+        budget: { upvotes: 10, downvotes: 10 },
+      }),
+    ).projections.find((p) => p.label === 'Where games are won');
+    expect(withBudget).toBeUndefined();
+  });
 });

@@ -321,11 +321,17 @@ export function future(stats: Stats): Future {
     0,
   );
   const downShare = upTotal > 0 ? downLanded / upTotal : downLanded > 0 ? Infinity : 0;
-  if (downLanded > 0 && downShare >= DOWNVOTE_LEVERAGE) {
+  // A league that hands every voter equal up and down budgets is zero-sum by
+  // design, so a high downvote share says nothing about how it plays — it is
+  // just the rules. Only surface this card where the balance is a choice.
+  const fixedZeroSum = Boolean(stats.budget && stats.budget.upvotes === stats.budget.downvotes);
+  if (!fixedZeroSum && downLanded > 0 && downShare >= DOWNVOTE_LEVERAGE) {
     const headline =
-      downShare >= 1
+      downShare > 1
         ? 'Downvotes have taken away more than upvotes have given in this league.'
-        : `Downvotes have taken back ${Math.round(downShare * 100)}% of every upvote point in this league.`;
+        : downShare === 1
+          ? 'Downvotes have taken back every upvote point earned in this league.'
+          : `Downvotes have taken back ${Math.round(downShare * 100)}% of every upvote point in this league.`;
     // The pile-on comparison only makes sense when a song can actually go
     // below zero; with the floor on, the worst song is simply zero.
     const pileOn =
