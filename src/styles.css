@@ -2474,8 +2474,9 @@ td.archetype-col {
 .scope-tabs {
   display: flex;
   gap: 0.4rem;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
   margin: 0 0 0.9rem;
 }
 .scope-tab {
@@ -2829,24 +2830,21 @@ td.archetype-col {
 /* ---- Season tab group ---- */
 .scope-tabs__sections {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.4rem;
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
 }
 .scope-tabs__season {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  flex: none;
-  /* The auto margin eats the leftover space, pinning this group to the far
-     right of the same row as the sections. */
-  margin-left: auto;
+  flex: 0 0 auto;
   padding-left: 0.6rem;
   border-left: 1px solid var(--line);
 }
 @media (max-width: 620px) {
   /* On a phone, let the season group drop below the sections. */
+  .scope-tabs { flex-wrap: wrap; }
   .scope-tabs__season {
     margin-left: 0;
     border-left: none;
