@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { embeddedGenres } from 'virtual:league-data';
 import type { SongStats, Stats } from '../lib/stats';
 import type { History } from '../lib/history';
@@ -13,6 +13,7 @@ import {
   type RankedOpponent,
 } from '../lib/playerProfile';
 import { SongArt, SongLinks, SongPlayer, SongTags } from './SongMedia';
+import { InfoTip, MethodDrawer } from './InfoTip';
 import { ThemeChip } from './ThemeChip';
 import { Card, Empty, n1 } from './ui';
 
@@ -200,7 +201,7 @@ function aggregateView(agg: AggregateAppearance): ScopeView {
       { text: `${t.songs} songs` },
       ...(t.wins > 0 ? [{ text: `${t.wins} round win${t.wins === 1 ? '' : 's'}` }] : []),
       { text: `${t.upvotesReceived} upvotes and ${t.downvotesReceived} downvotes received` },
-      ...(t.roundsMissedVoting > 0 ? [{ text: `${t.roundsMissedVoting} round(s) not voted`, tone: 'neg' as const }] : []),
+      ...(t.roundsMissedVoting > 0 ? [{ text: `${t.roundsMissedVoting} round(s) not voted` }] : []),
     ],
     finishes: t.finishes,
     songs: agg.songs,
@@ -228,7 +229,7 @@ function PlayerHeader({ profile }: { profile: PlayerProfile }) {
     <Card wide>
       <header className="player-head">
         <div>
-          <h2 className="player-head__name">{profile.name}</h2>
+          <h2 className="player-head__name display">{profile.name}</h2>
           <div className="player-head__meta dim small">
             {profile.appearances.map((a, i) => (
               <span key={a.leagueId}>
@@ -247,7 +248,7 @@ function PlayerHeader({ profile }: { profile: PlayerProfile }) {
         </div>
         {p && (
           <div className="player-head__score">
-            <div className="player-head__score-num">
+            <div className="player-head__score-num display">
               <span className={p.pointsCounted < 0 ? 'neg' : 'pos'}>
                 {p.pointsCounted > 0 ? '+' : ''}
                 {p.pointsCounted}
@@ -399,8 +400,18 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
 
   const popText = (b?: string) => (b ? POP_PHRASE[b] ?? b : undefined);
 
-  const facets: { label: string; submit?: string; reward?: string }[] = [
-    { label: 'Popularity', submit: popText(submitPop), reward: popText(votePop) },
+  const facets: { label: string; submit?: string; reward?: string; info?: ReactNode }[] = [
+    {
+      label: 'Popularity',
+      submit: popText(submitPop),
+      reward: popText(votePop),
+      info: (
+        <>
+          From last.fm listener counts: deep cut &lt;20k, niche &lt;100k, known &lt;500k, popular &lt;1M, hit
+          1M+. “Submits” is their own songs; “rewards” is what they upvote.
+        </>
+      ),
+    },
     { label: 'Era', submit: submitEra, reward: voteEra },
     { label: 'Genre', submit: submitGenre, reward: voteGenre },
   ];
@@ -411,7 +422,10 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
     <div className="taste-block">
       {facets.map((f) => (
         <div className="taste-facet" key={f.label}>
-          <div className="taste-facet__label">{f.label}</div>
+          <div className="taste-facet__label">
+            {f.label}
+            {f.info && <InfoTip label={`How ${f.label.toLowerCase()} is worked out`}>{f.info}</InfoTip>}
+          </div>
           <div className="taste-facet__val">
             {f.submit ? (
               <>
@@ -680,6 +694,16 @@ function PlayerFacts({
           )}
         </p>
       )}
+      <MethodDrawer>
+        <p>
+          Warmth is ranked by <em>net affinity</em> — points given as a share of an even ballot, with
+          downvotes counting against it — not by raw points, so a single big vote does not crown a fan.
+        </p>
+        <p>
+          Harshest critic needs at least two of this player's songs to judge, so one stray downvote is
+          not mistaken for a grudge. Nemesis is simply whoever they spend the most downvotes on.
+        </p>
+      </MethodDrawer>
     </div>
   );
 }

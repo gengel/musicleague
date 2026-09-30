@@ -20,7 +20,7 @@ export function Card({
     <section className={`card${wide ? ' card--wide' : ''}`}>
       {title && (
         <header className="card__head">
-          <h2>{title}</h2>
+          <h2 className="display">{title}</h2>
           {subtitle && <p>{subtitle}</p>}
         </header>
       )}

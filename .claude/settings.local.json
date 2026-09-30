@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest *)",
+      "Bash(npx tsc *)",
+      "Bash(grep -E \"\\\\.tsx?$\")",
+      "Bash(npm run *)",
+      "Bash(node *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(npx vite *)",
+      "Bash(open http://localhost:4173)",
+      "Bash(grep -v \"^dim$\\\\|^pos$\\\\|^neg$\\\\|^num$\\\\|^small$\\\\|^warn$\")",
+      "Bash(npm test *)",
+      "Bash(curl -s http://localhost:4174/)",
+      "Bash(pkill -f \"vite preview\")",
+      "Bash(git rm *)",
+      "Bash(python3 -m http.server 4175 --directory dist)",
+      "Bash(curl -s http://localhost:4175/)",
+      "Bash(grep -o \"virtual:league-data\\\\|embeddedFiles\\\\|embedded.\\\\{0,20\\\\}\" dist/assets/index-DJTvs38o.js)",
+      "Bash(curl -s -o /tmp/index-served.html http://localhost:4176/)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /tmp/asset.js http://localhost:4176/assets/index-DJTvs38o.js -w \"js: HTTP %{http_code}, %{size_download} bytes\\\\n\")",
+      "Bash(awk -F',' 'NR>1 {print $3}' snapshots/r11/export/rounds.csv)",
+      "Bash(curl -s http://localhost:4177/)"
+    ]
+  }
+}

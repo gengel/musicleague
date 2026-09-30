@@ -324,3 +324,53 @@ None. All resolved:
 - A theme player who didn't vote is judged on their counted score after the forfeit.
 - Every player is the theme exactly once, so projections carry a pending ±3 for each player whose theme round is still to come, and each player page shows "theme round still to come".
 - League 1 comments appear on player pages, redacted as in `docs/league3.html`.
+
+## M8: Player-page visual overhaul
+
+The player page is correct but text- and number-heavy. This milestone makes the
+relevant facts pop with imagery and icons, and tucks the "how this was worked
+out" detail into tooltips and drawers. Everything is drawn inline or built from
+covers the bake already downloads, so the page still makes no outside requests.
+
+### Recorded decisions (best-guess defaults, no further questions)
+
+- **Display font: Inter Display**, bundled as local `woff2` in `public/fonts`
+  (OFL). System font stays for body text. No Google Fonts fetch — it would
+  break the "no outside requests" promise.
+- **Player colour: derived from covers, palette fallback.** Average one 64px
+  cover to a single hue at runtime; if too dull/dark, fall back to a fixed
+  12-colour palette keyed by player id. Canvas-less environments (tests) always
+  use the palette.
+- **Scope: player page + avatars in name cells** (Players grid, standings). Full
+  chrome (dials, drawers) stays on the player page only.
+- **One ⓘ per block** cap, to avoid popover soup.
+- Icons are Lucide path data (ISC) hand-copied into `Icons.tsx` to match the
+  existing inline stroke set; no icon dependency added.
+
+### Milestones (each: tsc → tests → build → rebake → screenshot 1280/390 → commit)
+
+- **M1 foundations.** `InfoTip` (tap/hover/focus popover, Esc + outside close,
+  ARIA) and `MethodDrawer` (native `<details>`). Type scale (12/14/18/28/44),
+  colour roles (pink = nav only, green/red = scores, gold = theme). Bundle Inter
+  Display. Move method copy into tips/drawers; neutralise summary chips.
+- **M2 icons.** ~12 new icons (signal1–5, cassette/cd/phone/vinyl,
+  guitar/mic/synth/sax/banjo) + `popularityIcon`/`eraIcon`/`genreIcon` helpers.
+  Place on taste facets, People rows, song headings, tabs, theme line.
+- **M3 header + avatars.** Bake 64px thumbnails for top songs. `PlayerAvatar`
+  (2×2 cover mosaic → 1 cover → initials). `usePlayerTint` (cover average, palette
+  fallback). Rebuilt header: avatar, display-font name, big season numbers,
+  `careerStoryline()` line, blurred best-cover backdrop with dark overlay for
+  contrast. Avatars in name cells.
+- **M4 taste graphics.** SVG popularity dial (submit + reward needles, league
+  median), era timeline (dot per song, sized by score), genre family chips.
+  Helper `popularityPosition`. Text version kept for screen readers.
+- **M5 songs as images.** Best-song hero tile (large cover, score badge),
+  runner-up tiles, muted weakest; cover strip on Submissions shaded by score;
+  gold theme medal replacing the text chip.
+- **M6 tab group + cleanup.** Separate "Season:" tab group; drop dead CSS; final
+  screenshots.
+
+### Risks
+
+- Backdrop contrast: dark overlay, verify ≥4.5:1 in screenshots.
+- Muddy cover tints: palette fallback when luminance/saturation too low.
