@@ -463,4 +463,36 @@ Round 1,Bo,Ada,Song 1,10
     const upvotesCard = screen.getByText('Where the upvotes go').closest('.card') as HTMLElement;
     expect(within(upvotesCard).queryByRole('columnheader', { name: 'Spent' })).toBeNull();
   });
+
+  it('still flags a non-voter once the Rounds voted column is hidden', async () => {
+    stubLayout();
+    // Cyd submits but never votes, so the column hiding above must not take the
+    // only non-voter marker with it.
+    const csv = `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+Round 1,Ada,Song 1,Artist 1,id1
+Round 1,Bo,Song 2,Artist 2,id2
+Round 1,Cyd,Song 3,Artist 3,id3
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+Round 1,Ada,Bo,Song 2,10
+Round 1,Bo,Ada,Song 1,10
+`;
+    const user = userEvent.setup();
+    render(<App />);
+    const input = document.querySelector('input[type=file]') as HTMLInputElement;
+    await user.upload(input, new File([csv], 'Non Voter League.csv', { type: 'text/csv' }));
+    expect(await screen.findByRole('heading', { level: 1, name: /Non Voter League/i })).toBeDefined();
+
+    await user.click(screen.getByRole('tab', { name: 'Standings' }));
+    const whereCard = screen.getByText('Where it stands').closest('.card') as HTMLElement;
+    expect(within(whereCard).queryByRole('columnheader', { name: 'Rounds voted' })).toBeNull();
+
+    const cydRow = within(whereCard).getByText('Cyd').closest('tr') as HTMLElement;
+    expect(cydRow.textContent).toMatch(/didn't vote/);
+    // Ada voted, so she carries no flag.
+    const adaRow = within(whereCard).getByText('Ada').closest('tr') as HTMLElement;
+    expect(adaRow.textContent).not.toMatch(/didn't vote/);
+  });
 });

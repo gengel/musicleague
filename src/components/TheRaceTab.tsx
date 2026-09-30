@@ -70,6 +70,12 @@ export function TheRaceTab({
                       ) : (
                         <strong>{p.name}</strong>
                       )}
+                      {/* Beside the name, not in a column: under competitive scoring
+                          this is why their total is low, and the Rounds voted column
+                          is hidden both in a one-round season and on phones. */}
+                      {stats.roundsPlayed > 0 && p.roundsVoted === 0 && (
+                        <span className="tag tag--neg race-flag">didn't vote</span>
+                      )}
                     </td>
                     <td className={`num ${p.pointsCounted < 0 ? 'neg' : 'pos'}`}>
                       {p.pointsCounted > 0 ? '+' : ''}
@@ -89,9 +95,7 @@ export function TheRaceTab({
                     <td className="num dim col-secondary">{p.downvotesReceived || '—'}</td>
                     {hasMultipleRounds && (
                       <td className="num dim col-secondary">
-                        {p.roundsVoted
-                          ? `${p.roundsVoted} of ${stats.roundsPlayed}`
-                          : <span className="neg">never voted</span>}
+                        {p.roundsVoted ? `${p.roundsVoted} of ${stats.roundsPlayed}` : '—'}
                       </td>
                     )}
                   </tr>

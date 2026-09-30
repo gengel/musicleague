@@ -1584,6 +1584,13 @@ tbody tr.row--flag td {
   color: #f3cd7c;
 }
 
+.race-flag { margin-left: 0.45rem; vertical-align: middle; }
+@media (max-width: 620px) {
+  /* The name cell is nowrap to protect redacted names, so give the flag its own
+     line rather than letting it widen the column and push Theme off-screen. */
+  .race-flag { display: block; margin: 2px 0 0; width: fit-content; }
+}
+
 /* ---------------- gateway cards (Overview) ---------------- */
 
 .gateways {
