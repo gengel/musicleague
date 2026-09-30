@@ -495,12 +495,12 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
           <div className="taste-panel__legend dim small">
             {submitEra && (
               <span>
-                <span className="dot dot--submit" /> mostly {submitEra}
+                <span className="dot dot--submit" /> submissions
               </span>
             )}
             {voteEra && (
               <span>
-                <span className="dot dot--reward" /> rewards {voteEra}
+                <span className="dot dot--reward" /> votes
               </span>
             )}
           </div>
