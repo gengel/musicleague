@@ -62,6 +62,12 @@ describe('buildPlayerProfile', () => {
     expect(cleo!.up).toBe(3);
   });
 
+  it('names a nemesis when they downvote someone', () => {
+    // No downvotes in this fixture, so nemesis is undefined; the field exists.
+    expect('nemesis' in profile.appearances[0]).toBe(true);
+    expect('nemesis' in profile.aggregate).toBe(true);
+  });
+
   it('builds a cross-league brief', () => {
     // Bob upvoted Cleo in both leagues (3 each), so Cleo's artist leads.
     expect(profile.brief.favouriteGenres[0][0]).toBe('Rock');

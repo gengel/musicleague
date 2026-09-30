@@ -10,6 +10,14 @@
 import type { PairStats, PlayerStats, SongStats, Stats } from './stats';
 import type { History } from './history';
 import { identityKey } from './types';
+import { obscurityBand } from './obscurity';
+
+const POP_ORDER = ['deep cut', 'niche', 'known', 'popular', 'hit'];
+
+/** Orders popularity bands deep-cut → hit for a readable bar chart. */
+function bandOrder(map: Map<string, number>): [string, number][] {
+  return POP_ORDER.filter((b) => map.has(b)).map((b) => [b, map.get(b)!]);
+}
 
 export interface RankedOpponent {
   opponentId: string;
@@ -44,6 +52,10 @@ export interface LeagueAppearance {
   voteGenres: [string, number][];
   /** Eras they rewarded with upvotes, points-weighted: [decadeLabel, points]. */
   voteDecades: [string, number][];
+  /** Popularity of songs they submit, points-weighted: [band, count]. */
+  submitPop: [string, number][];
+  /** Popularity of songs they upvote, points-weighted: [band, points]. */
+  votePop: [string, number][];
   /** Decade blend of their submissions: [decadeLabel, count]. */
   decades: [string, number][];
   /** Their taste alignment (mainstream↔contrarian), when computable. */
@@ -54,6 +66,8 @@ export interface LeagueAppearance {
   leastImpressed?: RankedOpponent;
   /** The player this player rates highest. */
   ownFavourite?: RankedOpponent;
+  /** The player they downvote most — their nemesis. */
+  nemesis?: RankedOpponent;
 }
 
 export interface ThemeBrief {
@@ -92,10 +106,13 @@ export interface AggregateAppearance {
   submitGenres: [string, number][];
   voteGenres: [string, number][];
   voteDecades: [string, number][];
+  submitPop: [string, number][];
+  votePop: [string, number][];
   decades: [string, number][];
   biggestFan?: RankedOpponent;
   leastImpressed?: RankedOpponent;
   ownFavourite?: RankedOpponent;
+  nemesis?: RankedOpponent;
   totals: CareerTotals;
 }
 
@@ -215,11 +232,23 @@ function appearanceFor(
   }
   const voteG = new Map<string, number>();
   const voteD = new Map<string, number>();
+  const votePop = new Map<string, number>();
   for (const v of stats.league.votes.filter((v) => v.voterId === playerId && v.points > 0)) {
     const song = songByKey.get(`${v.trackId}|${v.roundId}`);
     if (!song) continue;
     for (const g of genresForArtist(song.artist, genreMap)) voteG.set(g, (voteG.get(g) ?? 0) + v.points);
     if (song.year !== undefined) voteD.set(decadeLabel(song.year), (voteD.get(decadeLabel(song.year)) ?? 0) + v.points);
+    if (song.obscurity) {
+      const band = obscurityBand(song.obscurity.value, song.obscurity.source);
+      votePop.set(band, (votePop.get(band) ?? 0) + v.points);
+    }
+  }
+  // Popularity of their own submissions (count-weighted).
+  const submitPop = new Map<string, number>();
+  for (const s of songs) {
+    if (!s.obscurity) continue;
+    const band = obscurityBand(s.obscurity.value, s.obscurity.source);
+    submitPop.set(band, (submitPop.get(band) ?? 0) + 1);
   }
 
   return {
@@ -235,6 +264,8 @@ function appearanceFor(
     submitGenres: topN(submitG, 6),
     voteGenres: topN(voteG, 6),
     voteDecades: topN(voteD, 6),
+    submitPop: bandOrder(submitPop),
+    votePop: bandOrder(votePop),
     decades: [...decades.entries()].sort((a, b) => a[0].localeCompare(b[0])),
     tasteAlignment: player.tasteAlignment,
     // Same criteria as the old inline profile: warmth by net affinity, with a
@@ -251,6 +282,8 @@ function appearanceFor(
     ownFavourite: [...ranks]
       .filter((r) => r.up > 0)
       .sort((a, b) => b.netAffinity - a.netAffinity || b.up - a.up)[0],
+    // Their nemesis: whoever they spend the most downvotes on.
+    nemesis: [...ranks].filter((r) => r.down > 0).sort((a, b) => b.down - a.down)[0],
   };
 }
 
@@ -337,6 +370,11 @@ function buildAggregate(appearances: LeagueAppearance[]): AggregateAppearance {
   const backers = mergeOpponents(appearances.map((a) => a.backers));
   const decadeCounts = new Map<string, number>();
   for (const a of appearances) for (const [d, c] of a.decades) decadeCounts.set(d, (decadeCounts.get(d) ?? 0) + c);
+  const sumBands = (lists: [string, number][][]): [string, number][] => {
+    const by = new Map<string, number>();
+    for (const list of lists) for (const [k, v] of list) by.set(k, (by.get(k) ?? 0) + v);
+    return bandOrder(by);
+  };
 
   const totals: CareerTotals = {
     points: appearances.reduce((s, a) => s + a.player.pointsCounted, 0),
@@ -362,10 +400,13 @@ function buildAggregate(appearances: LeagueAppearance[]): AggregateAppearance {
     submitGenres: sumPairs(appearances.map((a) => a.submitGenres)),
     voteGenres: sumPairs(appearances.map((a) => a.voteGenres)),
     voteDecades: sumPairs(appearances.map((a) => a.voteDecades)),
+    submitPop: sumBands(appearances.map((a) => a.submitPop)),
+    votePop: sumBands(appearances.map((a) => a.votePop)),
     decades: [...decadeCounts.entries()].sort((a, b) => a[0].localeCompare(b[0])),
     biggestFan: [...backers].filter((b) => b.up > 0).sort((a, b) => b.net - a.net)[0],
     leastImpressed: [...backers].sort((a, b) => a.net - b.net)[0],
     ownFavourite: [...ranks].filter((r) => r.up > 0).sort((a, b) => b.net - a.net)[0],
+    nemesis: [...ranks].filter((r) => r.down > 0).sort((a, b) => b.down - a.down)[0],
     totals,
   };
 }

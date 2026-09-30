@@ -134,10 +134,13 @@ interface ScopeView {
   submitGenres: [string, number][];
   voteGenres: [string, number][];
   voteDecades: [string, number][];
+  submitPop: [string, number][];
+  votePop: [string, number][];
   decades: [string, number][];
   biggestFan?: RankedOpponent;
   leastImpressed?: RankedOpponent;
   ownFavourite?: RankedOpponent;
+  nemesis?: RankedOpponent;
   votingStyle?: { avgSongsVotedPer: number; avgPointsPerVote: number; tasteAlignment?: number; roundsMissedVoting: number; roundsVoted: number };
   /** Whether the who-they-rank table shows a devotion column (per-league only). */
   showDevotion: boolean;
@@ -161,10 +164,13 @@ function leagueView(a: LeagueAppearance): ScopeView {
     submitGenres: a.submitGenres,
     voteGenres: a.voteGenres,
     voteDecades: a.voteDecades,
+    submitPop: a.submitPop,
+    votePop: a.votePop,
     decades: a.decades,
     biggestFan: a.biggestFan,
     leastImpressed: a.leastImpressed,
     ownFavourite: a.ownFavourite,
+    nemesis: a.nemesis,
     votingStyle: {
       avgSongsVotedPer: p.avgSongsVotedPer,
       avgPointsPerVote: p.avgPointsPerVote,
@@ -194,10 +200,13 @@ function aggregateView(agg: AggregateAppearance): ScopeView {
     submitGenres: agg.submitGenres,
     voteGenres: agg.voteGenres,
     voteDecades: agg.voteDecades,
+    submitPop: agg.submitPop,
+    votePop: agg.votePop,
     decades: agg.decades,
     biggestFan: agg.biggestFan,
     leastImpressed: agg.leastImpressed,
     ownFavourite: agg.ownFavourite,
+    nemesis: agg.nemesis,
     // Devotion and taste alignment are per-league ratios; omitted when pooled.
     showDevotion: false,
   };
@@ -305,18 +314,7 @@ function SummaryCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (sl
         ))}
       </div>
 
-      {a.finishes && a.finishes.length > 0 && (
-        <p className="dim small player-tags">
-          {a.finishes.map((f, i) => (
-            <span key={f.label}>
-              {i > 0 && ' · '}
-              {f.label}: {f.finish ? `${ordinal(f.finish)} of ${f.of}` : 'did not submit'} (
-              {f.points > 0 ? '+' : ''}
-              {f.points})
-            </span>
-          ))}
-        </p>
-      )}
+      <TasteBlock view={a} />
 
       <div className="summary-cols">
         <section className="summary-block">
@@ -343,17 +341,72 @@ function SummaryCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (sl
         <section className="summary-block">
           <h4 className="player-sub">People</h4>
           <PlayerFacts view={a} onNavigate={onNavigate} />
-          {(a.submitGenres.length > 0 || a.voteGenres.length > 0) && (
-            <p className="dim small player-tags">
-              {a.submitGenres.length > 0 && <>Submits: {a.submitGenres.map((g) => g[0]).join(', ')}. </>}
-              {a.voteGenres.length > 0 && <>Rewards: {a.voteGenres.map((g) => g[0]).join(', ')}.</>}
-            </p>
-          )}
         </section>
       </div>
     </Card>
   );
 }
+
+/**
+ * The headline taste read: what era and how popular the music they like is —
+ * arguably the most telling thing about a player — plus their genre lean.
+ * Given prominence at the top of the summary rather than a tiny footnote.
+ */
+function TasteBlock({ view: a }: { view: ScopeView }) {
+  const lead = (rows: [string, number][]) => (rows.length ? rows[0][0] : undefined);
+  const submitPop = lead(a.submitPop);
+  const votePop = lead(a.votePop);
+  const submitEra = lead(a.decades);
+  const voteEra = lead(a.voteDecades);
+  const submitGenre = lead(a.submitGenres);
+  const voteGenre = lead(a.voteGenres);
+
+  const popText = (b?: string) => (b ? POP_PHRASE[b] ?? b : undefined);
+
+  const facets: { label: string; submit?: string; reward?: string }[] = [
+    { label: 'Popularity', submit: popText(submitPop), reward: popText(votePop) },
+    { label: 'Era', submit: submitEra, reward: voteEra },
+    { label: 'Genre', submit: submitGenre, reward: voteGenre },
+  ];
+
+  if (facets.every((f) => !f.submit && !f.reward)) return null;
+
+  return (
+    <div className="taste-block">
+      {facets.map((f) => (
+        <div className="taste-facet" key={f.label}>
+          <div className="taste-facet__label">{f.label}</div>
+          <div className="taste-facet__val">
+            {f.submit ? (
+              <>
+                submits <strong>{f.submit}</strong>
+              </>
+            ) : (
+              <span className="dim">—</span>
+            )}
+          </div>
+          <div className="taste-facet__val dim">
+            {f.reward ? (
+              <>
+                rewards <strong>{f.reward}</strong>
+              </>
+            ) : (
+              '—'
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const POP_PHRASE: Record<string, string> = {
+  'deep cut': 'deep cuts',
+  niche: 'niche picks',
+  known: 'known tracks',
+  popular: 'popular songs',
+  hit: 'big hits',
+};
 
 function SubmissionsCard({ view: a, title }: { view: ScopeView; title: string }) {
   return (
@@ -367,7 +420,7 @@ function SubmissionsCard({ view: a, title }: { view: ScopeView; title: string })
           ))}
         </div>
       )}
-      {(a.voteGenres.length > 0 || a.voteDecades.length > 0) && (
+      {(a.voteGenres.length > 0 || a.voteDecades.length > 0 || a.submitPop.length > 0) && (
         <>
           <h4 className="player-sub">What they submit</h4>
           <div className="vote-breakdowns">
@@ -375,6 +428,9 @@ function SubmissionsCard({ view: a, title }: { view: ScopeView; title: string })
               <VoteBreakdown title="Submissions by genre" rows={a.submitGenres} suffix="" />
             )}
             {a.decades.length > 0 && <VoteBreakdown title="Submissions by era" rows={a.decades} suffix="" />}
+            {a.submitPop.length > 0 && (
+              <VoteBreakdown title="Submissions by popularity" rows={a.submitPop} suffix="" />
+            )}
           </div>
         </>
       )}
@@ -385,10 +441,11 @@ function SubmissionsCard({ view: a, title }: { view: ScopeView; title: string })
 function RelationshipsCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (slug: string) => void }) {
   return (
     <Card title={`Relationships${a.finishes && a.finishes.length > 1 ? ' — all leagues' : ''}`} wide>
-      {(a.voteGenres.length > 0 || a.voteDecades.length > 0) && (
+      {(a.voteGenres.length > 0 || a.voteDecades.length > 0 || a.votePop.length > 0) && (
         <div className="vote-breakdowns">
           {a.voteGenres.length > 0 && <VoteBreakdown title="Upvotes by genre" rows={a.voteGenres} />}
           {a.voteDecades.length > 0 && <VoteBreakdown title="Upvotes by era" rows={a.voteDecades} />}
+          {a.votePop.length > 0 && <VoteBreakdown title="Upvotes by popularity" rows={a.votePop} />}
         </div>
       )}
 
@@ -570,6 +627,15 @@ function PlayerFacts({
         <dd>
           {link(a.ownFavourite)}
           <span className="dim small">{sentiment(a.ownFavourite)}</span>
+        </dd>
+      </div>
+      <div>
+        <dt>Nemesis</dt>
+        <dd>
+          {link(a.nemesis)}
+          <span className="dim small">
+            {a.nemesis ? ` — ${a.nemesis.down} in downvotes` : ''}
+          </span>
         </dd>
       </div>
       {vs && (

@@ -2447,3 +2447,25 @@ td.archetype-col {
   margin-top: 0.5rem;
 }
 .summary-block .player-sub:first-child { margin-top: 0; }
+
+/* ---- Taste block: the headline "what music do they like" read ---- */
+.taste-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.6rem;
+  margin: 0.8rem 0 1.1rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-raised);
+}
+.taste-facet__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  margin-bottom: 0.2rem;
+}
+.taste-facet__val { font-size: 1rem; }
+.taste-facet__val strong { color: var(--text); }
+.taste-facet__val.dim strong { color: var(--dim); }
