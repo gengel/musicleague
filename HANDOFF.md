@@ -17,7 +17,7 @@ decisions.
 
 ```bash
 npx tsc -b 2>&1 | grep -vE 'Unknown user|minimum-release'   # typecheck; those two lines are harmless npm noise
-npx vitest run                                              # expect 473 passed
+npx vitest run                                              # expect 474 passed
 npx vite build && git checkout -- dist && git clean -fq dist/assets   # build check, then RESTORE the tracked dist/
 npm run bake -- --league league2 --base ./                  # rebuilds docs/v2 (config: leagues/league2.json)
 npx vite preview --outDir docs/v2 --port 4220 &             # serve it; stop with: pkill -f 'vite preview'
@@ -95,14 +95,14 @@ v2 (`6976f5d`…`68415a5`), in order:
   that should be full-width needs `grid-column: 1 / -1`** (cards get this
   from `wide`).
 - **Today:** a design review of every tab (`DESIGN-REVIEW.md`).
+- **Fix #round/N highlighting (G7)** (`a75e5fc`).
+- **Fix phone layout problems (G8)** (`3ac84d6`): nav scroll strip, `nowrap` on names, hidden secondary columns, contained Songs heatmaps.
 
 ## 5. Current state
 
-- The build is clean, 473 tests pass, and `docs/v2` is baked and current.
-  A rebake today produced no diff.
+- The build is clean, 474 tests pass, and `docs/v2` is baked and current.
 - **Known open issues:**
-  1. `#round/N` highlights the Players tab (`src/App.tsx:136`).
-  2. `DESIGN-REVIEW.md` §1–8 lists the rest.
+  1. `DESIGN-REVIEW.md` §1–8 lists the remaining backlog.
 - **Older backlog (`REVIEW-v2.md`), status as checked today:**
   - `PlayerDetail` in `PlayersTab.tsx:173` is still dead code (item 6).
   - The stale `docs/index0-2.html` and `docs/league0-2.html` are still
@@ -116,18 +116,14 @@ Do one item at a time: make the change, typecheck, run the tests, build
 and restore `dist`, rebake, screenshot and look at it, then commit with a
 new commit (never amend). Don't push unless asked.
 
-1. Fix `#round/N` highlighting (G7). Add a test in
-   `src/__tests__/App.test.tsx`.
-2. Fix the phone problems (G8): nav scroll strip, `nowrap` on names,
-   hidden secondary columns.
-3. Add the gate helper (G2) and apply it panel by panel. Add unit tests
+1. Add the gate helper (G2) and apply it panel by panel. Add unit tests
    for the helper.
-4. Hide single-value columns (G9).
-5. Remove the duplicate tables and panels (G1, the Songs lists, Room
+2. Hide single-value columns (G9).
+3. Remove the duplicate tables and panels (G1, the Songs lists, Room
    "Points received", Players "end to end"). Update any tests that assert
    those panels exist.
-6. Move method subtitles and runner-ups into `InfoTip` (G4, G5).
-7. Impact work: This Round podium, Players card grid, Standings chart
+4. Move method subtitles and runner-ups into `InfoTip` (G4, G5).
+5. Impact work: This Round podium, Players card grid, Standings chart
    defaults, round page.
 
 ## 7. User preferences (standing)
