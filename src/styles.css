@@ -2413,3 +2413,28 @@ td.archetype-col {
   font-size: 0.85rem;
 }
 .player-facts dd { margin: 0; }
+
+/* ---- Player profile scope toggle (All leagues / per season) ---- */
+.scope-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.9rem;
+}
+.scope-tab {
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+}
+.scope-tab--on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a0410;
+  font-weight: 600;
+}
+.scope-tab:hover:not(.scope-tab--on) { color: var(--text); border-color: var(--accent); }

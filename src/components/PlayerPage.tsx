@@ -1,12 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { embeddedGenres } from 'virtual:league-data';
-import type { Stats } from '../lib/stats';
+import type { SongStats, Stats } from '../lib/stats';
 import type { History } from '../lib/history';
 import {
   buildPlayerProfile,
   playerSlug,
+  type AggregateAppearance,
   type LeagueAppearance,
   type PlayerProfile,
+  type RankedOpponent,
 } from '../lib/playerProfile';
 import { SongArt, SongLinks, SongPlayer, SongTags } from './SongMedia';
 import { ThemeChip } from './ThemeChip';
@@ -50,15 +52,141 @@ export function PlayerPage({
 
   if (!profile) return <Card wide><Empty>No such player.</Empty></Card>;
 
+  return <PlayerScopes profile={profile} onNavigate={onNavigate} />;
+}
+
+/**
+ * The scope switcher: All leagues (pooled) plus one option per league.
+ * Defaults to All, the aggregate career view the reader most often wants;
+ * each league remains viewable independently one click away.
+ */
+function PlayerScopes({
+  profile,
+  onNavigate,
+}: {
+  profile: PlayerProfile;
+  onNavigate: (slug: string) => void;
+}) {
+  // Scopes: 'all' first, then each league newest-first (appearances are
+  // current-first already).
+  const scopes: { key: string; label: string }[] = [
+    { key: 'all', label: 'All leagues' },
+    ...profile.appearances.map((a) => ({ key: a.leagueId, label: a.label })),
+  ];
+  const multi = profile.appearances.length > 1;
+  const [scope, setScope] = useState(multi ? 'all' : profile.appearances[0]?.leagueId ?? 'all');
+
+  const view: ScopeView =
+    scope === 'all'
+      ? aggregateView(profile.aggregate)
+      : leagueView(profile.appearances.find((a) => a.leagueId === scope) ?? profile.appearances[0]);
+
   return (
     <>
       <PlayerHeader profile={profile} />
       {profile.themePending || profile.themeOutcome ? <ThemeBriefCard profile={profile} /> : null}
-      {profile.appearances.map((a) => (
-        <AppearanceCard key={a.leagueId} appearance={a} onNavigate={onNavigate} />
-      ))}
+
+      {multi && (
+        <div className="scope-tabs" role="tablist" aria-label="League scope">
+          {scopes.map((s) => (
+            <button
+              key={s.key}
+              role="tab"
+              aria-selected={scope === s.key}
+              className={`scope-tab${scope === s.key ? ' scope-tab--on' : ''}`}
+              onClick={() => setScope(s.key)}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <SectionsCard view={view} onNavigate={onNavigate} />
     </>
   );
+}
+
+/** The common shape both the aggregate and a single league render through. */
+interface ScopeView {
+  title: string;
+  /** Summary chips shown under the title. */
+  chips: { text: string; tone?: 'pos' | 'neg' }[];
+  /** Per-league finish strip, only shown in the pooled view. */
+  finishes?: { label: string; finish?: number; of?: number; points: number }[];
+  songs: SongStats[];
+  ranks: RankedOpponent[];
+  backers: RankedOpponent[];
+  submitGenres: [string, number][];
+  voteGenres: [string, number][];
+  voteDecades: [string, number][];
+  decades: [string, number][];
+  biggestFan?: RankedOpponent;
+  leastImpressed?: RankedOpponent;
+  ownFavourite?: RankedOpponent;
+  votingStyle?: { avgSongsVotedPer: number; avgPointsPerVote: number; tasteAlignment?: number; roundsMissedVoting: number; roundsVoted: number };
+  /** Whether the who-they-rank table shows a devotion column (per-league only). */
+  showDevotion: boolean;
+}
+
+function leagueView(a: LeagueAppearance): ScopeView {
+  const p = a.player;
+  return {
+    title: `${a.label}${a.current ? ' — current season' : ''}`,
+    chips: [
+      { text: `${p.pointsCounted > 0 ? '+' : ''}${p.pointsCounted} points`, tone: p.pointsCounted < 0 ? 'neg' : 'pos' },
+      { text: `${p.songs} songs` },
+      { text: `avg ${n1(p.avgPerSong)}/song` },
+      ...(p.wins > 0 ? [{ text: `${p.wins} round win${p.wins === 1 ? '' : 's'}` }] : []),
+      ...(a.finish ? [{ text: `finished ${ordinal(a.finish)} of ${a.of}` }] : []),
+      ...(p.roundsMissedVoting > 0 ? [{ text: `${p.roundsMissedVoting} round(s) not voted`, tone: 'neg' as const }] : []),
+    ],
+    songs: a.songs,
+    ranks: a.ranks,
+    backers: a.backers,
+    submitGenres: a.submitGenres,
+    voteGenres: a.voteGenres,
+    voteDecades: a.voteDecades,
+    decades: a.decades,
+    biggestFan: a.biggestFan,
+    leastImpressed: a.leastImpressed,
+    ownFavourite: a.ownFavourite,
+    votingStyle: {
+      avgSongsVotedPer: p.avgSongsVotedPer,
+      avgPointsPerVote: p.avgPointsPerVote,
+      tasteAlignment: p.tasteAlignment,
+      roundsMissedVoting: p.roundsMissedVoting,
+      roundsVoted: p.roundsVoted,
+    },
+    showDevotion: true,
+  };
+}
+
+function aggregateView(agg: AggregateAppearance): ScopeView {
+  const t = agg.totals;
+  return {
+    title: 'All leagues — career',
+    chips: [
+      { text: `${t.points > 0 ? '+' : ''}${t.points} points`, tone: t.points < 0 ? 'neg' : 'pos' },
+      { text: `${t.songs} songs` },
+      ...(t.wins > 0 ? [{ text: `${t.wins} round win${t.wins === 1 ? '' : 's'}` }] : []),
+      { text: `+${t.upvotesReceived}/−${t.downvotesReceived} received` },
+      ...(t.roundsMissedVoting > 0 ? [{ text: `${t.roundsMissedVoting} round(s) not voted`, tone: 'neg' as const }] : []),
+    ],
+    finishes: t.finishes,
+    songs: agg.songs,
+    ranks: agg.ranks,
+    backers: agg.backers,
+    submitGenres: agg.submitGenres,
+    voteGenres: agg.voteGenres,
+    voteDecades: agg.voteDecades,
+    decades: agg.decades,
+    biggestFan: agg.biggestFan,
+    leastImpressed: agg.leastImpressed,
+    ownFavourite: agg.ownFavourite,
+    // Devotion and taste alignment are per-league ratios; omitted when pooled.
+    showDevotion: false,
+  };
 }
 
 function PlayerHeader({ profile }: { profile: PlayerProfile }) {
@@ -151,35 +279,35 @@ function BriefList({ title, rows }: { title: string; rows: [string, string][] })
   );
 }
 
-function AppearanceCard({
-  appearance: a,
+function SectionsCard({
+  view: a,
   onNavigate,
 }: {
-  appearance: LeagueAppearance;
+  view: ScopeView;
   onNavigate: (slug: string) => void;
 }) {
-  const p = a.player;
   return (
-    <Card title={`${a.label}${a.current ? ' (current)' : ''}`} wide>
+    <Card title={a.title} wide>
       <div className="player-record dim small">
-        <span>
-          <strong className={p.pointsCounted < 0 ? 'neg' : 'pos'}>
-            {p.pointsCounted > 0 ? '+' : ''}
-            {p.pointsCounted}
-          </strong>{' '}
-          points
-        </span>
-        <span>{p.songs} songs</span>
-        <span>avg {n1(p.avgPerSong)}/song</span>
-        {p.wins > 0 && <span>{p.wins} round win{p.wins === 1 ? '' : 's'}</span>}
-        {p.roundsMissedVoting > 0 && <span className="neg">{p.roundsMissedVoting} round(s) not voted</span>}
-        {p.tasteAlignment !== undefined && (
-          <span>
-            taste {Math.round(p.tasteAlignment * 100)}%{' '}
-            {p.tasteAlignment >= 0.5 ? 'mainstream' : 'contrarian'}
+        {a.chips.map((c, i) => (
+          <span key={i} className={c.tone === 'neg' ? 'neg' : undefined}>
+            {c.tone === 'pos' ? <strong className="pos">{c.text}</strong> : c.text}
           </span>
-        )}
+        ))}
       </div>
+
+      {a.finishes && a.finishes.length > 0 && (
+        <p className="dim small player-tags">
+          {a.finishes.map((f, i) => (
+            <span key={f.label}>
+              {i > 0 && ' · '}
+              {f.label}: {f.finish ? `${ordinal(f.finish)} of ${f.of}` : 'did not submit'} (
+              {f.points > 0 ? '+' : ''}
+              {f.points})
+            </span>
+          ))}
+        </p>
+      )}
 
       {(a.submitGenres.length > 0 || a.decades.length > 0) && (
         <p className="dim small player-tags">
@@ -188,7 +316,7 @@ function AppearanceCard({
         </p>
       )}
 
-      <PlayerFacts appearance={a} onNavigate={onNavigate} />
+      <PlayerFacts view={a} onNavigate={onNavigate} />
 
       {(a.voteGenres.length > 0 || a.voteDecades.length > 0) && (
         <div className="vote-breakdowns">
@@ -201,7 +329,7 @@ function AppearanceCard({
 
       <h4 className="player-sub">Submissions</h4>
       {a.songs.length === 0 ? (
-        <Empty>No submissions in this league.</Empty>
+        <Empty>No submissions.</Empty>
       ) : (
         <div className="song-list">
           {a.songs.map((s) => (
@@ -234,7 +362,7 @@ function AppearanceCard({
 
       <h4 className="player-sub">Who they rank</h4>
       {a.ranks.length === 0 ? (
-        <Empty>They cast no votes in this league.</Empty>
+        <Empty>They cast no votes.</Empty>
       ) : (
         <table className="t">
           <thead>
@@ -243,7 +371,7 @@ function AppearanceCard({
               <th className="num">Up</th>
               <th className="num">Down</th>
               <th className="num">Net</th>
-              <th className="num">Devotion</th>
+              {a.showDevotion && <th className="num">Devotion</th>}
               <th className="num">They gave back</th>
             </tr>
           </thead>
@@ -261,7 +389,7 @@ function AppearanceCard({
                   {r.net > 0 ? '+' : ''}
                   {r.net}
                 </td>
-                <td className="num dim">{Math.round(r.devotion * 100)}%</td>
+                {a.showDevotion && <td className="num dim">{Math.round(r.devotion * 100)}%</td>}
                 <td className="num dim">
                   {r.reciprocalNet === undefined
                     ? '—'
@@ -275,7 +403,7 @@ function AppearanceCard({
 
       <h4 className="player-sub">Their fans and critics</h4>
       {a.backers.length === 0 ? (
-        <Empty>No votes received in this league.</Empty>
+        <Empty>No votes received.</Empty>
       ) : (
         <table className="t">
           <thead>
@@ -345,13 +473,13 @@ function VoteBreakdown({ title, rows }: { title: string; rows: [string, number][
 
 /** Biggest fan / least impressed / their own favourite / voting style. */
 function PlayerFacts({
-  appearance: a,
+  view: a,
   onNavigate,
 }: {
-  appearance: LeagueAppearance;
+  view: ScopeView;
   onNavigate: (slug: string) => void;
 }) {
-  const p = a.player;
+  const vs = a.votingStyle;
   const link = (r?: { name: string }) =>
     r ? (
       <button className="linklike" onClick={() => onNavigate(playerSlug(r.name))}>
@@ -389,23 +517,25 @@ function PlayerFacts({
           <span className="dim small">{sentiment(a.ownFavourite)}</span>
         </dd>
       </div>
-      <div>
-        <dt>Voting style</dt>
-        <dd>
-          {p.roundsVoted ? (
-            <span className="dim small">
-              {n1(p.avgSongsVotedPer)} songs a round at {n1(p.avgPointsPerVote)} pts each
-              {p.tasteAlignment !== undefined &&
-                ` · ${Math.round(p.tasteAlignment * 100)}% ${p.tasteAlignment >= 0.5 ? 'mainstream' : 'contrarian'}`}
-              {p.roundsMissedVoting > 0 && (
-                <span className="neg"> · skipped {p.roundsMissedVoting}</span>
-              )}
-            </span>
-          ) : (
-            <span className="neg">never voted</span>
-          )}
-        </dd>
-      </div>
+      {vs && (
+        <div>
+          <dt>Voting style</dt>
+          <dd>
+            {vs.roundsVoted ? (
+              <span className="dim small">
+                {n1(vs.avgSongsVotedPer)} songs a round at {n1(vs.avgPointsPerVote)} pts each
+                {vs.tasteAlignment !== undefined &&
+                  ` · ${Math.round(vs.tasteAlignment * 100)}% ${vs.tasteAlignment >= 0.5 ? 'mainstream' : 'contrarian'}`}
+                {vs.roundsMissedVoting > 0 && (
+                  <span className="neg"> · skipped {vs.roundsMissedVoting}</span>
+                )}
+              </span>
+            ) : (
+              <span className="neg">never voted</span>
+            )}
+          </dd>
+        </div>
+      )}
     </dl>
   );
 }

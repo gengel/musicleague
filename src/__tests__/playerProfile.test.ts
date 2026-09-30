@@ -78,6 +78,21 @@ describe('buildPlayerProfile', () => {
     expect(cur.ownFavourite?.name).toBe('Cleo');
   });
 
+  it('pools an all-leagues aggregate', () => {
+    const agg = profile.aggregate;
+    // Two leagues: totals sum. Bob = (5 votes + 3 theme) in L2, (4) in L1 = 12.
+    expect(agg.totals.points).toBe(profile.appearances.reduce((s, a) => s + a.player.pointsCounted, 0));
+    expect(agg.totals.songs).toBe(2); // one song per league
+    // Per-league finish strip is preserved.
+    expect(agg.totals.finishes).toHaveLength(2);
+    // Cleo appears in both leagues, so the pooled who-they-rank merges her.
+    const cleo = agg.ranks.filter((r) => r.name === 'Cleo');
+    expect(cleo).toHaveLength(1);
+    expect(cleo[0].up).toBe(6); // 3 + 3 across leagues
+    // Combined vote-genre still leads Rock.
+    expect(agg.voteGenres[0]?.[0]).toBe('Rock');
+  });
+
   it('slugs and resolves names', () => {
     expect(playerSlug('Tim E---')).toBe('tim-e');
     expect(resolveSlug('bob', current)).toBe('bob');

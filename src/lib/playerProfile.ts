@@ -67,11 +67,45 @@ export interface ThemeBrief {
   bestSubmissions: { title: string; artist: string; net: number; league: string }[];
 }
 
+export interface CareerTotals {
+  points: number;
+  songs: number;
+  wins: number;
+  upvotesReceived: number;
+  downvotesReceived: number;
+  upvotesGiven: number;
+  downvotesGiven: number;
+  roundsMissedVoting: number;
+  /** Per-league finish, newest first, for the strip shown in every scope. */
+  finishes: { label: string; finish?: number; of?: number; points: number }[];
+}
+
+/**
+ * A pooled view across every league the player has played: their whole
+ * career as one appearance. Totals sum; genre/era and who-they-rank pool;
+ * finish and theme do not aggregate and are shown per league instead.
+ */
+export interface AggregateAppearance {
+  songs: SongStats[];
+  ranks: RankedOpponent[];
+  backers: RankedOpponent[];
+  submitGenres: [string, number][];
+  voteGenres: [string, number][];
+  voteDecades: [string, number][];
+  decades: [string, number][];
+  biggestFan?: RankedOpponent;
+  leastImpressed?: RankedOpponent;
+  ownFavourite?: RankedOpponent;
+  totals: CareerTotals;
+}
+
 export interface PlayerProfile {
   playerId: string;
   name: string;
   slug: string;
   appearances: LeagueAppearance[];
+  /** The pooled career view across all appearances. */
+  aggregate: AggregateAppearance;
   /** The player's theme round in the current league, when they have one. */
   themeRoundName?: string;
   themeOutcome?: import('./theme').ThemeOutcome;
@@ -253,6 +287,77 @@ function buildBrief(
 }
 
 /**
+ * Pools every appearance into one career view. Totals sum; genre/era and
+ * who-they-rank pool across leagues; the fan facts are recomputed from the
+ * pooled up/down so "biggest fan" means "who has given them the most,
+ * all-time". Finish and theme do not aggregate and are carried per league.
+ */
+function buildAggregate(appearances: LeagueAppearance[]): AggregateAppearance {
+  const mergeOpponents = (lists: RankedOpponent[][]): RankedOpponent[] => {
+    const by = new Map<string, RankedOpponent>();
+    for (const list of lists) {
+      for (const r of list) {
+        const cur = by.get(r.opponentId);
+        if (cur) {
+          cur.up += r.up;
+          cur.down += r.down;
+          cur.net += r.net;
+          cur.reciprocalNet =
+            (cur.reciprocalNet ?? 0) + (r.reciprocalNet ?? 0) || cur.reciprocalNet;
+        } else {
+          by.set(r.opponentId, { ...r });
+        }
+      }
+    }
+    // netAffinity/devotion are per-league ratios; a pooled sum is not
+    // meaningful, so the aggregate ranks on raw net instead.
+    return [...by.values()].sort((a, b) => b.net - a.net);
+  };
+
+  const sumPairs = (pairs: [string, number][][]): [string, number][] => {
+    const by = new Map<string, number>();
+    for (const list of pairs) for (const [k, v] of list) by.set(k, (by.get(k) ?? 0) + v);
+    return topN(by, 6);
+  };
+
+  const ranks = mergeOpponents(appearances.map((a) => a.ranks));
+  const backers = mergeOpponents(appearances.map((a) => a.backers));
+  const decadeCounts = new Map<string, number>();
+  for (const a of appearances) for (const [d, c] of a.decades) decadeCounts.set(d, (decadeCounts.get(d) ?? 0) + c);
+
+  const totals: CareerTotals = {
+    points: appearances.reduce((s, a) => s + a.player.pointsCounted, 0),
+    songs: appearances.reduce((s, a) => s + a.player.songs, 0),
+    wins: appearances.reduce((s, a) => s + a.player.wins, 0),
+    upvotesReceived: appearances.reduce((s, a) => s + a.player.upvotesReceived, 0),
+    downvotesReceived: appearances.reduce((s, a) => s + a.player.downvotesReceived, 0),
+    upvotesGiven: appearances.reduce((s, a) => s + a.player.upvotesGiven, 0),
+    downvotesGiven: appearances.reduce((s, a) => s + a.player.downvotesGiven, 0),
+    roundsMissedVoting: appearances.reduce((s, a) => s + a.player.roundsMissedVoting, 0),
+    finishes: appearances.map((a) => ({
+      label: a.label,
+      finish: a.finish,
+      of: a.of,
+      points: a.player.pointsCounted,
+    })),
+  };
+
+  return {
+    songs: appearances.flatMap((a) => a.songs).sort((x, y) => y.effectiveNet - x.effectiveNet),
+    ranks,
+    backers,
+    submitGenres: sumPairs(appearances.map((a) => a.submitGenres)),
+    voteGenres: sumPairs(appearances.map((a) => a.voteGenres)),
+    voteDecades: sumPairs(appearances.map((a) => a.voteDecades)),
+    decades: [...decadeCounts.entries()].sort((a, b) => a[0].localeCompare(b[0])),
+    biggestFan: [...backers].filter((b) => b.up > 0).sort((a, b) => b.net - a.net)[0],
+    leastImpressed: [...backers].sort((a, b) => a.net - b.net)[0],
+    ownFavourite: [...ranks].filter((r) => r.up > 0).sort((a, b) => b.net - a.net)[0],
+    totals,
+  };
+}
+
+/**
  * Builds the full dossier for one player.
  *
  * `currentGenres` and each history league's genres are keyed by lowercased
@@ -318,6 +423,7 @@ export function buildPlayerProfile(
     name: player.name,
     slug: playerSlug(player.name),
     appearances,
+    aggregate: buildAggregate(appearances),
     themeRoundName,
     themeOutcome,
     themePending,
