@@ -2221,7 +2221,9 @@ td.archetype-col {
 
 @media (max-width: 620px) {
   .grid {
-    grid-template-columns: 1fr;
+    /* minmax(0, …) lets the track shrink below its content's min width; a
+       bare 1fr would size to the widest unbreakable row and overflow. */
+    grid-template-columns: minmax(0, 1fr);
   }
   .topbar {
     flex-direction: column;
@@ -2315,11 +2317,56 @@ td.archetype-col {
 }
 .player-head__score {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+.player-head__score-num {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 1.3rem;
   font-weight: 700;
 }
+.player-head__score-label { text-align: right; }
+
+/* ---- People: two directional groups ---- */
+.people__group {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  margin-bottom: 0.6rem;
+}
+.people__dir {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  margin-bottom: 0.2rem;
+}
+.person {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+}
+.person + .person { border-top: 1px solid var(--line); }
+.person__label { color: var(--dim); font-size: 0.85rem; }
+.person__name {
+  font-weight: 600;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.person__fig {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  cursor: help;
+}
+.people__style { margin: 0.2rem 0 0.8rem; }
+.brief-grid--pair { grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); }
 .player-record {
   display: flex;
   gap: 1rem;
@@ -2336,9 +2383,10 @@ td.archetype-col {
 
 .brief-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 1rem;
 }
+.brief-list li > * { min-width: 0; }
 .brief-list ul {
   list-style: none;
   padding: 0;
@@ -2469,3 +2517,29 @@ td.archetype-col {
 .taste-facet__val { font-size: 1rem; }
 .taste-facet__val strong { color: var(--text); }
 .taste-facet__val.dim strong { color: var(--dim); }
+
+/* ---- Player page on phones ---- */
+.summary-cols,
+.taste-block,
+.player-facts {
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+}
+.table-scroll { overflow-x: auto; }
+@media (max-width: 620px) {
+  /* Art beside the title; score and links share a row underneath. */
+  .song-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'art body body' 'art score links';
+    align-items: start;
+    column-gap: 10px;
+    row-gap: 4px;
+  }
+  .song-row__art { grid-area: art; }
+  .song-row__body { grid-area: body; }
+  .song-row__score { grid-area: score; text-align: left; }
+  .song-row__links { grid-area: links; }
+  .taste-block { grid-template-columns: minmax(0, 1fr); }
+  .player-head__score { align-items: flex-start; }
+  .player-head__score-label { text-align: left; }
+}

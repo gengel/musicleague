@@ -149,7 +149,7 @@ export function SongTags({
     }
   }
 
-  if (durationMs !== undefined) {
+  if (durationMs !== undefined && durationMs > 0) {
     if (durationMs < 120_000) {
       const s = Math.round(durationMs / 1000);
       chips.push({ kind: 'duration', text: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` });

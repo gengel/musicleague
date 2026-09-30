@@ -16,10 +16,10 @@ import { computeStats, computeSuperlatives, type FloorMode, type ScoringMode } f
 import { buildHistoryLeagues, joinHistory, type History } from './lib/history';
 import { resolveSlug } from './lib/playerProfile';
 import { parseHash, tabSlug, TABS, type Route, type TabId } from './lib/route';
-import { attachEnrichment, parseEnrichment } from './lib/enrich';
+import { attachEnrichment, parseEnrichment, type RawEnrichmentFiles } from './lib/enrich';
 import { buildDemoCsv, buildDemoEnrichment } from './lib/demo';
 import { FileDrop } from './components/FileDrop';
-import { Overview } from './components/Overview';
+import { Card } from './components/ui';
 import { ThisRoundTab } from './components/ThisRoundTab';
 import { TheRaceTab } from './components/TheRaceTab';
 import { TheSongsTab } from './components/TheSongsTab';
@@ -99,6 +99,7 @@ export default function App() {
           flooring: h.flooring ?? 'auto',
           totalRounds: h.totalRounds ?? undefined,
         },
+        enrichment: h.enrichment as RawEnrichmentFiles,
       })),
     );
     return joinHistory(
@@ -217,7 +218,18 @@ export default function App() {
         {route.kind === 'player' ? (
           (() => {
             const id = resolveSlug(route.slug, stats);
-            if (!id) return <Overview stats={stats} onNavigate={(t) => goTab(t as TabId)} />;
+            if (!id)
+              return (
+                <Card title="No such player" wide>
+                  <p className="dim">
+                    Nobody in this league matches “{route.slug}”. Surnames are shortened, so links use the
+                    redacted name.
+                  </p>
+                  <button className="linklike" onClick={() => goTab('Players' as TabId)}>
+                    See all players →
+                  </button>
+                </Card>
+              );
             return (
               <PlayerPage
                 playerId={id}

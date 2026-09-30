@@ -19,6 +19,16 @@ function bandOrder(map: Map<string, number>): [string, number][] {
   return POP_ORDER.filter((b) => map.has(b)).map((b) => [b, map.get(b)!]);
 }
 
+/**
+ * The dominant label in a weighted list. Lists are often ordered for display
+ * (popularity deep→hit, eras by name), so this takes the highest weight, not
+ * the first row. Ties keep the earlier row.
+ */
+export function tasteLead(rows: [string, number][]): string | undefined {
+  if (!rows.length) return undefined;
+  return rows.reduce((best, r) => (r[1] > best[1] ? r : best))[0];
+}
+
 export interface RankedOpponent {
   opponentId: string;
   name: string;

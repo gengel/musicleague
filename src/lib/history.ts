@@ -11,12 +11,15 @@
 import { parseLeague, type NamedFile } from './parse';
 import { computeStats, type PlayerStats, type Stats, type StatsOptions } from './stats';
 import { identityKey } from './types';
+import { attachEnrichment, parseEnrichment, type RawEnrichmentFiles } from './enrich';
 
 export interface HistoryLeagueInput {
   id: string;
   label: string;
   files: NamedFile[];
   options: StatsOptions;
+  /** Raw enrichment files (years, obscurity, …) baked for that league. */
+  enrichment?: RawEnrichmentFiles;
 }
 
 export interface HistoryLeague {
@@ -50,7 +53,11 @@ export interface History {
 /** Computes stats for each history league. */
 export function buildHistoryLeagues(inputs: HistoryLeagueInput[]): HistoryLeague[] {
   return inputs.map((input) => {
-    const stats = computeStats(parseLeague(input.files), input.options);
+    const computed = computeStats(parseLeague(input.files), input.options);
+    // Attach year/popularity so pooled taste reads cover every league.
+    const stats = input.enrichment
+      ? { ...computed, songs: attachEnrichment(computed.songs, parseEnrichment(input.enrichment)) }
+      : computed;
     const finishOrder = [...stats.players]
       .filter((p) => p.songs > 0)
       .sort((a, b) => b.pointsCounted - a.pointsCounted)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { highlightSongs } from '../lib/playerProfile';
+import { highlightSongs, tasteLead } from '../lib/playerProfile';
 import type { SongStats } from '../lib/stats';
 
 const song = (title: string, effectiveNet: number): SongStats =>
@@ -41,5 +41,18 @@ describe('highlightSongs', () => {
 
   it('handles no songs', () => {
     expect(highlightSongs([])).toEqual({ best: [], worst: undefined });
+  });
+});
+
+describe('tasteLead', () => {
+  it('picks the heaviest row, not the first in display order', () => {
+    // Popularity is displayed deep→hit; Bob's real split had "known" dominant.
+    expect(tasteLead([['deep cut', 2], ['known', 6], ['popular', 2]])).toBe('known');
+    // Eras are displayed by name.
+    expect(tasteLead([['1970s', 1], ['2000s', 4], ['2010s', 2]])).toBe('2000s');
+  });
+  it('keeps the earlier row on a tie, and handles empty', () => {
+    expect(tasteLead([['a', 3], ['b', 3]])).toBe('a');
+    expect(tasteLead([])).toBeUndefined();
   });
 });

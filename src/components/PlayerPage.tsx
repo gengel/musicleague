@@ -6,6 +6,7 @@ import {
   buildPlayerProfile,
   highlightSongs,
   playerSlug,
+  tasteLead,
   type AggregateAppearance,
   type LeagueAppearance,
   type PlayerProfile,
@@ -91,7 +92,9 @@ function PlayerTabs({
   return (
     <>
       <PlayerHeader profile={profile} />
-      {profile.themePending || profile.themeOutcome ? <ThemeBriefCard profile={profile} /> : null}
+      {/* Before their theme round, the scouting brief is the point of the page;
+          afterwards its unique parts fold into Summary rather than repeating. */}
+      {profile.themePending ? <ThemeBriefCard profile={profile} /> : null}
 
       <div className="scope-tabs" role="tablist" aria-label="Profile sections">
         {tabs.map((t) => (
@@ -107,7 +110,13 @@ function PlayerTabs({
         ))}
       </div>
 
-      {tab === 'summary' && <SummaryCard view={pooled} onNavigate={onNavigate} />}
+      {tab === 'summary' && (
+        <SummaryCard
+          view={pooled}
+          onNavigate={onNavigate}
+          brief={profile.themePending ? undefined : profile.brief}
+        />
+      )}
       {tab === 'submissions' && <SubmissionsCard view={pooled} title="Submissions — all leagues" />}
       {tab === 'relationships' && <RelationshipsCard view={pooled} onNavigate={onNavigate} />}
       {perLeague && (
@@ -185,12 +194,12 @@ function leagueView(a: LeagueAppearance): ScopeView {
 function aggregateView(agg: AggregateAppearance): ScopeView {
   const t = agg.totals;
   return {
-    title: 'All leagues — career',
+    title: 'Career — all leagues combined',
     chips: [
-      { text: `${t.points > 0 ? '+' : ''}${t.points} points`, tone: t.points < 0 ? 'neg' : 'pos' },
+      { text: `${t.points > 0 ? '+' : ''}${t.points} career points`, tone: t.points < 0 ? 'neg' : 'pos' },
       { text: `${t.songs} songs` },
       ...(t.wins > 0 ? [{ text: `${t.wins} round win${t.wins === 1 ? '' : 's'}` }] : []),
-      { text: `+${t.upvotesReceived}/−${t.downvotesReceived} received` },
+      { text: `${t.upvotesReceived} upvotes and ${t.downvotesReceived} downvotes received` },
       ...(t.roundsMissedVoting > 0 ? [{ text: `${t.roundsMissedVoting} round(s) not voted`, tone: 'neg' as const }] : []),
     ],
     finishes: t.finishes,
@@ -238,13 +247,18 @@ function PlayerHeader({ profile }: { profile: PlayerProfile }) {
         </div>
         {p && (
           <div className="player-head__score">
-            <span className={p.pointsCounted < 0 ? 'neg' : 'pos'}>
-              {p.pointsCounted > 0 ? '+' : ''}
-              {p.pointsCounted}
-            </span>
-            {p.themeBonus !== 0 && (
-              <ThemeChip points={p.themeBonus} reason={profile.themeOutcome?.reason} compact />
-            )}
+            <div className="player-head__score-num">
+              <span className={p.pointsCounted < 0 ? 'neg' : 'pos'}>
+                {p.pointsCounted > 0 ? '+' : ''}
+                {p.pointsCounted}
+              </span>
+              {p.themeBonus !== 0 && (
+                <ThemeChip points={p.themeBonus} reason={profile.themeOutcome?.reason} compact />
+              )}
+            </div>
+            <div className="player-head__score-label dim small">
+              {current!.label} points{p.themeBonus !== 0 ? ', incl. theme' : ''}
+            </div>
           </div>
         )}
       </header>
@@ -278,7 +292,9 @@ function ThemeBriefCard({ profile }: { profile: PlayerProfile }) {
         />
         <BriefList
           title="Their best-received songs"
-          rows={b.bestSubmissions.map((s) => [`${s.title} — ${s.artist}`, `${s.net > 0 ? '+' : ''}${s.net} (${s.league})`])}
+          rows={b.bestSubmissions
+            .filter((s) => s.net > 0)
+            .map((s) => [`${s.title} — ${s.artist}`, `+${s.net} (${s.league})`])}
         />
       </div>
     </Card>
@@ -302,8 +318,19 @@ function BriefList({ title, rows }: { title: string; rows: [string, string][] })
   );
 }
 
-function SummaryCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (slug: string) => void }) {
+function SummaryCard({
+  view: a,
+  onNavigate,
+  brief,
+}: {
+  view: ScopeView;
+  onNavigate: (slug: string) => void;
+  /** Scouting brief; only the lists no other block already shows are used. */
+  brief?: PlayerProfile['brief'];
+}) {
   const { best, worst } = highlightSongs(a.songs);
+  const artists = brief?.favouriteArtists.slice(0, 4) ?? [];
+  const punished = brief?.mostDownvoted.slice(0, 4) ?? [];
   return (
     <Card title={a.title} wide>
       <div className="player-record dim small">
@@ -341,6 +368,15 @@ function SummaryCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (sl
         <section className="summary-block">
           <h4 className="player-sub">People</h4>
           <PlayerFacts view={a} onNavigate={onNavigate} />
+          {(artists.length > 0 || punished.length > 0) && (
+            <div className="brief-grid brief-grid--pair">
+              <BriefList title="Artists they reward" rows={artists.map((r) => [r[0], `${r[1]} pts`])} />
+              <BriefList
+                title="Songs they punished"
+                rows={punished.map((d) => [`${d.title} — ${d.artist}`, `−${d.points}`])}
+              />
+            </div>
+          )}
         </section>
       </div>
     </Card>
@@ -353,7 +389,7 @@ function SummaryCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (sl
  * Given prominence at the top of the summary rather than a tiny footnote.
  */
 function TasteBlock({ view: a }: { view: ScopeView }) {
-  const lead = (rows: [string, number][]) => (rows.length ? rows[0][0] : undefined);
+  const lead = tasteLead;
   const submitPop = lead(a.submitPop);
   const votePop = lead(a.votePop);
   const submitEra = lead(a.decades);
@@ -508,6 +544,7 @@ function OpponentTable({
   backLabel: string;
 }) {
   return (
+    <div className="table-scroll">
     <table className="t">
       <thead>
         <tr>
@@ -541,6 +578,7 @@ function OpponentTable({
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -583,7 +621,11 @@ function VoteBreakdown({
   );
 }
 
-/** Biggest fan / least impressed / their own favourite / voting style. */
+/**
+ * People, split by direction so "who dislikes them" and "who they dislike"
+ * can no longer be confused: the room on them, then them on the room. Each
+ * person shows a single net figure; the up/down split sits in a tooltip.
+ */
 function PlayerFacts({
   view: a,
   onNavigate,
@@ -592,71 +634,52 @@ function PlayerFacts({
   onNavigate: (slug: string) => void;
 }) {
   const vs = a.votingStyle;
-  const link = (r?: { name: string }) =>
-    r ? (
-      <button className="linklike" onClick={() => onNavigate(playerSlug(r.name))}>
-        {r.name}
-      </button>
-    ) : (
-      <span className="dim">—</span>
-    );
-  const sentiment = (r?: { up: number; down: number; net: number }) => {
-    if (!r) return '';
-    if (r.down === 0) return ` — +${r.up}, no downvotes`;
-    if (r.up === 0) return ` — ${r.down} in downvotes, never a point given`;
-    return ` — net ${r.net > 0 ? '+' : ''}${r.net} (${r.up} up, ${r.down} down)`;
-  };
-  return (
-    <dl className="player-facts">
-      <div>
-        <dt>Biggest fan</dt>
-        <dd>
-          {link(a.biggestFan)}
-          <span className="dim small">{sentiment(a.biggestFan)}</span>
-        </dd>
-      </div>
-      <div>
-        <dt>Least impressed</dt>
-        <dd>
-          {link(a.leastImpressed)}
-          <span className="dim small">{sentiment(a.leastImpressed)}</span>
-        </dd>
-      </div>
-      <div>
-        <dt>Their own favourite</dt>
-        <dd>
-          {link(a.ownFavourite)}
-          <span className="dim small">{sentiment(a.ownFavourite)}</span>
-        </dd>
-      </div>
-      <div>
-        <dt>Nemesis</dt>
-        <dd>
-          {link(a.nemesis)}
-          <span className="dim small">
-            {a.nemesis ? ` — ${a.nemesis.down} in downvotes` : ''}
+  const person = (label: string, r: RankedOpponent | undefined, figure: 'net' | 'down') => (
+    <div className="person">
+      <div className="person__label">{label}</div>
+      {r ? (
+        <>
+          <button className="linklike person__name" onClick={() => onNavigate(playerSlug(r.name))}>
+            {r.name}
+          </button>
+          <span
+            className={`person__fig ${figure === 'down' || r.net < 0 ? 'neg' : 'pos'}`}
+            title={`${r.up} up, ${r.down} down — net ${r.net > 0 ? '+' : ''}${r.net}`}
+          >
+            {figure === 'down' ? `−${r.down}` : `${r.net > 0 ? '+' : ''}${r.net}`}
           </span>
-        </dd>
+        </>
+      ) : (
+        <span className="dim">—</span>
+      )}
+    </div>
+  );
+  return (
+    <div className="people">
+      <div className="people__group">
+        <div className="people__dir">How the room votes on them</div>
+        {person('Biggest fan', a.biggestFan, 'net')}
+        {person('Harshest critic', a.leastImpressed, 'net')}
+      </div>
+      <div className="people__group">
+        <div className="people__dir">How they vote on the room</div>
+        {person('Favourite', a.ownFavourite, 'net')}
+        {person('Nemesis', a.nemesis, 'down')}
       </div>
       {vs && (
-        <div>
-          <dt>Voting style</dt>
-          <dd>
-            {vs.roundsVoted ? (
-              <span className="dim small">
-                {n1(vs.avgSongsVotedPer)} songs a round at {n1(vs.avgPointsPerVote)} pts each
-                {vs.tasteAlignment !== undefined &&
-                  ` · ${Math.round(vs.tasteAlignment * 100)}% ${vs.tasteAlignment >= 0.5 ? 'mainstream' : 'contrarian'}`}
-                {vs.roundsMissedVoting > 0 && (
-                  <span className="neg"> · skipped {vs.roundsMissedVoting}</span>
-                )}
-              </span>
-            ) : (
-              <span className="neg">never voted</span>
-            )}
-          </dd>
-        </div>
+        <p className="people__style dim small">
+          {vs.roundsVoted ? (
+            <>
+              Votes for {n1(vs.avgSongsVotedPer)} songs a round, {n1(vs.avgPointsPerVote)} pts each
+              {vs.tasteAlignment !== undefined &&
+                ` · ${vs.tasteAlignment >= 0.5 ? 'mainstream' : 'contrarian'} taste`}
+              {vs.roundsMissedVoting > 0 && <span className="neg"> · skipped {vs.roundsMissedVoting}</span>}
+            </>
+          ) : (
+            <span className="neg">Has never voted</span>
+          )}
+        </p>
       )}
-    </dl>
+    </div>
   );
 }
