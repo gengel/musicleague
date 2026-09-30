@@ -102,17 +102,19 @@ function PlayerTabs({
       {profile.themePending ? <ThemeBriefCard profile={profile} /> : null}
 
       <div className="scope-tabs" role="tablist" aria-label="Profile sections">
-        {sectionTabs.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
-            className={`scope-tab${tab === t.key ? ' scope-tab--on' : ''}`}
-            onClick={() => setTab(t.key)}
-          >
-            <Icon name={t.icon} size={14} /> {t.label}
-          </button>
-        ))}
+        <span className="scope-tabs__sections">
+          {sectionTabs.map((t) => (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={tab === t.key}
+              className={`scope-tab${tab === t.key ? ' scope-tab--on' : ''}`}
+              onClick={() => setTab(t.key)}
+            >
+              <Icon name={t.icon} size={14} /> {t.label}
+            </button>
+          ))}
+        </span>
         {seasonTabs.length > 0 && (
           <span className="scope-tabs__season">
             <span className="scope-tabs__season-label">Season</span>
