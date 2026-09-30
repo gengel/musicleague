@@ -18,13 +18,32 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const dataDir = join(root, 'src/data');
-const enrichDir = join(root, 'enrich');
+
+/** Resolve data/enrich dirs, honouring --league <id> against leagues/<id>.json. */
+function resolveDirs() {
+  const argv = process.argv.slice(2);
+  const i = argv.indexOf('--league');
+  if (i >= 0 && argv[i + 1]) {
+    const id = argv[i + 1];
+    const configPath = join(root, 'leagues', `${id}.json`);
+    if (!existsSync(configPath)) {
+      console.error(`No league config: leagues/${id}.json`);
+      process.exit(1);
+    }
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    return {
+      dataDir: join(root, config.export),
+      enrichDir: join(root, config.enrich ?? 'enrich'),
+    };
+  }
+  return { dataDir: join(root, 'src/data'), enrichDir: join(root, 'enrich') };
+}
+const { dataDir, enrichDir } = resolveDirs();
 const envPath = join(root, '.env');
 const outPath = join(enrichDir, 'obscurity.json');
 const durPath = join(enrichDir, 'durations.json');
 
-const args = new Set(process.argv.slice(2));
+const args = new Set(process.argv.slice(2).filter((a) => a !== '--league'));
 const refresh = args.has('--refresh');
 
 const c = {

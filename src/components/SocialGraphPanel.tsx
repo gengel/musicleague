@@ -32,6 +32,20 @@ export function SocialGraphPanel({ stats }: { stats: Stats }) {
   const [threshold, setThreshold] = useState(1.4);
   const [focus, setFocus] = useState<string | undefined>();
 
+  // A network drawn from one or two rounds is noise: a single shared ballot
+  // reads as a friendship. Wait until there is enough play to mean something.
+  const MIN_ROUNDS = 3;
+  if (stats.roundsPlayed < MIN_ROUNDS) {
+    return (
+      <Card title="Who votes with whom">
+        <Empty>
+          The network appears after {MIN_ROUNDS} rounds — {stats.roundsPlayed} played so far. One or
+          two rounds of votes are too few to tell a friendship from a coincidence.
+        </Empty>
+      </Card>
+    );
+  }
+
   if (!graph.nodes.length) {
     return (
       <Card title="Who votes with whom">

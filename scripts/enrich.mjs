@@ -20,8 +20,27 @@ import { fileURLToPath } from 'node:url';
 import { fetchYears } from './years.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const dataDir = join(root, 'src/data');
-const enrichDir = join(root, 'enrich');
+
+/** Resolve data/enrich dirs, honouring --league <id> against leagues/<id>.json. */
+function resolveDirs() {
+  const argv = process.argv.slice(2);
+  const i = argv.indexOf('--league');
+  if (i >= 0 && argv[i + 1]) {
+    const id = argv[i + 1];
+    const configPath = join(root, 'leagues', `${id}.json`);
+    if (!existsSync(configPath)) {
+      console.error(`No league config: leagues/${id}.json`);
+      process.exit(1);
+    }
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    return {
+      dataDir: join(root, config.export),
+      enrichDir: join(root, config.enrich ?? 'enrich'),
+    };
+  }
+  return { dataDir: join(root, 'src/data'), enrichDir: join(root, 'enrich') };
+}
+const { dataDir, enrichDir } = resolveDirs();
 
 const c = {
   dim: (s) => `\x1b[2m${s}\x1b[0m`,
