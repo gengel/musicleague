@@ -105,6 +105,7 @@ v2 (`6976f5d`…`68415a5`), in order:
 - **Known open issues:**
   1. `DESIGN-REVIEW.md` §1–8 lists the remaining backlog.
 - **Older backlog (`REVIEW-v2.md`), status as checked today:**
+  - Gate helper (G2): add shared helper and apply panel by panel to early-season noise.
   - `PlayerDetail` in `PlayersTab.tsx:173` is still dead code (item 6).
   - The stale `docs/index0-2.html` and `docs/league0-2.html` are still
     there (item 5).
@@ -117,13 +118,11 @@ Do one item at a time: make the change, typecheck, run the tests, build
 and restore `dist`, rebake, screenshot and look at it, then commit with a
 new commit (never amend). Don't push unless asked.
 
-1. Add the gate helper (G2) and apply it panel by panel. Add unit tests
-   for the helper.
-2. Remove the duplicate tables and panels (G1, the Songs lists, Room
+1. Remove the duplicate tables and panels (G1, the Songs lists, Room
    "Points received", Players "end to end"). Update any tests that assert
    those panels exist.
-3. Move method subtitles and runner-ups into `InfoTip` (G4, G5).
-4. Impact work: This Round podium, Players card grid, Standings chart
+2. Move method subtitles and runner-ups into `InfoTip` (G4, G5).
+3. Impact work: This Round podium, Players card grid, Standings chart
    defaults, round page.
 
 ## 7. User preferences (standing)
