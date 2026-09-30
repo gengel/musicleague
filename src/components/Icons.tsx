@@ -188,6 +188,104 @@ const paths: Record<string, ReactElement> = {
       <path d="M6 6l3 3M18 6l-3 3M6 18l3-3M18 18l-3-3" />
     </>
   ),
+  // Popularity: bar meters, filled left-to-right by band.
+  signal1: (
+    <>
+      <path d="M6 20v-3" />
+      <path d="M10 20v-6" opacity="0.3" />
+      <path d="M14 20v-9" opacity="0.3" />
+      <path d="M18 20V6" opacity="0.3" />
+    </>
+  ),
+  signal2: (
+    <>
+      <path d="M6 20v-3" />
+      <path d="M10 20v-6" />
+      <path d="M14 20v-9" opacity="0.3" />
+      <path d="M18 20V6" opacity="0.3" />
+    </>
+  ),
+  signal3: (
+    <>
+      <path d="M6 20v-3" />
+      <path d="M10 20v-6" />
+      <path d="M14 20v-9" />
+      <path d="M18 20V6" opacity="0.3" />
+    </>
+  ),
+  signal4: (
+    <>
+      <path d="M6 20v-3" />
+      <path d="M10 20v-6" />
+      <path d="M14 20v-9" />
+      <path d="M18 20V6" />
+    </>
+  ),
+  // Era.
+  cassette: (
+    <>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <circle cx="9" cy="12" r="1.4" />
+      <circle cx="15" cy="12" r="1.4" />
+      <path d="M7 17l1.5-2.5h7L17 17" />
+    </>
+  ),
+  cd: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="2.2" />
+    </>
+  ),
+  phone: (
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2" />
+      <path d="M11 18h2" />
+    </>
+  ),
+  vinyl: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="4" opacity="0.5" />
+      <circle cx="12" cy="12" r="1" />
+    </>
+  ),
+  // Genre families.
+  guitar: (
+    <>
+      <path d="M15 3l2 2-1 1 2 2-1 1" />
+      <path d="M14 6l4 4" />
+      <circle cx="8.5" cy="15.5" r="4.5" />
+      <circle cx="8.5" cy="15.5" r="1.4" />
+      <path d="M11.7 12.3L14 10" />
+    </>
+  ),
+  mic: (
+    <>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M6 11a6 6 0 0 0 12 0" />
+      <path d="M12 17v4M9 21h6" />
+    </>
+  ),
+  synth: (
+    <>
+      <rect x="3" y="8" width="18" height="9" rx="1.5" />
+      <path d="M7 8v5M11 8v5M15 8v5M19 8v5" />
+    </>
+  ),
+  sax: (
+    <>
+      <path d="M10 3v8a5 5 0 0 0 5 5h1a3 3 0 0 0 3-3v-1" />
+      <path d="M19 12v6a2 2 0 0 1-2 2h-3" />
+      <path d="M8 3h4" />
+    </>
+  ),
+  banjo: (
+    <>
+      <circle cx="8" cy="16" r="5" />
+      <path d="M11.5 12.5L20 4" />
+      <path d="M18 3l3 3" />
+    </>
+  ),
 };
 
 /**
@@ -226,7 +324,9 @@ export function iconFor(label: string): keyof typeof paths {
   return 'spark';
 }
 
-export function Icon({ name, size = 20 }: { name: keyof typeof paths; size?: number }) {
+export type IconName = keyof typeof paths;
+
+export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   return (
     <svg
       className="icon"
@@ -244,6 +344,47 @@ export function Icon({ name, size = 20 }: { name: keyof typeof paths; size?: num
       {paths[name]}
     </svg>
   );
+}
+
+/** Popularity band → a 1-of-4 signal meter (deep cut quietest, hit loudest). */
+export function popularityIcon(band: string): keyof typeof paths {
+  switch (band) {
+    case 'deep cut':
+      return 'signal1';
+    case 'niche':
+      return 'signal2';
+    case 'known':
+      return 'signal3';
+    case 'popular':
+    case 'hit':
+      return 'signal4';
+    default:
+      return 'signal3';
+  }
+}
+
+/** Decade label ("1980s") → the medium of its era. */
+export function eraIcon(decade: string): keyof typeof paths {
+  const year = parseInt(decade, 10);
+  if (Number.isNaN(year)) return 'disc';
+  if (year >= 2010) return 'phone';
+  if (year >= 2000) return 'cd';
+  if (year >= 1970) return 'cassette';
+  return 'vinyl';
+}
+
+const GENRE_FAMILY: [RegExp, keyof typeof paths][] = [
+  [/hip.?hop|rap|r&b|soul/i, 'mic'],
+  [/rock|metal|punk|alternative|indie|grunge/i, 'guitar'],
+  [/electro|techno|house|dance|edm|synth|pop/i, 'synth'],
+  [/jazz|funk|blues|swing/i, 'sax'],
+  [/folk|country|americana|bluegrass|acoustic/i, 'banjo'],
+];
+
+/** Genre name → a family icon, falling back to the generic tag. */
+export function genreIcon(genre: string): keyof typeof paths {
+  for (const [re, name] of GENRE_FAMILY) if (re.test(genre)) return name;
+  return 'tag';
 }
 
 /** Icon chosen from a card's title. */

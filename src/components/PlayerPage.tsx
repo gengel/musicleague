@@ -14,6 +14,7 @@ import {
 } from '../lib/playerProfile';
 import { SongArt, SongLinks, SongPlayer, SongTags } from './SongMedia';
 import { InfoTip, MethodDrawer } from './InfoTip';
+import { Icon, eraIcon, genreIcon, popularityIcon, type IconName } from './Icons';
 import { ThemeChip } from './ThemeChip';
 import { Card, Empty, n1 } from './ui';
 
@@ -78,11 +79,11 @@ function PlayerTabs({
   const multi = profile.appearances.length > 1;
 
   type TabKey = string;
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: 'summary', label: 'Summary' },
-    { key: 'submissions', label: 'Submissions' },
-    { key: 'relationships', label: 'Relationships' },
-    ...(multi ? leagueViews.map((l) => ({ key: l.id, label: l.label })) : []),
+  const tabs: { key: TabKey; label: string; icon: IconName }[] = [
+    { key: 'summary', label: 'Summary', icon: 'star' },
+    { key: 'submissions', label: 'Submissions', icon: 'disc' },
+    { key: 'relationships', label: 'Relationships', icon: 'users' },
+    ...(multi ? leagueViews.map((l) => ({ key: l.id, label: l.label, icon: 'calendarX' as IconName })) : []),
   ];
   const [tab, setTab] = useState<TabKey>('summary');
 
@@ -106,7 +107,7 @@ function PlayerTabs({
             className={`scope-tab${tab === t.key ? ' scope-tab--on' : ''}`}
             onClick={() => setTab(t.key)}
           >
-            {t.label}
+            <Icon name={t.icon} size={14} /> {t.label}
           </button>
         ))}
       </div>
@@ -346,7 +347,9 @@ function SummaryCard({
 
       <div className="summary-cols">
         <section className="summary-block">
-          <h4 className="player-sub">{best.length > 1 ? 'Best submissions' : 'Best submission'}</h4>
+          <h4 className="player-sub">
+            <Icon name="trophy" size={15} /> {best.length > 1 ? 'Best submissions' : 'Best submission'}
+          </h4>
           {best.length === 0 ? (
             <Empty>No submissions yet.</Empty>
           ) : (
@@ -358,7 +361,9 @@ function SummaryCard({
           )}
           {worst && (
             <>
-              <h4 className="player-sub">Weakest submission</h4>
+              <h4 className="player-sub">
+                <Icon name="thumbsDown" size={15} /> Weakest submission
+              </h4>
               <div className="song-list">
                 <SongRow song={worst} />
               </div>
@@ -400,11 +405,12 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
 
   const popText = (b?: string) => (b ? POP_PHRASE[b] ?? b : undefined);
 
-  const facets: { label: string; submit?: string; reward?: string; info?: ReactNode }[] = [
+  const facets: { label: string; submit?: string; reward?: string; icon: IconName; info?: ReactNode }[] = [
     {
       label: 'Popularity',
       submit: popText(submitPop),
       reward: popText(votePop),
+      icon: popularityIcon(submitPop ?? votePop ?? 'known'),
       info: (
         <>
           From last.fm listener counts: deep cut &lt;20k, niche &lt;100k, known &lt;500k, popular &lt;1M, hit
@@ -412,8 +418,8 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
         </>
       ),
     },
-    { label: 'Era', submit: submitEra, reward: voteEra },
-    { label: 'Genre', submit: submitGenre, reward: voteGenre },
+    { label: 'Era', submit: submitEra, reward: voteEra, icon: eraIcon(submitEra ?? voteEra ?? '') },
+    { label: 'Genre', submit: submitGenre, reward: voteGenre, icon: genreIcon(submitGenre ?? voteGenre ?? '') },
   ];
 
   if (facets.every((f) => !f.submit && !f.reward)) return null;
@@ -423,6 +429,7 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
       {facets.map((f) => (
         <div className="taste-facet" key={f.label}>
           <div className="taste-facet__label">
+            <Icon name={f.icon} size={15} />
             {f.label}
             {f.info && <InfoTip label={`How ${f.label.toLowerCase()} is worked out`}>{f.info}</InfoTip>}
           </div>
@@ -648,9 +655,11 @@ function PlayerFacts({
   onNavigate: (slug: string) => void;
 }) {
   const vs = a.votingStyle;
-  const person = (label: string, r: RankedOpponent | undefined, figure: 'net' | 'down') => (
+  const person = (label: string, icon: IconName, r: RankedOpponent | undefined, figure: 'net' | 'down') => (
     <div className="person">
-      <div className="person__label">{label}</div>
+      <div className="person__label">
+        <Icon name={icon} size={14} /> {label}
+      </div>
       {r ? (
         <>
           <button className="linklike person__name" onClick={() => onNavigate(playerSlug(r.name))}>
@@ -672,13 +681,13 @@ function PlayerFacts({
     <div className="people">
       <div className="people__group">
         <div className="people__dir">How the room votes on them</div>
-        {person('Biggest fan', a.biggestFan, 'net')}
-        {person('Harshest critic', a.leastImpressed, 'net')}
+        {person('Biggest fan', 'heart', a.biggestFan, 'net')}
+        {person('Harshest critic', 'snowflake', a.leastImpressed, 'net')}
       </div>
       <div className="people__group">
         <div className="people__dir">How they vote on the room</div>
-        {person('Favourite', a.ownFavourite, 'net')}
-        {person('Nemesis', a.nemesis, 'down')}
+        {person('Favourite', 'star', a.ownFavourite, 'net')}
+        {person('Nemesis', 'swords', a.nemesis, 'down')}
       </div>
       {vs && (
         <p className="people__style dim small">

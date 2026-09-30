@@ -2637,3 +2637,17 @@ td.archetype-col {
 .method[open] .method__summary::before { content: '▾ '; }
 .method__body { margin-top: 0.4rem; }
 .method__body p { margin: 0.3rem 0; }
+
+/* ---- Inline icons in labels/headings/tabs ---- */
+.icon { flex: none; }
+.player-sub .icon,
+.taste-facet__label .icon,
+.person__label .icon,
+.scope-tab .icon {
+  vertical-align: -2px;
+  color: var(--dim);
+}
+.player-sub { display: flex; align-items: center; gap: 0.4rem; }
+.taste-facet__label { display: flex; align-items: center; gap: 0.35rem; }
+.person__label { display: flex; align-items: center; gap: 0.35rem; }
+.scope-tab { display: inline-flex; align-items: center; gap: 0.35rem; }
