@@ -36,10 +36,14 @@ export interface LeagueAppearance {
   songs: SongStats[];
   /** Who this player ranked, warmest first by net affinity. */
   ranks: RankedOpponent[];
+  /** Who ranked this player, warmest first — their fans and critics. */
+  backers: RankedOpponent[];
   /** The player's own genres, most-submitted first: [genre, count]. */
   submitGenres: [string, number][];
   /** Genres they rewarded with upvotes, points-weighted: [genre, points]. */
   voteGenres: [string, number][];
+  /** Eras they rewarded with upvotes, points-weighted: [decadeLabel, points]. */
+  voteDecades: [string, number][];
   /** Decade blend of their submissions: [decadeLabel, count]. */
   decades: [string, number][];
   /** Their taste alignment (mainstream↔contrarian), when computable. */
@@ -132,6 +136,23 @@ function appearanceFor(
     }))
     .sort((a, b) => b.net - a.net);
 
+  // Who ranked this player: incoming pairs (their fans and critics).
+  const outgoingNet = new Map<string, number>();
+  for (const p of outgoing) outgoingNet.set(p.targetId, p.net);
+  const backers: RankedOpponent[] = stats.pairs
+    .filter((p) => p.targetId === playerId)
+    .map((p: PairStats) => ({
+      opponentId: p.voterId,
+      name: p.voterName,
+      up: p.upvotes,
+      down: p.downvotes,
+      net: p.net,
+      netAffinity: p.netAffinity,
+      devotion: p.devotion,
+      reciprocalNet: outgoingNet.get(p.voterId),
+    }))
+    .sort((a, b) => b.net - a.net);
+
   const songByKey = new Map(stats.songs.map((s) => [`${s.trackId}|${s.roundId}`, s]));
   const submitG = new Map<string, number>();
   const decades = new Map<string, number>();
@@ -140,10 +161,12 @@ function appearanceFor(
     if (s.year !== undefined) decades.set(decadeLabel(s.year), (decades.get(decadeLabel(s.year)) ?? 0) + 1);
   }
   const voteG = new Map<string, number>();
+  const voteD = new Map<string, number>();
   for (const v of stats.league.votes.filter((v) => v.voterId === playerId && v.points > 0)) {
     const song = songByKey.get(`${v.trackId}|${v.roundId}`);
     if (!song) continue;
     for (const g of genresForArtist(song.artist, genreMap)) voteG.set(g, (voteG.get(g) ?? 0) + v.points);
+    if (song.year !== undefined) voteD.set(decadeLabel(song.year), (voteD.get(decadeLabel(song.year)) ?? 0) + v.points);
   }
 
   return {
@@ -155,8 +178,10 @@ function appearanceFor(
     of,
     songs,
     ranks,
+    backers,
     submitGenres: topN(submitG, 6),
     voteGenres: topN(voteG, 6),
+    voteDecades: topN(voteD, 6),
     decades: [...decades.entries()].sort((a, b) => a[0].localeCompare(b[0])),
     tasteAlignment: player.tasteAlignment,
   };

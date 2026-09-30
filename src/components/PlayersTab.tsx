@@ -504,20 +504,11 @@ export function PlayersTab({
 
   return (
     <>
-      <SuperlativeStrip
-        stats={stats}
-        labels={[
-          'Most generous spread',
-          'Biggest stacker',
-          'Most mainstream taste',
-          'Biggest contrarian',
-        ]}
-      />
-
-      <EraSpectrum stats={stats} />
-      <EraTable stats={stats} />
-
-      <Card title="Select a player" subtitle={onOpenPlayer ? 'Opens their full profile, with league history.' : undefined} wide>
+      <Card
+        title="Players"
+        subtitle={onOpenPlayer ? 'Tap a player for their full profile — submissions, votes, taste, and league history.' : undefined}
+        wide
+      >
         <div className="player-picker">
           {ranked.map((p) => (
             <button
@@ -539,6 +530,19 @@ export function PlayersTab({
       </Card>
 
       {selectedId && !onOpenPlayer && <PlayerDetail stats={stats} playerId={selectedId} />}
+
+      <SuperlativeStrip
+        stats={stats}
+        labels={[
+          'Most generous spread',
+          'Biggest stacker',
+          'Most mainstream taste',
+          'Biggest contrarian',
+        ]}
+      />
+
+      <EraSpectrum stats={stats} />
+      <EraTable stats={stats} />
 
       <PlayersPanel stats={stats} />
     </>

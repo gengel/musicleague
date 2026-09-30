@@ -5,8 +5,15 @@ import { ScoreBreakdownPanel } from './ScoreBreakdownPanel';
 import { RacePredictionPanel } from './RacePredictionPanel';
 import { ThemeChip } from './ThemeChip';
 import { Card } from './ui';
+import { playerSlug } from '../lib/playerProfile';
 
-export function TheRaceTab({ stats }: { stats: Stats }) {
+export function TheRaceTab({
+  stats,
+  onOpenPlayer,
+}: {
+  stats: Stats;
+  onOpenPlayer?: (slug: string) => void;
+}) {
   const ranked = [...stats.players]
     .filter((p) => p.songs > 0 || p.roundsVoted > 0)
     .sort((a, b) => b.pointsCounted - a.pointsCounted);
@@ -54,7 +61,13 @@ export function TheRaceTab({ stats }: { stats: Stats }) {
                 <tr key={p.playerId} className={p.pointsCounted < 0 ? 'row--neg' : undefined}>
                   <td className="dim">{i + 1}</td>
                   <td>
-                    <strong>{p.name}</strong>
+                    {onOpenPlayer ? (
+                      <button className="linklike" onClick={() => onOpenPlayer(playerSlug(p.name))}>
+                        <strong>{p.name}</strong>
+                      </button>
+                    ) : (
+                      <strong>{p.name}</strong>
+                    )}
                   </td>
                   <td className={`num ${p.pointsCounted < 0 ? 'neg' : 'pos'}`}>
                     {p.pointsCounted > 0 ? '+' : ''}

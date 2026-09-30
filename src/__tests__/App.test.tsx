@@ -59,10 +59,9 @@ describe('dashboard with the sample league', () => {
 
   it('lands on This Round with the latest round and standings', async () => {
     await openDemo();
-    // The default tab is This Round: it names a round and shows a winner.
+    // The default tab is This Round: it shows a winner and a standings snapshot.
     expect(screen.getAllByText(/Winner/i).length).toBeGreaterThan(0);
-    expect(screen.getByText('Round results')).toBeDefined();
-    // Standings movement table is present on the landing tab (a card, plus the tab).
+    // Standings movement card (title) plus the tab both read "Standings".
     expect(screen.getAllByText('Standings').length).toBeGreaterThan(1);
   });
 

@@ -9,7 +9,7 @@ import {
 import { SuperlativeStrip } from './SuperlativeStrip';
 import { AffinityMatrix, PairLeaders } from './AffinityMatrix';
 import { SocialGraphPanel } from './SocialGraphPanel';
-import { Card } from './ui';
+import { Card, Empty } from './ui';
 
 function UpvoteTargetingPanel({ stats }: { stats: Stats }) {
   const flows = useMemo(() => computeVoterFlows(stats), [stats]);
@@ -225,34 +225,53 @@ function LopsidedPairPanel({ stats }: { stats: Stats }) {
 
 export function TheRoomTab({ stats }: { stats: Stats }) {
   const hasDownvotes = stats.rounds.some((r) => r.totalDownvotes > 0);
+  // Relationships need a body of rounds: at one or two, "arch-nemesis" and
+  // "mutual admiration" are just who happened to share a ballot.
+  const RELATIONSHIP_MIN = 3;
+  const relationshipsReady = stats.roundsPlayed >= RELATIONSHIP_MIN;
 
   return (
     <>
-      <SuperlativeStrip
-        stats={stats}
-        labels={[
-          'Biggest superfan',
-          'Mutual admiration society',
-          'Most unrequited',
-          'Arch-nemesis',
-        ]}
-      />
-      <SuperlativeStrip
-        stats={stats}
-        labels={[
-          'Most points given (raw)',
-          'Coldest shoulder',
-        ]}
-      />
+      {relationshipsReady ? (
+        <>
+          <SuperlativeStrip
+            stats={stats}
+            labels={[
+              'Biggest superfan',
+              'Mutual admiration society',
+              'Most unrequited',
+              'Arch-nemesis',
+            ]}
+          />
+          <SuperlativeStrip
+            stats={stats}
+            labels={['Most points given (raw)', 'Coldest shoulder']}
+          />
+        </>
+      ) : (
+        <Card title="Relationships">
+          <Empty>
+            Who-loves-whom appears after {RELATIONSHIP_MIN} rounds — {stats.roundsPlayed} played so
+            far. Below is where the votes went this round; the affinity and rivalry read needs more
+            rounds to mean anything.
+          </Empty>
+        </Card>
+      )}
 
-      <SocialGraphPanel stats={stats} />
+      {/* Per-round targeting is meaningful immediately. */}
       <UpvoteTargetingPanel stats={stats} />
       <PointsReceivedPanel stats={stats} />
-      {hasDownvotes && <PraiseBlamePanel stats={stats} />}
-      <LopsidedPairPanel stats={stats} />
       {hasDownvotes && <DownvoteTargetingPanel stats={stats} />}
-      <PairLeaders stats={stats} />
-      <AffinityMatrix stats={stats} />
+
+      {relationshipsReady && (
+        <>
+          <SocialGraphPanel stats={stats} />
+          {hasDownvotes && <PraiseBlamePanel stats={stats} />}
+          <LopsidedPairPanel stats={stats} />
+          <PairLeaders stats={stats} />
+          <AffinityMatrix stats={stats} />
+        </>
+      )}
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { Stats } from '../lib/stats';
 import { future } from '../lib/future';
+import { playerSlug } from '../lib/playerProfile';
 import { Card, Empty, n1, StatTile } from './ui';
 import { LabelIcon } from './Icons';
 
@@ -11,7 +12,13 @@ import { LabelIcon } from './Icons';
  * round anyone has managed, the median winning score — rather than abstract
  * maxima, so "within reach" means something.
  */
-export function FuturePanel({ stats }: { stats: Stats }) {
+export function FuturePanel({
+  stats,
+  onOpenPlayer,
+}: {
+  stats: Stats;
+  onOpenPlayer?: (slug: string) => void;
+}) {
   const outlook = useMemo(() => future(stats), [stats]);
 
   if (!outlook.projections.length) {
@@ -100,7 +107,13 @@ export function FuturePanel({ stats }: { stats: Stats }) {
                 {band.players.map((p) => (
                   <li key={p.playerId} className="band__player">
                     <span className="band__rank dim">{p.rank}</span>
-                    <span className="band__name">{p.name}</span>
+                    {onOpenPlayer ? (
+                      <button className="linklike band__name" onClick={() => onOpenPlayer(playerSlug(p.name))}>
+                        {p.name}
+                      </button>
+                    ) : (
+                      <span className="band__name">{p.name}</span>
+                    )}
                     <span className={`band__pts ${p.points < 0 ? 'neg' : 'pos'}`}>
                       {p.points > 0 ? '+' : ''}
                       {p.points}

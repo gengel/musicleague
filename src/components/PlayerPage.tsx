@@ -188,6 +188,13 @@ function AppearanceCard({
         </p>
       )}
 
+      {(a.voteGenres.length > 0 || a.voteDecades.length > 0) && (
+        <p className="dim small player-tags">
+          {a.voteGenres.length > 0 && <>Rewards: {a.voteGenres.map((g) => `${g[0]} (${g[1]})`).join(', ')}. </>}
+          {a.voteDecades.length > 0 && <>Favours eras: {a.voteDecades.map((d) => `${d[0]} (${d[1]})`).join(', ')}.</>}
+        </p>
+      )}
+
       <h4 className="player-sub">Submissions</h4>
       {a.songs.length === 0 ? (
         <Empty>No submissions in this league.</Empty>
@@ -251,6 +258,45 @@ function AppearanceCard({
                   {r.net}
                 </td>
                 <td className="num dim">{Math.round(r.devotion * 100)}%</td>
+                <td className="num dim">
+                  {r.reciprocalNet === undefined
+                    ? '—'
+                    : `${r.reciprocalNet > 0 ? '+' : ''}${r.reciprocalNet}`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <h4 className="player-sub">Their fans and critics</h4>
+      {a.backers.length === 0 ? (
+        <Empty>No votes received in this league.</Empty>
+      ) : (
+        <table className="t">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th className="num">Up</th>
+              <th className="num">Down</th>
+              <th className="num">Net</th>
+              <th className="num">They got back</th>
+            </tr>
+          </thead>
+          <tbody>
+            {a.backers.map((r) => (
+              <tr key={r.opponentId}>
+                <td>
+                  <button className="linklike" onClick={() => onNavigate(playerSlug(r.name))}>
+                    {r.name}
+                  </button>
+                </td>
+                <td className="num pos">{r.up || ''}</td>
+                <td className="num neg">{r.down ? `−${r.down}` : ''}</td>
+                <td className={`num ${r.net < 0 ? 'neg' : r.net > 0 ? 'pos' : 'dim'}`}>
+                  {r.net > 0 ? '+' : ''}
+                  {r.net}
+                </td>
                 <td className="num dim">
                   {r.reciprocalNet === undefined
                     ? '—'
