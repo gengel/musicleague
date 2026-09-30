@@ -467,6 +467,12 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
     <div className="taste-block">
       <span className="sr-only">{srText}.</span>
 
+      <div className="taste-panel__legend dim small" style={{ gridColumn: '1 / -1', marginBottom: '-0.5rem' }}>
+        <span style={{ marginRight: '1rem' }}><span className="dot dot--submit" /> submissions</span>
+        <span style={{ marginRight: '1rem' }}><span className="dot dot--reward" /> upvotes</span>
+        {a.downvoteGenres.length > 0 && <span><span className="dot dot--downvote" /> downvotes</span>}
+      </div>
+
       {hasPop && (
         <div className="taste-panel">
           <div className="taste-panel__label">
@@ -477,18 +483,6 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
             </InfoTip>
           </div>
           <PopularityDial submit={submitPos?.pos} reward={rewardPos?.pos} />
-          <div className="taste-panel__legend dim small">
-            {submitPos && (
-              <span>
-                <span className="dot dot--submit" /> submissions
-              </span>
-            )}
-            {rewardPos && (
-              <span>
-                <span className="dot dot--reward" /> votes
-              </span>
-            )}
-          </div>
         </div>
       )}
 
@@ -496,18 +490,6 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
         <div className="taste-panel">
           <div className="taste-panel__label">Era</div>
           <EraTimeline submit={a.decades} reward={a.voteDecades} />
-          <div className="taste-panel__legend dim small">
-            {submitEra && (
-              <span>
-                <span className="dot dot--submit" /> submissions
-              </span>
-            )}
-            {voteEra && (
-              <span>
-                <span className="dot dot--reward" /> votes
-              </span>
-            )}
-          </div>
         </div>
       )}
 
@@ -561,7 +543,7 @@ function PopularityDial({ submit, reward }: { submit?: number; reward?: number }
       {reward !== undefined &&
         (() => {
           const p = point(reward, 44);
-          return <circle cx={p.x} cy={p.y} r="5" fill="none" stroke="var(--accent-2)" strokeWidth="2.5" />;
+          return <circle cx={p.x} cy={p.y} r="5" fill="none" stroke="var(--pos)" strokeWidth="2.5" />;
         })()}
       {submit !== undefined &&
         (() => {

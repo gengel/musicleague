@@ -270,25 +270,30 @@ function appearanceFor(
     for (const g of genresForArtist(s.artist, genreMap)) submitG.set(g, (submitG.get(g) ?? 0) + 1);
     if (s.year !== undefined) decades.set(decadeLabel(s.year), (decades.get(decadeLabel(s.year)) ?? 0) + 1);
   }
+  const netG = new Map<string, number>();
+  for (const v of stats.league.votes.filter((v) => v.voterId === playerId)) {
+    const song = songByKey.get(`${v.trackId}|${v.roundId}`);
+    if (!song) continue;
+    for (const g of genresForArtist(song.artist, genreMap)) {
+      netG.set(g, (netG.get(g) ?? 0) + v.points);
+    }
+  }
   const voteG = new Map<string, number>();
+  const downvoteG = new Map<string, number>();
+  for (const [g, net] of netG.entries()) {
+    if (net > 0) voteG.set(g, net);
+    if (net < 0) downvoteG.set(g, Math.abs(net));
+  }
+
   const voteD = new Map<string, number>();
   const votePop = new Map<string, number>();
   for (const v of stats.league.votes.filter((v) => v.voterId === playerId && v.points > 0)) {
     const song = songByKey.get(`${v.trackId}|${v.roundId}`);
     if (!song) continue;
-    for (const g of genresForArtist(song.artist, genreMap)) voteG.set(g, (voteG.get(g) ?? 0) + v.points);
     if (song.year !== undefined) voteD.set(decadeLabel(song.year), (voteD.get(decadeLabel(song.year)) ?? 0) + v.points);
     if (song.obscurity) {
       const band = obscurityBand(song.obscurity.value, song.obscurity.source);
       votePop.set(band, (votePop.get(band) ?? 0) + v.points);
-    }
-  }
-  const downvoteG = new Map<string, number>();
-  for (const v of stats.league.votes.filter((v) => v.voterId === playerId && v.points < 0)) {
-    const song = songByKey.get(`${v.trackId}|${v.roundId}`);
-    if (!song) continue;
-    for (const g of genresForArtist(song.artist, genreMap)) {
-      downvoteG.set(g, (downvoteG.get(g) ?? 0) + Math.abs(v.points));
     }
   }
   // Popularity of their own submissions (count-weighted).

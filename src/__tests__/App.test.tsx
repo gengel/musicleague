@@ -289,8 +289,8 @@ describe('dashboard with the sample league', () => {
     const playerBtns = document.querySelectorAll('.player-btn');
     await user.click(playerBtns[0] as HTMLElement);
     expect(screen.getByRole('tab', { name: 'Summary' })).toBeDefined();
-    expect(screen.getAllByText('submissions')).toHaveLength(2);
-    expect(screen.getAllByText('votes')).toHaveLength(2);
+    expect(screen.getAllByText('submissions')).toHaveLength(1);
+    expect(screen.getAllByText('upvotes')).toHaveLength(1);
     expect(document.querySelector('.era-timeline')).not.toBeNull();
     // Relationships sub-tab holds the Who-they-rank table.
     await user.click(screen.getByRole('tab', { name: 'Relationships' }));
