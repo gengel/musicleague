@@ -158,7 +158,7 @@ function LatestRound({
                 <strong>{s.title}</strong>
                 {s.artist && <span className="dim"> — {s.artist}</span>}
               </td>
-              <td>
+              <td className="nowrap">
                 {s.submitterId ? (
                   <button
                     className="linklike"
@@ -229,7 +229,7 @@ function StandingsSnapshot({ stats, onNavigate }: { stats: Stats; onNavigate: (h
           {shown.map((r) => (
             <tr key={r.id}>
               <td className="num dim">{r.rank}</td>
-              <td>
+              <td className="nowrap">
                 <button className="linklike" onClick={() => onNavigate(`player/${playerSlug(r.name)}`)}>
                   {r.name}
                 </button>

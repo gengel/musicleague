@@ -71,30 +71,32 @@ export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | 
         )}
       </div>
 
-      <table className="t" style={{ marginTop: 16 }}>
-        <thead>
-          <tr>
-            <th>Player</th>
-            <th className="num">Now</th>
-            <th className="num">Projected range</th>
-            <th className="num">Median finish</th>
-          </tr>
-        </thead>
-        <tbody>
-          {forecasts.slice(0, 6).map((f) => (
-            <tr key={f.playerId}>
-              <td>{f.name}</td>
-              <td className="num dim">{fmtScore(f.currentPoints)}</td>
-              <td className="num dim">
-                {fmtScore(f.finalScore.p10)} … {fmtScore(f.finalScore.p90)}
-              </td>
-              <td className={`num ${f.finalScore.median >= 0 ? 'pos' : 'neg'}`}>
-                {fmtScore(f.finalScore.median)}
-              </td>
+      <div className="table-wrap">
+        <table className="t" style={{ marginTop: 16 }}>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th className="num col-secondary">Now</th>
+              <th className="num">Projected range</th>
+              <th className="num">Median</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {forecasts.slice(0, 6).map((f) => (
+              <tr key={f.playerId}>
+                <td className="nowrap">{f.name}</td>
+                <td className="num dim col-secondary">{fmtScore(f.currentPoints)}</td>
+                <td className="num dim nowrap">
+                  {fmtScore(f.finalScore.p10)} … {fmtScore(f.finalScore.p90)}
+                </td>
+                <td className={`num ${f.finalScore.median >= 0 ? 'pos' : 'neg'}`}>
+                  {fmtScore(f.finalScore.median)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <p className="note">
         Assumes voters keep their observed appetite for spreading vs. concentrating points.
       </p>

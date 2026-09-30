@@ -41,56 +41,58 @@ export function TheRaceTab({
       />
 
       <Card title="Where it stands" wide>
-        <table className="t">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Player</th>
-              <th className="num">Score</th>
-              {anyTheme && <th className="num">Theme</th>}
-              <th className="num">Per song</th>
-              <th className="num">Best round</th>
-              <th className="num">↓ taken</th>
-              <th className="num">Rounds voted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranked.map((p, i) => {
-              const best = p.bestSong?.effectiveNet ?? 0;
-              return (
-                <tr key={p.playerId} className={p.pointsCounted < 0 ? 'row--neg' : undefined}>
-                  <td className="dim">{i + 1}</td>
-                  <td>
-                    {onOpenPlayer ? (
-                      <button className="linklike" onClick={() => onOpenPlayer(playerSlug(p.name))}>
+        <div className="table-wrap">
+          <table className="t">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Player</th>
+                <th className="num">Score</th>
+                {anyTheme && <th className="num">Theme</th>}
+                <th className="num col-secondary">Per song</th>
+                <th className="num col-secondary">Best round</th>
+                <th className="num col-secondary">↓ taken</th>
+                <th className="num col-secondary">Rounds voted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ranked.map((p, i) => {
+                const best = p.bestSong?.effectiveNet ?? 0;
+                return (
+                  <tr key={p.playerId} className={p.pointsCounted < 0 ? 'row--neg' : undefined}>
+                    <td className="dim">{i + 1}</td>
+                    <td className="nowrap">
+                      {onOpenPlayer ? (
+                        <button className="linklike" onClick={() => onOpenPlayer(playerSlug(p.name))}>
+                          <strong>{p.name}</strong>
+                        </button>
+                      ) : (
                         <strong>{p.name}</strong>
-                      </button>
-                    ) : (
-                      <strong>{p.name}</strong>
-                    )}
-                  </td>
-                  <td className={`num ${p.pointsCounted < 0 ? 'neg' : 'pos'}`}>
-                    {p.pointsCounted > 0 ? '+' : ''}
-                    {p.pointsCounted}
-                  </td>
-                  {anyTheme && (
-                    <td className="num">
-                      <ThemeChip points={p.themeBonus} reason={themeReason.get(p.playerId)} compact />
+                      )}
                     </td>
-                  )}
-                  <td className="num dim">{p.songs > 0 ? p.avgPerSong.toFixed(1) : '—'}</td>
-                  <td className="num dim">{best > 0 ? `+${best}` : best || '—'}</td>
-                  <td className="num dim">{p.downvotesReceived || '—'}</td>
-                  <td className="num dim">
-                    {p.roundsVoted
-                      ? `${p.roundsVoted} of ${stats.roundsPlayed}`
-                      : <span className="neg">never voted</span>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    <td className={`num ${p.pointsCounted < 0 ? 'neg' : 'pos'}`}>
+                      {p.pointsCounted > 0 ? '+' : ''}
+                      {p.pointsCounted}
+                    </td>
+                    {anyTheme && (
+                      <td className="num">
+                        <ThemeChip points={p.themeBonus} reason={themeReason.get(p.playerId)} compact />
+                      </td>
+                    )}
+                    <td className="num dim col-secondary">{p.songs > 0 ? p.avgPerSong.toFixed(1) : '—'}</td>
+                    <td className="num dim col-secondary">{best > 0 ? `+${best}` : best || '—'}</td>
+                    <td className="num dim col-secondary">{p.downvotesReceived || '—'}</td>
+                    <td className="num dim col-secondary">
+                      {p.roundsVoted
+                        ? `${p.roundsVoted} of ${stats.roundsPlayed}`
+                        : <span className="neg">never voted</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       <RacePredictionPanel stats={stats} />

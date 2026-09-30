@@ -389,6 +389,7 @@ code {
 
 .card__body {
   padding: 16px 18px 18px;
+  min-width: 0;
 }
 
 .note {
@@ -586,6 +587,7 @@ code {
 
 .table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   margin-top: 12px;
 }
 
@@ -1961,6 +1963,8 @@ td.archetype-col {
 
 .era-pop-matrix {
   overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
   margin-top: 12px;
 }
 
@@ -2260,6 +2264,32 @@ td.archetype-col {
   .topbar {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .col-secondary {
+    display: none !important;
+  }
+  .epm-cell {
+    min-width: 64px;
+    padding: 8px 6px;
+  }
+  .epm-colhead {
+    padding: 0 4px 6px;
+    font-size: 10.5px;
   }
   .sup-strip {
     grid-template-columns: 1fr 1fr;
