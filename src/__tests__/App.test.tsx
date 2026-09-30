@@ -291,6 +291,8 @@ describe('dashboard with the sample league', () => {
     const playerBtns = document.querySelectorAll('.player-btn');
     await user.click(playerBtns[0] as HTMLElement);
     expect(screen.getByRole('tab', { name: 'Summary' })).toBeDefined();
+    expect(screen.getByText('submissions')).toBeDefined();
+    expect(screen.getByText('votes')).toBeDefined();
     // Relationships sub-tab holds the Who-they-rank table.
     await user.click(screen.getByRole('tab', { name: 'Relationships' }));
     expect(screen.getByText('Who they rank')).toBeDefined();
