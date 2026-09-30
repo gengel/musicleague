@@ -1,6 +1,6 @@
 {
   "id": "league2",
-  "label": "Music League 2",
+  "label": "Now That's What I Call You",
   "export": "data/league2/export",
   "enrich": "enrich/league2",
   "totalRounds": 12,

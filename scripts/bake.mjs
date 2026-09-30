@@ -735,6 +735,22 @@ function viteBuild({ outDir }) {
 console.log(`\n${c.bold('Building')}`);
 viteBuild({ outDir: opts.out });
 const outPath = resolve(root, opts.out);
+
+/* The tab title comes from index.html, which is generic. Now that leagues are
+ * named, rewrite it to the league's own name so a bookmark or a second tab says
+ * which season it is. Escaped, because a label can contain & or <. */
+if (label) {
+  const indexPath = join(outPath, 'index.html');
+  if (existsSync(indexPath)) {
+    const escaped = label.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const html = readFileSync(indexPath, 'utf8').replace(
+      /<title>[^<]*<\/title>/,
+      `<title>${escaped}</title>`,
+    );
+    writeFileSync(indexPath, html);
+  }
+}
+
 console.log(`  ${c.green('✓')} ${opts.out}/  ${c.dim('static site, ready to host')}`);
 
 /* ------------------------------- art ------------------------------- *

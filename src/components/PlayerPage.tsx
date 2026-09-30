@@ -299,7 +299,11 @@ function PlayerHeader({ profile }: { profile: PlayerProfile }) {
               )}
             </div>
             <div className="player-head__score-label dim small">
-              {current!.label} points{p.themeBonus !== 0 ? ', incl. theme' : ''}
+              {/* "in <league>" rather than "<league> points": league names are
+                  now prose ("Now That's What I Call You"), which does not work
+                  as a noun modifier. */}
+              Points in {current!.label}
+              {p.themeBonus !== 0 ? ', incl. theme' : ''}
             </div>
           </div>
         )}

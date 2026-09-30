@@ -1,6 +1,6 @@
 {
   "id": "league1",
-  "label": "Music League",
+  "label": "Streaming Consciousness",
   "export": "data/league1/export",
   "enrich": "enrich/league1",
   "totalRounds": 11,
