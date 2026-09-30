@@ -48,6 +48,12 @@ export interface LeagueAppearance {
   decades: [string, number][];
   /** Their taste alignment (mainstream↔contrarian), when computable. */
   tasteAlignment?: number;
+  /** The voter who rates this player highest, by net affinity. */
+  biggestFan?: RankedOpponent;
+  /** The voter who rates them lowest, given a real sample. */
+  leastImpressed?: RankedOpponent;
+  /** The player this player rates highest. */
+  ownFavourite?: RankedOpponent;
 }
 
 export interface ThemeBrief {
@@ -184,6 +190,20 @@ function appearanceFor(
     voteDecades: topN(voteD, 6),
     decades: [...decades.entries()].sort((a, b) => a[0].localeCompare(b[0])),
     tasteAlignment: player.tasteAlignment,
+    // Same criteria as the old inline profile: warmth by net affinity, with a
+    // real sample for the cold end so one stray downvote is not "least
+    // impressed".
+    biggestFan: [...backers]
+      .filter((b) => b.up > 0)
+      .sort((a, b) => b.netAffinity - a.netAffinity || b.up - a.up)[0],
+    leastImpressed: stats.pairs
+      .filter((p) => p.targetId === playerId && p.songsAvailable >= 2)
+      .map((p) => backers.find((b) => b.opponentId === p.voterId)!)
+      .filter(Boolean)
+      .sort((a, b) => a.netAffinity - b.netAffinity)[0],
+    ownFavourite: [...ranks]
+      .filter((r) => r.up > 0)
+      .sort((a, b) => b.netAffinity - a.netAffinity || b.up - a.up)[0],
   };
 }
 

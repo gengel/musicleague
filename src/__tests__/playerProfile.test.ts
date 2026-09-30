@@ -68,6 +68,16 @@ describe('buildPlayerProfile', () => {
     expect(profile.brief.bestSubmissions.length).toBeGreaterThan(0);
   });
 
+  it('surfaces upvotes by genre/era and fan facts on the current appearance', () => {
+    const cur = profile.appearances[0];
+    // Bob upvoted Cleo (Rock), so Rock leads his vote-genre breakdown.
+    expect(cur.voteGenres[0]?.[0]).toBe('Rock');
+    // Ann and Cleo both upvoted Bob's song; his biggest fan is defined.
+    expect(cur.biggestFan).toBeDefined();
+    // His own favourite is whoever he rewarded most (Cleo).
+    expect(cur.ownFavourite?.name).toBe('Cleo');
+  });
+
   it('slugs and resolves names', () => {
     expect(playerSlug('Tim E---')).toBe('tim-e');
     expect(resolveSlug('bob', current)).toBe('bob');

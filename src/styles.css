@@ -2391,3 +2391,25 @@ td.archetype-col {
 .band__player:last-child { border-bottom: none; }
 .band__name { font-weight: 600; }
 .band__behind { grid-column: 2 / 4; }
+
+/* ---- Player facts (biggest fan, voting style, etc.) ---- */
+.player-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.4rem 1.2rem;
+  margin: 0.6rem 0 1rem;
+}
+.player-facts > div {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.player-facts dt {
+  flex: none;
+  width: 8.5rem;
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+.player-facts dd { margin: 0; }

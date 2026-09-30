@@ -188,11 +188,15 @@ function AppearanceCard({
         </p>
       )}
 
+      <PlayerFacts appearance={a} onNavigate={onNavigate} />
+
       {(a.voteGenres.length > 0 || a.voteDecades.length > 0) && (
-        <p className="dim small player-tags">
-          {a.voteGenres.length > 0 && <>Rewards: {a.voteGenres.map((g) => `${g[0]} (${g[1]})`).join(', ')}. </>}
-          {a.voteDecades.length > 0 && <>Favours eras: {a.voteDecades.map((d) => `${d[0]} (${d[1]})`).join(', ')}.</>}
-        </p>
+        <div className="vote-breakdowns">
+          {a.voteGenres.length > 0 && (
+            <VoteBreakdown title="Upvotes by genre" rows={a.voteGenres} />
+          )}
+          {a.voteDecades.length > 0 && <VoteBreakdown title="Upvotes by era" rows={a.voteDecades} />}
+        </div>
       )}
 
       <h4 className="player-sub">Submissions</h4>
@@ -315,4 +319,93 @@ function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+/** A points-weighted bar chart of upvotes, by genre or era. */
+function VoteBreakdown({ title, rows }: { title: string; rows: [string, number][] }) {
+  const max = rows[0]?.[1] ?? 1;
+  return (
+    <div className="vote-breakdown">
+      <div className="vote-breakdown__title dim small">{title}</div>
+      {rows.map(([label, pts]) => (
+        <div key={label} className="vote-breakdown__row">
+          <span className="vote-breakdown__label">{label}</span>
+          <div className="vote-breakdown__bar-wrap">
+            <div
+              className="vote-breakdown__bar"
+              style={{ width: `${Math.round((pts / max) * 100)}%` }}
+            />
+          </div>
+          <span className="vote-breakdown__pts dim">+{pts}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Biggest fan / least impressed / their own favourite / voting style. */
+function PlayerFacts({
+  appearance: a,
+  onNavigate,
+}: {
+  appearance: LeagueAppearance;
+  onNavigate: (slug: string) => void;
+}) {
+  const p = a.player;
+  const link = (r?: { name: string }) =>
+    r ? (
+      <button className="linklike" onClick={() => onNavigate(playerSlug(r.name))}>
+        {r.name}
+      </button>
+    ) : (
+      <span className="dim">—</span>
+    );
+  const sentiment = (r?: { up: number; down: number; net: number }) => {
+    if (!r) return '';
+    if (r.down === 0) return ` — +${r.up}, no downvotes`;
+    if (r.up === 0) return ` — ${r.down} in downvotes, never a point given`;
+    return ` — net ${r.net > 0 ? '+' : ''}${r.net} (${r.up} up, ${r.down} down)`;
+  };
+  return (
+    <dl className="player-facts">
+      <div>
+        <dt>Biggest fan</dt>
+        <dd>
+          {link(a.biggestFan)}
+          <span className="dim small">{sentiment(a.biggestFan)}</span>
+        </dd>
+      </div>
+      <div>
+        <dt>Least impressed</dt>
+        <dd>
+          {link(a.leastImpressed)}
+          <span className="dim small">{sentiment(a.leastImpressed)}</span>
+        </dd>
+      </div>
+      <div>
+        <dt>Their own favourite</dt>
+        <dd>
+          {link(a.ownFavourite)}
+          <span className="dim small">{sentiment(a.ownFavourite)}</span>
+        </dd>
+      </div>
+      <div>
+        <dt>Voting style</dt>
+        <dd>
+          {p.roundsVoted ? (
+            <span className="dim small">
+              {n1(p.avgSongsVotedPer)} songs a round at {n1(p.avgPointsPerVote)} pts each
+              {p.tasteAlignment !== undefined &&
+                ` · ${Math.round(p.tasteAlignment * 100)}% ${p.tasteAlignment >= 0.5 ? 'mainstream' : 'contrarian'}`}
+              {p.roundsMissedVoting > 0 && (
+                <span className="neg"> · skipped {p.roundsMissedVoting}</span>
+              )}
+            </span>
+          ) : (
+            <span className="neg">never voted</span>
+          )}
+        </dd>
+      </div>
+    </dl>
+  );
 }
