@@ -29,6 +29,33 @@ export function tasteLead(rows: [string, number][]): string | undefined {
   return rows.reduce((best, r) => (r[1] > best[1] ? r : best))[0];
 }
 
+/** Popularity bands mapped to a 0 (deep cut) – 1 (hit) axis position. */
+const POP_POS: Record<string, number> = {
+  'deep cut': 0,
+  niche: 0.25,
+  known: 0.5,
+  popular: 0.75,
+  hit: 1,
+};
+
+/**
+ * A weighted-average position on the deep-cut → hit axis for a set of
+ * band tallies, plus the total weight (songs/points) behind it so the caller
+ * can flag a thin sample. Returns undefined when there is no popularity data.
+ */
+export function popularityPosition(bands: [string, number][]): { pos: number; weight: number } | undefined {
+  let sum = 0;
+  let weight = 0;
+  for (const [band, w] of bands) {
+    const p = POP_POS[band];
+    if (p === undefined) continue;
+    sum += p * w;
+    weight += w;
+  }
+  if (weight === 0) return undefined;
+  return { pos: sum / weight, weight };
+}
+
 export interface RankedOpponent {
   opponentId: string;
   name: string;

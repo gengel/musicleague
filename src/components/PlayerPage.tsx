@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { embeddedGenres } from 'virtual:league-data';
 import type { SongStats, Stats } from '../lib/stats';
 import type { History } from '../lib/history';
@@ -7,6 +7,7 @@ import {
   careerStoryline,
   highlightSongs,
   playerSlug,
+  popularityPosition,
   tasteLead,
   type AggregateAppearance,
   type LeagueAppearance,
@@ -16,7 +17,7 @@ import {
 import { SongArt, SongLinks, SongPlayer, SongTags, artFor } from './SongMedia';
 import { PlayerAvatar, usePlayerTint } from './PlayerAvatar';
 import { InfoTip, MethodDrawer } from './InfoTip';
-import { Icon, eraIcon, genreIcon, popularityIcon, type IconName } from './Icons';
+import { Icon, eraIcon, genreIcon, type IconName } from './Icons';
 import { ThemeChip } from './ThemeChip';
 import { Card, Empty, n1 } from './ui';
 
@@ -408,69 +409,147 @@ function SummaryCard({
 }
 
 /**
- * The headline taste read: what era and how popular the music they like is —
- * arguably the most telling thing about a player — plus their genre lean.
- * Given prominence at the top of the summary rather than a tiny footnote.
+ * The headline taste read as pictures: how popular the music they like is (a
+ * dial), which eras (a timeline), and which genres (icon chips) — arguably the
+ * most telling thing about a player, so it leads the summary. A plain-text
+ * equivalent is kept for assistive tech.
  */
 function TasteBlock({ view: a }: { view: ScopeView }) {
-  const lead = tasteLead;
-  const submitPop = lead(a.submitPop);
-  const votePop = lead(a.votePop);
-  const submitEra = lead(a.decades);
-  const voteEra = lead(a.voteDecades);
-  const submitGenre = lead(a.submitGenres);
-  const voteGenre = lead(a.voteGenres);
-
+  const submitPos = popularityPosition(a.submitPop);
+  const rewardPos = popularityPosition(a.votePop);
+  const submitEra = tasteLead(a.decades);
+  const submitGenre = tasteLead(a.submitGenres);
+  const voteGenre = tasteLead(a.voteGenres);
   const popText = (b?: string) => (b ? POP_PHRASE[b] ?? b : undefined);
 
-  const facets: { label: string; submit?: string; reward?: string; icon: IconName; info?: ReactNode }[] = [
-    {
-      label: 'Popularity',
-      submit: popText(submitPop),
-      reward: popText(votePop),
-      icon: popularityIcon(submitPop ?? votePop ?? 'known'),
-      info: (
-        <>
-          From last.fm listener counts: deep cut &lt;20k, niche &lt;100k, known &lt;500k, popular &lt;1M, hit
-          1M+. “Submits” is their own songs; “rewards” is what they upvote.
-        </>
-      ),
-    },
-    { label: 'Era', submit: submitEra, reward: voteEra, icon: eraIcon(submitEra ?? voteEra ?? '') },
-    { label: 'Genre', submit: submitGenre, reward: voteGenre, icon: genreIcon(submitGenre ?? voteGenre ?? '') },
-  ];
+  const hasPop = Boolean(submitPos || rewardPos);
+  const hasEra = a.decades.length > 0 || a.voteDecades.length > 0;
+  const hasGenre = a.submitGenres.length > 0 || a.voteGenres.length > 0;
+  if (!hasPop && !hasEra && !hasGenre) return null;
 
-  if (facets.every((f) => !f.submit && !f.reward)) return null;
+  const srText = [
+    submitPos && `Submits ${popText(tasteLead(a.submitPop))}`,
+    rewardPos && `rewards ${popText(tasteLead(a.votePop))}`,
+    submitEra && `era ${submitEra}`,
+    submitGenre && `genre ${submitGenre}`,
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <div className="taste-block">
-      {facets.map((f) => (
-        <div className="taste-facet" key={f.label}>
-          <div className="taste-facet__label">
-            <Icon name={f.icon} size={15} />
-            {f.label}
-            {f.info && <InfoTip label={`How ${f.label.toLowerCase()} is worked out`}>{f.info}</InfoTip>}
+      <span className="sr-only">{srText}.</span>
+
+      {hasPop && (
+        <div className="taste-panel">
+          <div className="taste-panel__label">
+            Popularity
+            <InfoTip label="How popularity is worked out">
+              From last.fm listener counts: deep cut &lt;20k, niche &lt;100k, known &lt;500k, popular &lt;1M, hit
+              1M+. The dial averages their songs (filled) and what they upvote (ring).
+            </InfoTip>
           </div>
-          <div className="taste-facet__val">
-            {f.submit ? (
-              <>
-                submits <strong>{f.submit}</strong>
-              </>
-            ) : (
-              <span className="dim">—</span>
+          <PopularityDial submit={submitPos?.pos} reward={rewardPos?.pos} />
+          <div className="taste-panel__legend dim small">
+            {submitPos && (
+              <span>
+                <span className="dot dot--submit" /> submits {popText(tasteLead(a.submitPop))}
+              </span>
             )}
-          </div>
-          <div className="taste-facet__val dim">
-            {f.reward ? (
-              <>
-                rewards <strong>{f.reward}</strong>
-              </>
-            ) : (
-              '—'
+            {rewardPos && (
+              <span>
+                <span className="dot dot--reward" /> rewards {popText(tasteLead(a.votePop))}
+              </span>
             )}
           </div>
         </div>
-      ))}
+      )}
+
+      {hasEra && (
+        <div className="taste-panel">
+          <div className="taste-panel__label">Era</div>
+          <EraTimeline submit={a.decades} reward={a.voteDecades} />
+          <div className="taste-panel__legend dim small">
+            {submitEra && (
+              <span>
+                <Icon name={eraIcon(submitEra)} size={13} /> mostly {submitEra}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {hasGenre && (
+        <div className="taste-panel">
+          <div className="taste-panel__label">Genre</div>
+          <div className="genre-chips">
+            {(a.submitGenres.length ? a.submitGenres : a.voteGenres).slice(0, 3).map(([g]) => (
+              <span className="genre-chip" key={g}>
+                <Icon name={genreIcon(g)} size={14} /> {g}
+              </span>
+            ))}
+          </div>
+          {voteGenre && voteGenre !== submitGenre && (
+            <div className="taste-panel__legend dim small">rewards {voteGenre}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A semicircular gauge from deep cuts (left) to big hits (right). */
+function PopularityDial({ submit, reward }: { submit?: number; reward?: number }) {
+  // Semicircle from 180° (left) to 0° (right). pos 0→1 maps to angle 180→0.
+  const point = (pos: number, r: number) => {
+    const angle = Math.PI * (1 - pos);
+    return { x: 50 + r * Math.cos(angle), y: 50 - r * Math.sin(angle) };
+  };
+  return (
+    <svg className="dial" viewBox="0 0 100 56" role="img" aria-label="Popularity from deep cuts to hits">
+      <path d="M6 50 A44 44 0 0 1 94 50" fill="none" stroke="var(--line)" strokeWidth="6" strokeLinecap="round" />
+      {reward !== undefined &&
+        (() => {
+          const p = point(reward, 44);
+          return <circle cx={p.x} cy={p.y} r="5" fill="none" stroke="var(--accent-2)" strokeWidth="2.5" />;
+        })()}
+      {submit !== undefined &&
+        (() => {
+          const p = point(submit, 44);
+          return <circle cx={p.x} cy={p.y} r="5" fill="var(--tint, var(--accent))" />;
+        })()}
+      <text x="6" y="55" className="dial__end">
+        deep
+      </text>
+      <text x="94" y="55" className="dial__end" textAnchor="end">
+        hits
+      </text>
+    </svg>
+  );
+}
+
+/** A 1960s→2020s strip with a dot per era, sized by how much they use it. */
+function EraTimeline({ submit, reward }: { submit: [string, number][]; reward: [string, number][] }) {
+  const DECADES = ['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', '2020s'];
+  const submitMap = new Map(submit);
+  const rewardMap = new Map(reward);
+  const max = Math.max(1, ...DECADES.map((d) => (submitMap.get(d) ?? 0) + (rewardMap.get(d) ?? 0)));
+  return (
+    <div className="era-timeline">
+      {DECADES.map((d) => {
+        const s = submitMap.get(d) ?? 0;
+        const r = rewardMap.get(d) ?? 0;
+        const size = 5 + Math.round(((s + r) / max) * 13);
+        return (
+          <div className="era-timeline__col" key={d} title={`${d}: ${s} submitted, ${r} rewarded`}>
+            <span
+              className={`era-timeline__dot${s > 0 ? ' era-timeline__dot--on' : ''}`}
+              style={{ width: s + r > 0 ? size : 4, height: s + r > 0 ? size : 4 }}
+            />
+            <span className="era-timeline__label dim">{d.slice(2)}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

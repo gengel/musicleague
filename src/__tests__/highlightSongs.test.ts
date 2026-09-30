@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { highlightSongs, tasteLead } from '../lib/playerProfile';
+import { highlightSongs, popularityPosition, tasteLead } from '../lib/playerProfile';
 import type { SongStats } from '../lib/stats';
 
 const song = (title: string, effectiveNet: number): SongStats =>
@@ -54,5 +54,21 @@ describe('tasteLead', () => {
   it('keeps the earlier row on a tie, and handles empty', () => {
     expect(tasteLead([['a', 3], ['b', 3]])).toBe('a');
     expect(tasteLead([])).toBeUndefined();
+  });
+});
+
+describe('popularityPosition', () => {
+  it('averages band positions weighted by count', () => {
+    // deep cut=0, hit=1; equal weight → 0.5
+    expect(popularityPosition([['deep cut', 1], ['hit', 1]])).toEqual({ pos: 0.5, weight: 2 });
+    // all known (0.5)
+    expect(popularityPosition([['known', 4]])).toEqual({ pos: 0.5, weight: 4 });
+    // leans deep: deep cut(0)*3 + niche(0.25)*1 = 0.25/4
+    const r = popularityPosition([['deep cut', 3], ['niche', 1]])!;
+    expect(r.pos).toBeCloseTo(0.0625);
+    expect(r.weight).toBe(4);
+  });
+  it('is undefined with no popularity data', () => {
+    expect(popularityPosition([])).toBeUndefined();
   });
 });
