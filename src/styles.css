@@ -2477,6 +2477,9 @@ td.archetype-col {
   flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
+  /* The bar sits directly in the multi-column .grid; span the full row so
+     space-between has width to push the season group to the right edge. */
+  grid-column: 1 / -1;
   margin: 0 0 0.9rem;
 }
 .scope-tab {
@@ -2674,7 +2677,7 @@ td.archetype-col {
 }
 .player-sub { display: flex; align-items: center; gap: 0.4rem; }
 .person__label { display: flex; align-items: center; gap: 0.35rem; }
-.scope-tab { display: inline-flex; align-items: center; gap: 0.35rem; }
+.scope-tab { display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; }
 
 /* ---- Player hero header ---- */
 .player-head--hero {
@@ -2845,7 +2848,13 @@ td.archetype-col {
 @media (max-width: 620px) {
   /* On a phone, let the season group drop below the sections. */
   .scope-tabs { flex-wrap: wrap; }
+  .scope-tabs__sections { flex-wrap: wrap; flex: 1 1 100%; min-width: 0; }
+  /* Compact pills so each group fits on one phone-width line. */
+  .scope-tabs, .scope-tabs__sections, .scope-tabs__season { gap: 0.3rem; }
+  .scope-tab { padding: 0.3rem 0.7rem; }
+  .scope-tab .icon { display: none; }
   .scope-tabs__season {
+    flex-wrap: wrap;
     margin-left: 0;
     border-left: none;
     padding-left: 0;
