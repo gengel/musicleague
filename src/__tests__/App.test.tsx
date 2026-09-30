@@ -5,7 +5,10 @@ import userEvent from '@testing-library/user-event';
 import App from '../App';
 import { buildDemoCsv } from '../lib/demo';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  window.location.hash = '';
+});
 
 /** Recharts measures its container, which jsdom reports as zero. */
 function stubLayout(): void {
@@ -264,6 +267,20 @@ describe('dashboard with the sample league', () => {
     expect(window.location.hash).toMatch(/^#player\//);
     // The profile opens on the Summary sub-tab.
     expect(screen.getByRole('tab', { name: 'Summary' })).toBeDefined();
+  });
+
+  it('highlights the Rounds tab when navigating to a round route', async () => {
+    const user = await openDemo();
+    await user.click(screen.getByRole('button', { name: /Full round/i }));
+    expect(window.location.hash).toMatch(/^#round\/\d+/);
+
+    const roundsTab = screen.getByRole('tab', { name: 'Rounds' });
+    const playersTab = screen.getByRole('tab', { name: 'Players' });
+
+    expect(roundsTab.getAttribute('aria-selected')).toBe('true');
+    expect(roundsTab.className).toContain('tab--on');
+    expect(playersTab.getAttribute('aria-selected')).toBe('false');
+    expect(playersTab.className).not.toContain('tab--on');
   });
 
   it('opens a deep player page from the Players tab', async () => {

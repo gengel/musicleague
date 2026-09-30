@@ -133,7 +133,8 @@ export default function App() {
     );
   }
 
-  const activeTab: TabId = route.kind === 'tab' ? route.tab : 'Players';
+  const activeTab: TabId =
+    route.kind === 'tab' ? route.tab : route.kind === 'round' ? 'Rounds' : 'Players';
 
   return (
     <div className="app">
