@@ -61,6 +61,20 @@ export function PlayerAvatar({
  * average is muddy, or there is no cover, or canvas is unavailable (tests),
  * falls back to a deterministic palette colour keyed by their id.
  */
+/**
+ * A small avatar for name cells in tables and grids. Uses the deterministic
+ * palette tint (no canvas sampling, so it is cheap to render many at once) and
+ * the player's own top covers.
+ */
+export function NameAvatar({ id, name, spotifyIds, size = 24 }: { id: string; name: string; spotifyIds: (string | undefined)[]; size?: number }) {
+  return <PlayerAvatar name={name} spotifyIds={spotifyIds} tint={paletteTint(id)} size={size} />;
+}
+
+/**
+ * A stable colour for a player. Tries the average of their first cover; if the
+ * average is muddy, or there is no cover, or canvas is unavailable (tests),
+ * falls back to a deterministic palette colour keyed by their id.
+ */
 export function usePlayerTint(id: string, coverId: string | undefined): string {
   const [tint, setTint] = useState<string>(() => paletteTint(id));
 

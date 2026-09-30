@@ -11,6 +11,7 @@ import {
 } from '../lib/taste';
 import { obscurityBand } from '../lib/obscurity';
 import { SuperlativeStrip } from './SuperlativeStrip';
+import { NameAvatar } from './PlayerAvatar';
 import { PlayersPanel } from './PlayersPanel';
 import { SongArt, SongLinks, SongPlayer, SongTags } from './SongMedia';
 import { Card, Empty, n1, n2, pct0, ScoreParts } from './ui';
@@ -501,6 +502,24 @@ export function PlayersTab({
         .sort((a, b) => b.pointsCounted - a.pointsCounted),
     [stats.players],
   );
+  // Each player's best few covers, for their avatar mosaic.
+  const topSongIds = useMemo(() => {
+    const by = new Map<string, (string | undefined)[]>();
+    const bySubmitter = new Map<string, typeof stats.songs>();
+    for (const s of stats.songs) {
+      if (!s.submitterId) continue;
+      const list = bySubmitter.get(s.submitterId) ?? [];
+      list.push(s);
+      bySubmitter.set(s.submitterId, list);
+    }
+    for (const [id, songs] of bySubmitter) {
+      by.set(
+        id,
+        [...songs].sort((a, b) => b.effectiveNet - a.effectiveNet).slice(0, 4).map((s) => s.spotifyId),
+      );
+    }
+    return by;
+  }, [stats.songs]);
 
   return (
     <>
@@ -520,6 +539,7 @@ export function PlayersTab({
                   : setSelectedId(selectedId === p.playerId ? null : p.playerId)
               }
             >
+              <NameAvatar id={p.playerId} name={p.name} spotifyIds={topSongIds.get(p.playerId) ?? []} size={26} />
               <span className="player-btn__name">{p.name}</span>
               <span className={`player-btn__pts ${p.pointsCounted < 0 ? 'neg' : 'pos'}`}>
                 {p.pointsCounted > 0 ? '+' : ''}{n1(p.pointsCounted)}

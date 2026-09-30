@@ -82,12 +82,12 @@ function PlayerTabs({
   const multi = profile.appearances.length > 1;
 
   type TabKey = string;
-  const tabs: { key: TabKey; label: string; icon: IconName }[] = [
+  const sectionTabs: { key: TabKey; label: string; icon: IconName }[] = [
     { key: 'summary', label: 'Summary', icon: 'star' },
     { key: 'submissions', label: 'Submissions', icon: 'disc' },
     { key: 'relationships', label: 'Relationships', icon: 'users' },
-    ...(multi ? leagueViews.map((l) => ({ key: l.id, label: l.label, icon: 'calendarX' as IconName })) : []),
   ];
+  const seasonTabs = multi ? leagueViews.map((l) => ({ key: l.id, label: l.label })) : [];
   const [tab, setTab] = useState<TabKey>('summary');
 
   // For a single-league player the pooled view *is* that league, so the
@@ -102,7 +102,7 @@ function PlayerTabs({
       {profile.themePending ? <ThemeBriefCard profile={profile} /> : null}
 
       <div className="scope-tabs" role="tablist" aria-label="Profile sections">
-        {tabs.map((t) => (
+        {sectionTabs.map((t) => (
           <button
             key={t.key}
             role="tab"
@@ -113,6 +113,22 @@ function PlayerTabs({
             <Icon name={t.icon} size={14} /> {t.label}
           </button>
         ))}
+        {seasonTabs.length > 0 && (
+          <span className="scope-tabs__season">
+            <span className="scope-tabs__season-label">Season</span>
+            {seasonTabs.map((t) => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={tab === t.key}
+                className={`scope-tab scope-tab--season${tab === t.key ? ' scope-tab--on' : ''}`}
+                onClick={() => setTab(t.key)}
+              >
+                <Icon name="calendarX" size={14} /> {t.label}
+              </button>
+            ))}
+          </span>
+        )}
       </div>
 
       {tab === 'summary' && (
