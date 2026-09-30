@@ -6,15 +6,11 @@ import {
   findDoubleAgents,
   eraBand,
   describeArchetype,
-  
 } from '../lib/taste';
 import { obscurityBand } from '../lib/obscurity';
 import { SuperlativeStrip } from './SuperlativeStrip';
 import { NameAvatar } from './PlayerAvatar';
-import { Card, n1, } from './ui';
-
-
-
+import { Card, n1 } from './ui';
 
 function EraSpectrum({ stats }: { stats: Stats }) {
   const profiles = useMemo(() => computeEraProfiles(stats), [stats]);
@@ -81,7 +77,7 @@ function EraTable({ stats }: { stats: Stats }) {
     .sort((a, b) => b.pointsCounted - a.pointsCounted);
 
   return (
-    <Card title="Players" subtitle="Archetype blends submissions (×2) + upvotes (×1). Double agent = 13+ year gap." wide>
+    <Card title="Archetypes" subtitle="Archetype blends submissions (×2) + upvotes (×1). Double agent = 13+ year gap." wide>
       <table className="t">
         <thead>
           <tr>
