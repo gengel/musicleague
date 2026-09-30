@@ -2578,11 +2578,13 @@ td.archetype-col {
 .dial__end { fill: var(--dim); font-size: 7px; }
 
 /* Era timeline */
-.era-timeline { display: flex; align-items: flex-end; gap: 2px; height: 40px; }
-.era-timeline__col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 3px; }
+.era-timeline { display: flex; align-items: flex-end; gap: 2px; height: 48px; }
+.era-timeline__col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; gap: 2px; }
+.era-timeline__cell { height: 14px; display: flex; align-items: center; justify-content: center; width: 100%; }
 .era-timeline__dot { border-radius: 50%; background: var(--line); transition: none; }
-.era-timeline__dot--on { background: var(--tint, var(--accent)); }
-.era-timeline__label { font-size: 9px; }
+.era-timeline__dot--submit { background: var(--tint, var(--accent)); }
+.era-timeline__ring { border-radius: 50%; box-sizing: border-box; background: transparent; border: 2px solid var(--accent-2); }
+.era-timeline__label { font-size: 9px; line-height: 1; margin-top: 2px; }
 
 /* Genre chips */
 .genre-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }

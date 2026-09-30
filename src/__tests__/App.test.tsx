@@ -293,6 +293,9 @@ describe('dashboard with the sample league', () => {
     expect(screen.getByRole('tab', { name: 'Summary' })).toBeDefined();
     expect(screen.getByText('submissions')).toBeDefined();
     expect(screen.getByText('votes')).toBeDefined();
+    expect(document.querySelector('.era-timeline')).not.toBeNull();
+    expect(screen.getByText(/^mostly \d{4}s/)).toBeDefined();
+    expect(screen.getByText(/^rewards \d{4}s/)).toBeDefined();
     // Relationships sub-tab holds the Who-they-rank table.
     await user.click(screen.getByRole('tab', { name: 'Relationships' }));
     expect(screen.getByText('Who they rank')).toBeDefined();

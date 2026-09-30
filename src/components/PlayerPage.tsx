@@ -17,7 +17,7 @@ import {
 import { SongArt, SongLinks, SongPlayer, SongTags, artFor } from './SongMedia';
 import { PlayerAvatar, usePlayerTint } from './PlayerAvatar';
 import { InfoTip, MethodDrawer } from './InfoTip';
-import { Icon, eraIcon, genreIcon, type IconName } from './Icons';
+import { Icon, genreIcon, type IconName } from './Icons';
 import { ThemeChip, ThemeMedal } from './ThemeChip';
 import { Card, Empty, n1 } from './ui';
 
@@ -439,6 +439,7 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
   const submitPos = popularityPosition(a.submitPop);
   const rewardPos = popularityPosition(a.votePop);
   const submitEra = tasteLead(a.decades);
+  const voteEra = tasteLead(a.voteDecades);
   const submitGenre = tasteLead(a.submitGenres);
   const voteGenre = tasteLead(a.voteGenres);
   const popText = (b?: string) => (b ? POP_PHRASE[b] ?? b : undefined);
@@ -451,7 +452,8 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
   const srText = [
     submitPos && `Submits ${popText(tasteLead(a.submitPop))}`,
     rewardPos && `rewards ${popText(tasteLead(a.votePop))}`,
-    submitEra && `era ${submitEra}`,
+    submitEra && `era mostly ${submitEra}`,
+    voteEra && `rewards era ${voteEra}`,
     submitGenre && `genre ${submitGenre}`,
   ]
     .filter(Boolean)
@@ -493,7 +495,12 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
           <div className="taste-panel__legend dim small">
             {submitEra && (
               <span>
-                <Icon name={eraIcon(submitEra)} size={13} /> mostly {submitEra}
+                <span className="dot dot--submit" /> mostly {submitEra}
+              </span>
+            )}
+            {voteEra && (
+              <span>
+                <span className="dot dot--reward" /> rewards {voteEra}
               </span>
             )}
           </div>
@@ -549,24 +556,44 @@ function PopularityDial({ submit, reward }: { submit?: number; reward?: number }
   );
 }
 
-/** A 1960s→2020s strip with a dot per era, sized by how much they use it. */
+/** A 1960s→2020s strip with dots (submissions) and rings (rewards) per era. */
 function EraTimeline({ submit, reward }: { submit: [string, number][]; reward: [string, number][] }) {
   const DECADES = ['1960s', '1970s', '1980s', '1990s', '2000s', '2010s', '2020s'];
   const submitMap = new Map(submit);
   const rewardMap = new Map(reward);
-  const max = Math.max(1, ...DECADES.map((d) => (submitMap.get(d) ?? 0) + (rewardMap.get(d) ?? 0)));
+  const hasSubmit = submit.length > 0;
+  const hasReward = reward.length > 0;
+  const maxS = Math.max(1, ...DECADES.map((d) => submitMap.get(d) ?? 0));
+  const maxR = Math.max(1, ...DECADES.map((d) => rewardMap.get(d) ?? 0));
   return (
     <div className="era-timeline">
       {DECADES.map((d) => {
         const s = submitMap.get(d) ?? 0;
         const r = rewardMap.get(d) ?? 0;
-        const size = 5 + Math.round(((s + r) / max) * 13);
+        const sizeS = s > 0 ? 5 + Math.round((s / maxS) * 6) : 3;
+        const sizeR = r > 0 ? 7 + Math.round((r / maxR) * 6) : 3;
         return (
           <div className="era-timeline__col" key={d} title={`${d}: ${s} submitted, ${r} rewarded`}>
-            <span
-              className={`era-timeline__dot${s > 0 ? ' era-timeline__dot--on' : ''}`}
-              style={{ width: s + r > 0 ? size : 4, height: s + r > 0 ? size : 4 }}
-            />
+            {hasSubmit && (
+              <div className="era-timeline__cell">
+                <span
+                  className={`era-timeline__dot${s > 0 ? ' era-timeline__dot--submit' : ''}`}
+                  style={{ width: sizeS, height: sizeS }}
+                />
+              </div>
+            )}
+            {hasReward && (
+              <div className="era-timeline__cell">
+                {r > 0 ? (
+                  <span
+                    className="era-timeline__ring"
+                    style={{ width: sizeR, height: sizeR }}
+                  />
+                ) : (
+                  <span className="era-timeline__dot" style={{ width: 3, height: 3 }} />
+                )}
+              </div>
+            )}
             <span className="era-timeline__label dim">{d.slice(2)}</span>
           </div>
         );
