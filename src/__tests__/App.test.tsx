@@ -235,12 +235,11 @@ describe('dashboard with the sample league', () => {
     expect(within(card).queryByRole('columnheader', { name: /Forfeit/ })).toBeNull();
   });
 
-  it('gives the player table sortable upvote, downvote and forfeit columns', async () => {
+  it('gives the score breakdown table sortable upvote, downvote and forfeit columns', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('tab', { name: 'Players' }));
-    const card = screen.getByText('Players, end to end').closest('.card') as HTMLElement;
+    await user.click(screen.getByRole('tab', { name: 'Standings' }));
+    const card = screen.getByText('How the scores add up').closest('.card') as HTMLElement;
     expect(within(card).getByRole('columnheader', { name: /Total score/ })).toBeDefined();
-    // Exact names: the table also has a "Downvotes cast" column for votes given.
     for (const name of ['Upvotes', 'Downvotes', 'Forfeited']) {
       expect(within(card).getByRole('columnheader', { name })).toBeDefined();
     }
@@ -286,7 +285,6 @@ describe('dashboard with the sample league', () => {
   it('opens a deep player page from the Players tab', async () => {
     const user = await openDemo();
     await user.click(screen.getByRole('tab', { name: 'Players' }));
-    expect(screen.getByText('Players, end to end')).toBeDefined();
     // Clicking a player opens their full profile (deep page) on Summary.
     const playerBtns = document.querySelectorAll('.player-btn');
     await user.click(playerBtns[0] as HTMLElement);
@@ -328,11 +326,10 @@ describe('dashboard with the sample league', () => {
 
   it('sorts a table when a header is clicked', async () => {
     const user = await openDemo();
-    await user.click(screen.getByRole('tab', { name: 'Players' }));
-    // Target the sortable PlayersPanel table ('Players, end to end')
-    const card = screen.getByText('Players, end to end').closest('.card') as HTMLElement;
+    await user.click(screen.getByRole('tab', { name: 'Songs' }));
+    const card = screen.getByText('Every song').closest('.card') as HTMLElement;
     const before = card.querySelector('tbody tr')!.textContent;
-    await user.click(within(card).getByRole('columnheader', { name: /Player/ }));
+    await user.click(within(card).getByRole('columnheader', { name: /Song/ }));
     const after = card.querySelector('tbody tr')!.textContent;
     expect(after).not.toBe(before);
   });

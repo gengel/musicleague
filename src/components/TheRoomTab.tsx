@@ -3,7 +3,6 @@ import type { Stats } from '../lib/stats';
 import {
   computeVoterFlows,
   comparePraiseAndBlame,
-  computePointsReceived,
   findLopsidedPairs,
 } from '../lib/targeting';
 import { SuperlativeStrip } from './SuperlativeStrip';
@@ -105,44 +104,6 @@ function DownvoteTargetingPanel({ stats }: { stats: Stats }) {
     </Card>
   );
 }
-
-function PointsReceivedPanel({ stats }: { stats: Stats }) {
-  const received = useMemo(() => computePointsReceived(stats), [stats]);
-  if (!received.length) return null;
-
-  return (
-    <Card title="Points received" subtitle="Upvotes and downvotes each player's songs attracted." wide>
-      <table className="t">
-        <thead>
-          <tr>
-            <th>Player</th>
-            <th className="num">↑ Up</th>
-            <th className="num">↓ Down</th>
-            <th className="num">Net</th>
-            <th className="num">Distinct backers</th>
-          </tr>
-        </thead>
-        <tbody>
-          {received.map((r) => (
-            <tr key={r.playerId}>
-              <td>
-                <strong>{r.name}</strong>
-              </td>
-              <td className="num pos">+{r.upvotes}</td>
-              <td className="num neg">{r.downvotes > 0 ? `−${r.downvotes}` : '—'}</td>
-              <td className={`num ${r.net >= 0 ? 'pos' : 'neg'}`}>
-                {r.net > 0 ? '+' : ''}
-                {r.net}
-              </td>
-              <td className="num dim">{r.distinctBackers} of {stats.players.length - 1}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card>
-  );
-}
-
 function PraiseBlamePanel({ stats }: { stats: Stats }) {
   const flows = useMemo(() => computeVoterFlows(stats), [stats]);
   const pvb = useMemo(() => comparePraiseAndBlame(flows), [flows]);
@@ -262,7 +223,6 @@ export function TheRoomTab({ stats }: { stats: Stats }) {
 
       {/* Per-round targeting is meaningful immediately. */}
       <UpvoteTargetingPanel stats={stats} />
-      <PointsReceivedPanel stats={stats} />
       {hasDownvotes && <DownvoteTargetingPanel stats={stats} />}
 
       {relationshipsReady && (
