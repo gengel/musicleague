@@ -66,6 +66,27 @@ describe('buildPlayerProfile', () => {
     // No downvotes in this fixture, so nemesis is undefined; the field exists.
     expect('nemesis' in profile.appearances[0]).toBe(true);
     expect('nemesis' in profile.aggregate).toBe(true);
+    expect('downvoteGenres' in profile.appearances[0]).toBe(true);
+    expect('downvoteGenres' in profile.aggregate).toBe(true);
+  });
+
+  it('tracks downvoted genres', () => {
+    const downvoteRound = `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+R1,Ann,Song A,JazzBand,t1
+R1,Bob,Song B,MetalBand,t2
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+R1,Bob,Ann,Song A,-2
+`;
+    const s = computeStats(parseLeague([{ name: 'dv.csv', text: downvoteRound }]), {
+      scoring: 'competitive',
+      flooring: 'none',
+    });
+    const p = buildPlayerProfile('bob', s, 'L', { jazzband: ['Jazz'] }, history, new Map())!;
+    expect(p.appearances[0].downvoteGenres).toEqual([['Jazz', 2]]);
+    expect(p.aggregate.downvoteGenres).toEqual([['Jazz', 2]]);
   });
 
   it('builds a cross-league brief', () => {

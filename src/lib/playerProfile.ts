@@ -87,6 +87,8 @@ export interface LeagueAppearance {
   submitGenres: [string, number][];
   /** Genres they rewarded with upvotes, points-weighted: [genre, points]. */
   voteGenres: [string, number][];
+  /** Genres they penalized with downvotes, points-weighted: [genre, points]. */
+  downvoteGenres: [string, number][];
   /** Eras they rewarded with upvotes, points-weighted: [decadeLabel, points]. */
   voteDecades: [string, number][];
   /** Popularity of songs they submit, points-weighted: [band, count]. */
@@ -142,6 +144,7 @@ export interface AggregateAppearance {
   backers: RankedOpponent[];
   submitGenres: [string, number][];
   voteGenres: [string, number][];
+  downvoteGenres: [string, number][];
   voteDecades: [string, number][];
   submitPop: [string, number][];
   votePop: [string, number][];
@@ -280,6 +283,14 @@ function appearanceFor(
       votePop.set(band, (votePop.get(band) ?? 0) + v.points);
     }
   }
+  const downvoteG = new Map<string, number>();
+  for (const v of stats.league.votes.filter((v) => v.voterId === playerId && v.points < 0)) {
+    const song = songByKey.get(`${v.trackId}|${v.roundId}`);
+    if (!song) continue;
+    for (const g of genresForArtist(song.artist, genreMap)) {
+      downvoteG.set(g, (downvoteG.get(g) ?? 0) + Math.abs(v.points));
+    }
+  }
   // Popularity of their own submissions (count-weighted).
   const submitPop = new Map<string, number>();
   for (const s of songs) {
@@ -300,6 +311,7 @@ function appearanceFor(
     backers,
     submitGenres: topN(submitG, 6),
     voteGenres: topN(voteG, 6),
+    downvoteGenres: topN(downvoteG, 6),
     voteDecades: topN(voteD, 6),
     submitPop: bandOrder(submitPop),
     votePop: bandOrder(votePop),
@@ -436,6 +448,7 @@ function buildAggregate(appearances: LeagueAppearance[]): AggregateAppearance {
     backers,
     submitGenres: sumPairs(appearances.map((a) => a.submitGenres)),
     voteGenres: sumPairs(appearances.map((a) => a.voteGenres)),
+    downvoteGenres: sumPairs(appearances.map((a) => a.downvoteGenres)),
     voteDecades: sumPairs(appearances.map((a) => a.voteDecades)),
     submitPop: sumBands(appearances.map((a) => a.submitPop)),
     votePop: sumBands(appearances.map((a) => a.votePop)),

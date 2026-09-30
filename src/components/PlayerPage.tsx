@@ -165,6 +165,7 @@ interface ScopeView {
   backers: RankedOpponent[];
   submitGenres: [string, number][];
   voteGenres: [string, number][];
+  downvoteGenres: [string, number][];
   voteDecades: [string, number][];
   submitPop: [string, number][];
   votePop: [string, number][];
@@ -195,6 +196,7 @@ function leagueView(a: LeagueAppearance): ScopeView {
     backers: a.backers,
     submitGenres: a.submitGenres,
     voteGenres: a.voteGenres,
+    downvoteGenres: a.downvoteGenres,
     voteDecades: a.voteDecades,
     submitPop: a.submitPop,
     votePop: a.votePop,
@@ -231,6 +233,7 @@ function aggregateView(agg: AggregateAppearance): ScopeView {
     backers: agg.backers,
     submitGenres: agg.submitGenres,
     voteGenres: agg.voteGenres,
+    downvoteGenres: agg.downvoteGenres,
     voteDecades: agg.voteDecades,
     submitPop: agg.submitPop,
     votePop: agg.votePop,
@@ -440,13 +443,13 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
   const rewardPos = popularityPosition(a.votePop);
   const submitEra = tasteLead(a.decades);
   const voteEra = tasteLead(a.voteDecades);
-  const submitGenre = tasteLead(a.submitGenres);
-  const voteGenre = tasteLead(a.voteGenres);
+  const upGenre = tasteLead(a.voteGenres);
+  const downGenre = tasteLead(a.downvoteGenres);
   const popText = (b?: string) => (b ? POP_PHRASE[b] ?? b : undefined);
 
   const hasPop = Boolean(submitPos || rewardPos);
   const hasEra = a.decades.length > 0 || a.voteDecades.length > 0;
-  const hasGenre = a.submitGenres.length > 0 || a.voteGenres.length > 0;
+  const hasGenre = a.voteGenres.length > 0 || a.downvoteGenres.length > 0;
   if (!hasPop && !hasEra && !hasGenre) return null;
 
   const srText = [
@@ -454,7 +457,8 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
     rewardPos && `rewards ${popText(tasteLead(a.votePop))}`,
     submitEra && `era mostly ${submitEra}`,
     voteEra && `rewards era ${voteEra}`,
-    submitGenre && `genre ${submitGenre}`,
+    upGenre && `upvotes genre ${upGenre}`,
+    downGenre && `downvotes genre ${downGenre}`,
   ]
     .filter(Boolean)
     .join(', ');
@@ -510,15 +514,33 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
       {hasGenre && (
         <div className="taste-panel">
           <div className="taste-panel__label">Genre</div>
-          <div className="genre-chips">
-            {(a.submitGenres.length ? a.submitGenres : a.voteGenres).slice(0, 3).map(([g]) => (
-              <span className="genre-chip" key={g}>
-                <Icon name={genreIcon(g)} size={14} /> {g}
-              </span>
-            ))}
-          </div>
-          {voteGenre && voteGenre !== submitGenre && (
-            <div className="taste-panel__legend dim small">rewards {voteGenre}</div>
+          {a.voteGenres.length > 0 && (
+            <div className="taste-genre-group">
+              <div className="taste-genre-subhead dim small">
+                <span className="dot dot--reward" /> upvoted
+              </div>
+              <div className="genre-chips">
+                {a.voteGenres.slice(0, 3).map(([g]) => (
+                  <span className="genre-chip" key={g}>
+                    <Icon name={genreIcon(g)} size={13} /> {g}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {a.downvoteGenres.length > 0 && (
+            <div className="taste-genre-group">
+              <div className="taste-genre-subhead dim small">
+                <span className="dot dot--downvote" /> downvoted
+              </div>
+              <div className="genre-chips">
+                {a.downvoteGenres.slice(0, 3).map(([g]) => (
+                  <span className="genre-chip genre-chip--neg" key={g}>
+                    <Icon name={genreIcon(g)} size={13} /> {g}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -646,9 +668,10 @@ function SubmissionsCard({ view: a, title }: { view: ScopeView; title: string })
 function RelationshipsCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (slug: string) => void }) {
   return (
     <Card title={`Relationships${a.finishes && a.finishes.length > 1 ? ' — all leagues' : ''}`} wide>
-      {(a.voteGenres.length > 0 || a.voteDecades.length > 0 || a.votePop.length > 0) && (
+      {(a.voteGenres.length > 0 || a.downvoteGenres.length > 0 || a.voteDecades.length > 0 || a.votePop.length > 0) && (
         <div className="vote-breakdowns">
           {a.voteGenres.length > 0 && <VoteBreakdown title="Upvotes by genre" rows={a.voteGenres} />}
+          {a.downvoteGenres.length > 0 && <VoteBreakdown title="Downvotes by genre" rows={a.downvoteGenres} />}
           {a.voteDecades.length > 0 && <VoteBreakdown title="Upvotes by era" rows={a.voteDecades} />}
           {a.votePop.length > 0 && <VoteBreakdown title="Upvotes by popularity" rows={a.votePop} />}
         </div>

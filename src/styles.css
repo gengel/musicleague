@@ -2572,6 +2572,7 @@ td.archetype-col {
 .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .dot--submit { background: var(--tint, var(--accent)); }
 .dot--reward { border: 2px solid var(--accent-2); }
+.dot--downvote { background: var(--neg); }
 
 /* Popularity dial */
 .dial { width: 100%; height: auto; max-width: 190px; overflow: visible; }
@@ -2587,18 +2588,25 @@ td.archetype-col {
 .era-timeline__label { font-size: 9px; line-height: 1; margin-top: 2px; }
 
 /* Genre chips */
-.genre-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.taste-genre-group { margin-top: 0.35rem; }
+.taste-genre-group:first-of-type { margin-top: 0; }
+.taste-genre-subhead { display: inline-flex; align-items: center; gap: 0.3rem; margin-bottom: 0.25rem; }
+.genre-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .genre-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.2rem 0.55rem;
+  padding: 0.15rem 0.5rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   font-size: var(--fs-cap);
   background: var(--bg-card);
 }
 .genre-chip .icon { color: var(--tint, var(--accent-2)); }
+.genre-chip--neg {
+  border-color: color-mix(in srgb, var(--neg) 35%, var(--line));
+}
+.genre-chip--neg .icon { color: var(--neg); }
 
 .sr-only {
   position: absolute;
