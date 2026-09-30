@@ -31,6 +31,13 @@ export interface ThemeRules {
    * resolve on its own. Keyed by the exact round name.
    */
   overrides: Record<string, string>;
+  /**
+   * The theme player for each round, in order, by display name. Lets the
+   * dashboard show intel for a round before its export exists — the export
+   * only ever contains rounds that have started. Index 0 is round 1. Optional:
+   * without it, only rounds already in the export are known.
+   */
+  schedule?: string[];
 }
 
 export interface VoteBudget {
@@ -130,12 +137,20 @@ export function validateLeagueConfig(raw: unknown): LeagueConfig {
     for (const [round, player] of Object.entries(overrides)) {
       if (typeof player !== 'string') fail(id, `"theme.overrides.${round}" must be a string`);
     }
+    let schedule: string[] | undefined;
+    if (t.schedule !== undefined) {
+      if (!Array.isArray(t.schedule) || t.schedule.some((s) => typeof s !== 'string')) {
+        fail(id, '"theme.schedule" must be an array of player names');
+      }
+      schedule = t.schedule as string[];
+    }
     theme = {
       source: 'title',
       win: t.win as number,
       lose: t.lose as number,
       skip: t.skip as number,
       overrides: overrides as Record<string, string>,
+      schedule,
     };
   }
 

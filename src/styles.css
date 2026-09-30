@@ -2359,3 +2359,35 @@ td.archetype-col {
 .brief-list__val {
   flex: none;
 }
+
+/* ---- Title-race probability bands ---- */
+.bands {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.8rem;
+}
+.band {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  background: var(--bg-raised);
+  border-top: 3px solid var(--line);
+}
+.band--leader { border-top-color: var(--pos); }
+.band--contention { border-top-color: var(--accent-2); }
+.band--outside { border-top-color: var(--theme); }
+.band--eliminated { border-top-color: var(--neg); opacity: 0.85; }
+.band__head { margin-bottom: 0.5rem; }
+.band__label { font-weight: 700; display: block; }
+.band__players { list-style: none; margin: 0; padding: 0; }
+.band__player {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr auto;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.band__player:last-child { border-bottom: none; }
+.band__name { font-weight: 600; }
+.band__behind { grid-column: 2 / 4; }

@@ -1,4 +1,4 @@
-import type { Stats } from './stats';
+import type { PlayerStats, Stats } from './stats';
 
 /**
  * What could still happen, given how this league has actually behaved.
@@ -49,6 +49,28 @@ export interface Future {
   roundsLeft?: number;
   swing: Swing;
   projections: Projection[];
+  /** Every contender placed in a probability band, best-placed first. */
+  bands: ContentionBand[];
+}
+
+/** A player's realistic title outlook, grouped into a readable band. */
+export interface BandedPlayer {
+  playerId: string;
+  name: string;
+  points: number;
+  rank: number;
+  /** Points behind the leader (0 for the leader). */
+  behind: number;
+}
+
+export type BandKey = 'leader' | 'contention' | 'outside' | 'eliminated';
+
+export interface ContentionBand {
+  key: BandKey;
+  label: string;
+  /** One-line explanation of what puts a player in this band. */
+  note: string;
+  players: BandedPlayer[];
 }
 
 /**
@@ -141,6 +163,81 @@ function form(stats: Stats): { name: string; early: number; late: number; swing:
     .sort((a, b) => b.swing - a.swing);
 }
 
+/**
+ * Groups contenders into a few probability bands rather than a yes/no "can
+ * still win". A player's reach is `rounds left × the biggest swing the league
+ * has actually produced` — the honest yardstick — measured against the gap to
+ * the leader. Bands, not percentages, because a dozen rounds of a friendly
+ * league is far too little data to justify a real probability.
+ */
+export function contentionBands(
+  ranked: PlayerStats[],
+  leaderPoints: number,
+  realisticBudget: number | undefined,
+): ContentionBand[] {
+  if (!ranked.length) return [];
+  const banded: Record<BandKey, BandedPlayer[]> = {
+    leader: [],
+    contention: [],
+    outside: [],
+    eliminated: [],
+  };
+  ranked.forEach((p, i) => {
+    const behind = leaderPoints - p.pointsCounted;
+    const entry: BandedPlayer = {
+      playerId: p.playerId,
+      name: p.name,
+      points: p.pointsCounted,
+      rank: i + 1,
+      behind,
+    };
+    if (i === 0) {
+      banded.leader.push(entry);
+    } else if (realisticBudget === undefined) {
+      // No known finish line: judge by how close they are relative to the
+      // field's spread rather than an absolute budget.
+      banded.contention.push(entry);
+    } else if (behind <= realisticBudget / 2) {
+      banded.contention.push(entry);
+    } else if (behind <= realisticBudget) {
+      banded.outside.push(entry);
+    } else {
+      banded.eliminated.push(entry);
+    }
+  });
+
+  const bands: ContentionBand[] = [
+    {
+      key: 'leader',
+      label: 'Leading',
+      note: 'Top of the table as it stands.',
+      players: banded.leader,
+    },
+    {
+      key: 'contention',
+      label: 'In contention',
+      note:
+        realisticBudget === undefined
+          ? 'Within range on the season so far.'
+          : 'Close enough to lead on the kind of rounds this league has actually produced.',
+      players: banded.contention,
+    },
+    {
+      key: 'outside',
+      label: 'Outside shot',
+      note: 'Would need a run better than anything the league has seen so far.',
+      players: banded.outside,
+    },
+    {
+      key: 'eliminated',
+      label: 'Out of it',
+      note: 'Too far back to catch the lead in the rounds that remain.',
+      players: banded.eliminated,
+    },
+  ];
+  return bands.filter((b) => b.players.length > 0);
+}
+
 export function future(stats: Stats): Future {
   const ranked = [...stats.players]
     .filter((p) => p.songs > 0)
@@ -176,7 +273,13 @@ export function future(stats: Stats): Future {
     stats.totalRounds !== undefined ? Math.max(0, stats.totalRounds - stats.roundsPlayed) : undefined;
 
   const projections: Projection[] = [];
-  if (ranked.length < 2 || !stats.hasVotes) return { roundsLeft, swing, projections };
+  if (ranked.length < 2 || !stats.hasVotes)
+    return {
+      roundsLeft,
+      swing,
+      projections,
+      bands: contentionBands(ranked, ranked[0]?.pointsCounted ?? 0, undefined),
+    };
 
   const leader = ranked[0];
   const runnerUp = ranked[1];
@@ -295,12 +398,13 @@ export function future(stats: Stats): Future {
     ).length;
     const nowBehind = ranked.length - (ranked.indexOf(worst) + 1);
     projections.push({
-      label: 'The cheapest points on offer',
-      headline: `${worst.name} can gain ${worst.forfeitedUpvotes} points without a single new vote in their favour.`,
-      detail: `That is what they have already forfeited by not voting. Simply voting from here on would have moved them past ${plural(
-        Math.max(0, wouldPass - nowBehind),
-        'player',
-      )} had it applied all season — and it costs nothing but a ballot.`,
+      label: 'Points left on the table',
+      headline: `${worst.name} has already lost ${plural(worst.forfeitedUpvotes, 'point')} by not voting.`,
+      detail: `In this league, skipping your vote forfeits the upvotes your own song earned that round. ${worst.name}'s songs earned ${worst.forfeitedUpvotes} that were taken away for not voting${
+        wouldPass - nowBehind > 0
+          ? `; had they voted, they would sit above ${plural(Math.max(0, wouldPass - nowBehind), 'more player')}`
+          : ''
+      }. Voting in future rounds keeps those points.`,
       status: 'live',
       subject: worst.playerId,
       interest: 85,
@@ -354,7 +458,9 @@ export function future(stats: Stats): Future {
 
   /* ---- Whose ballot actually decides rounds ---- */
   const kingmakers = decisiveVoters(stats);
-  if (kingmakers.length && kingmakers[0].rounds.length > 0) {
+  // A "kingmaker" needs a body of rounds to be meaningful — with one or two
+  // played, one decisive ballot is just the round, not a pattern.
+  if (stats.roundsPlayed >= 3 && kingmakers.length && kingmakers[0].rounds.length > 0) {
     const top = kingmakers[0];
     projections.push({
       label: 'The kingmaker',
@@ -477,6 +583,11 @@ export function future(stats: Stats): Future {
     chosen.push(projection);
   }
 
-  return { roundsLeft, swing, projections: chosen };
+  return {
+    roundsLeft,
+    swing,
+    projections: chosen,
+    bands: contentionBands(ranked, leader.pointsCounted, realisticBudget),
+  };
 }
 

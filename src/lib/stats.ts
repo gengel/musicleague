@@ -2,6 +2,8 @@ import type { League, Round, Submission, Vote } from './types';
 import {
   computeThemeOutcome,
   resolveThemePlayer,
+  resolveSchedule,
+  type ScheduledTheme,
   type ThemeOutcome,
   type ThemeRules,
   type ThemeSong,
@@ -419,6 +421,12 @@ export interface Stats {
   /** Theme bonus outcomes, one per themed round that has results. */
   themeOutcomes: ThemeOutcome[];
   /**
+   * The configured theme schedule resolved to players, when a schedule is
+   * given. Includes rounds not yet in the export, so the UI can show intel for
+   * the current and next themed round ahead of time.
+   */
+  themeSchedule: ScheduledTheme[];
+  /**
    * Round names whose theme player could not be identified from the title.
    * Surfaced as a warning rather than silently scored.
    */
@@ -693,6 +701,10 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
   const themeUnresolved: string[] = [];
   const themeByPlayer = new Map<string, ThemeOutcome>();
   const themeRoundOfPlayer = new Map<string, string>();
+  const existingSequences = new Set(league.rounds.map((r) => r.sequence));
+  const themeSchedule = options.theme
+    ? resolveSchedule(options.theme.schedule, league.players, existingSequences)
+    : [];
   if (options.theme) {
     const themeSongs: ThemeSong[] = songs.map((s) => ({
       roundId: s.roundId,
@@ -1070,6 +1082,7 @@ export function computeStats(league: League, options: StatsOptions = {}): Stats 
     artistCounts,
     hasVotes,
     themeOutcomes,
+    themeSchedule,
     themeUnresolved,
   };
 }

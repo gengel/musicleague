@@ -22,6 +22,7 @@ declare module 'virtual:league-data' {
     lose: number;
     skip: number;
     overrides: Record<string, string>;
+    schedule?: string[];
   } | null;
   /** Per-voter vote budget, when the league fixes one. */
   export const embeddedBudget: { upvotes: number; downvotes: number } | null;

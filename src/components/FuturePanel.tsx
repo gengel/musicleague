@@ -81,66 +81,42 @@ export function FuturePanel({ stats }: { stats: Stats }) {
       </Card>
 
       <Card
-        title="Everyone's path"
-        subtitle="What each player needs to gain on the player above them."
+        title="The title race"
+        subtitle={
+          roundsLeft === undefined
+            ? 'Grouped by how close each player is, given the season so far.'
+            : `Grouped by reach — ${roundsLeft} rounds left at the biggest swing this league has actually produced (${n1(swing.realistic)} a round).`
+        }
         wide
       >
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Player</th>
-                <th className="num">Score</th>
-                <th className="num">Behind the player above</th>
-                <th className="num">Behind the leader</th>
-                <th>Still possible?</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...stats.players]
-                .filter((p) => p.songs > 0)
-                .sort((a, b) => b.pointsCounted - a.pointsCounted)
-                .map((player, index, list) => {
-                  const above = index === 0 ? undefined : list[index - 1];
-                  const leader = list[0];
-                  const toAbove = above ? above.pointsCounted - player.pointsCounted : 0;
-                  const toLeader = leader.pointsCounted - player.pointsCounted;
-                  const budget =
-                    roundsLeft === undefined ? undefined : roundsLeft * swing.perRound;
-                  const canWin = budget === undefined ? true : toLeader <= budget;
-                  return (
-                    <tr key={player.playerId}>
-                      <td>
-                        <strong className="nowrap">{player.name}</strong>
-                      </td>
-                      <td className="num">
-                        <strong className={player.pointsCounted < 0 ? 'neg' : undefined}>
-                          {n1(player.pointsCounted)}
-                        </strong>
-                      </td>
-                      <td className="num">{above ? n1(toAbove) : <span className="dim">—</span>}</td>
-                      <td className="num">
-                        {index === 0 ? <span className="dim">leads</span> : n1(toLeader)}
-                      </td>
-                      <td>
-                        {index === 0 ? (
-                          <span className="dim">defending</span>
-                        ) : canWin ? (
-                          <span className="pos">can still win</span>
-                        ) : (
-                          <span className="dim">out of the title race</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
+        <div className="bands">
+          {outlook.bands.map((band) => (
+            <div className={`band band--${band.key}`} key={band.key}>
+              <div className="band__head">
+                <span className="band__label">{band.label}</span>
+                <span className="band__note dim small">{band.note}</span>
+              </div>
+              <ul className="band__players">
+                {band.players.map((p) => (
+                  <li key={p.playerId} className="band__player">
+                    <span className="band__rank dim">{p.rank}</span>
+                    <span className="band__name">{p.name}</span>
+                    <span className={`band__pts ${p.points < 0 ? 'neg' : 'pos'}`}>
+                      {p.points > 0 ? '+' : ''}
+                      {p.points}
+                    </span>
+                    {p.behind > 0 && <span className="band__behind dim small">−{p.behind} back</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
         <p className="note">
-          "Still possible" is generous on purpose: it assumes the theoretical maximum swing of{' '}
-          {n1(swing.perRound)} a round, every remaining round, so nobody is written off early. The
-          biggest swing anyone has actually managed is {n1(swing.realistic)}.
+          Bands, not percentages: a dozen rounds of a friendly league is far too little to justify a
+          real probability. "In contention" means the gap is within about half the biggest swing the
+          league has produced; "outside shot" means it would take a run better than anything seen so
+          far.
         </p>
       </Card>
     </>

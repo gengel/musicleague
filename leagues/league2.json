@@ -7,7 +7,14 @@
   "scoring": "competitive",
   "flooring": "none",
   "budget": { "upvotes": 10, "downvotes": 10 },
-  "theme": { "source": "title", "win": 3, "lose": -3, "skip": -3, "overrides": {} },
+  "theme": {
+    "source": "title",
+    "win": 3,
+    "lose": -3,
+    "skip": -3,
+    "overrides": {},
+    "schedule": ["Bob", "t33nwitch"]
+  },
   "history": ["league1"],
   "redact": true,
   "publish": { "out": "docs/v2", "single": true }

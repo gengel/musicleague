@@ -20,6 +20,17 @@ export interface ThemeRules {
   lose: number;
   skip: number;
   overrides: Record<string, string>;
+  /** Theme player per round, in order, by display name. Index 0 is round 1. */
+  schedule?: string[];
+}
+
+export interface ScheduledTheme {
+  /** 1-based round number. */
+  sequence: number;
+  playerId?: string;
+  playerName: string;
+  /** True when this round already has an export/result. */
+  exists: boolean;
 }
 
 export type ThemeVerdict = 'won' | 'lost' | 'skipped';
@@ -181,4 +192,30 @@ function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+/**
+ * Resolves the configured theme schedule to players, marking which rounds
+ * already exist in the export. Names are matched case-insensitively against
+ * full and first names. Lets the dashboard show intel for the current and
+ * next themed round before that round's export exists.
+ */
+export function resolveSchedule(
+  schedule: string[] | undefined,
+  players: Player[],
+  existingSequences: Set<number>,
+): ScheduledTheme[] {
+  if (!schedule?.length) return [];
+  return schedule.map((name, i) => {
+    const key = identityKey(name);
+    const match = players.find(
+      (p) => identityKey(p.name) === key || identityKey(p.name.split(/\s+/)[0]) === key,
+    );
+    return {
+      sequence: i + 1,
+      playerId: match?.id,
+      playerName: match?.name ?? name,
+      exists: existingSequences.has(i + 1),
+    };
+  });
 }
