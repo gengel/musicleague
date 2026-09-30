@@ -18,7 +18,7 @@ import { SongArt, SongLinks, SongPlayer, SongTags, artFor } from './SongMedia';
 import { PlayerAvatar, usePlayerTint } from './PlayerAvatar';
 import { InfoTip, MethodDrawer } from './InfoTip';
 import { Icon, eraIcon, genreIcon, type IconName } from './Icons';
-import { ThemeChip } from './ThemeChip';
+import { ThemeChip, ThemeMedal } from './ThemeChip';
 import { Card, Empty, n1 } from './ui';
 
 /**
@@ -284,13 +284,11 @@ function PlayerHeader({ profile }: { profile: PlayerProfile }) {
         )}
       </header>
       {(profile.themeRoundName || profile.themePending) && (
-        <p className="dim small">
-          {profile.themeOutcome
-            ? `Theme round: ${profile.themeRoundName} — ${profile.themeOutcome.outcome}, ${
-                profile.themeOutcome.points > 0 ? '+' : ''
-              }${profile.themeOutcome.points}.`
-            : `Theme round still to come: ${profile.themeRoundName}.`}
-        </p>
+        <ThemeMedal
+          roundName={profile.themeRoundName}
+          outcome={profile.themeOutcome}
+          pending={profile.themePending}
+        />
       )}
     </Card>
   );
@@ -372,18 +370,23 @@ function SummaryCard({
           {best.length === 0 ? (
             <Empty>No submissions yet.</Empty>
           ) : (
-            <div className="song-list">
-              {best.map((s) => (
-                <SongRow key={`${s.roundId}-${s.trackId}`} song={s} />
-              ))}
-            </div>
+            <>
+              <SongHero song={best[0]} />
+              {best.length > 1 && (
+                <div className="song-tiles">
+                  {best.slice(1).map((s) => (
+                    <SongTile key={`${s.roundId}-${s.trackId}`} song={s} />
+                  ))}
+                </div>
+              )}
+            </>
           )}
           {worst && (
             <>
               <h4 className="player-sub">
                 <Icon name="thumbsDown" size={15} /> Weakest submission
               </h4>
-              <div className="song-list">
+              <div className="song-list song-list--muted">
                 <SongRow song={worst} />
               </div>
             </>
@@ -568,11 +571,14 @@ function SubmissionsCard({ view: a, title }: { view: ScopeView; title: string })
       {a.songs.length === 0 ? (
         <Empty>No submissions.</Empty>
       ) : (
-        <div className="song-list">
-          {a.songs.map((s) => (
-            <SongRow key={`${s.roundId}-${s.trackId}`} song={s} />
-          ))}
-        </div>
+        <>
+          <CoverStrip songs={a.songs} />
+          <div className="song-list">
+            {a.songs.map((s) => (
+              <SongRow key={`${s.roundId}-${s.trackId}`} song={s} />
+            ))}
+          </div>
+        </>
       )}
       {(a.voteGenres.length > 0 || a.voteDecades.length > 0 || a.submitPop.length > 0) && (
         <>
@@ -623,7 +629,7 @@ function RelationshipsCard({ view: a, onNavigate }: { view: ScopeView; onNavigat
 /** One submission row, shared by Summary and Submissions. */
 function SongRow({ song: s }: { song: SongStats }) {
   return (
-    <article className="song-row">
+    <article className="song-row" id={`song-${s.roundId}-${s.trackId}`}>
       <div className="song-row__art">
         <SongArt title={s.title} spotifyId={s.spotifyId} size="sm" />
       </div>
@@ -646,6 +652,71 @@ function SongRow({ song: s }: { song: SongStats }) {
         {s.spotifyId && <SongPlayer title={s.title} spotifyId={s.spotifyId} compact />}
       </div>
     </article>
+  );
+}
+
+/** The single best song, shown large with a score badge on the cover. */
+function SongHero({ song: s }: { song: SongStats }) {
+  return (
+    <article className="song-hero">
+      <div className="song-hero__art">
+        <SongArt title={s.title} spotifyId={s.spotifyId} size="xl" px={128} />
+        <span className={`song-hero__badge ${s.effectiveNet < 0 ? 'neg' : 'pos'}`}>
+          {s.effectiveNet > 0 ? '+' : ''}
+          {s.effectiveNet}
+        </span>
+      </div>
+      <div className="song-hero__body">
+        <strong className="song-hero__title">{s.title || 'Untitled'}</strong>
+        {s.artist && <div className="dim">{s.artist}</div>}
+        <div className="dim small">{s.roundName}</div>
+        <SongTags year={s.year} obscurity={s.obscurity} artist={s.artist} durationMs={s.durationMs} cover={s.cover} />
+        <div className="song-hero__links">
+          <SongLinks title={s.title} artist={s.artist} spotifyId={s.spotifyId} />
+          {s.spotifyId && <SongPlayer title={s.title} spotifyId={s.spotifyId} compact />}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/** A compact cover tile for runner-up songs. */
+function SongTile({ song: s }: { song: SongStats }) {
+  return (
+    <article className="song-tile" title={`${s.title} — ${s.artist} (${s.effectiveNet > 0 ? '+' : ''}${s.effectiveNet})`}>
+      <div className="song-tile__art">
+        <SongArt title={s.title} spotifyId={s.spotifyId} size="sm" px={56} />
+        <span className={`song-tile__badge ${s.effectiveNet < 0 ? 'neg' : 'pos'}`}>
+          {s.effectiveNet > 0 ? '+' : ''}
+          {s.effectiveNet}
+        </span>
+      </div>
+      <div className="song-tile__title small">{s.title || 'Untitled'}</div>
+    </article>
+  );
+}
+
+/** A row of every submitted cover, tinted by score, as a one-glance run. */
+function CoverStrip({ songs }: { songs: SongStats[] }) {
+  if (songs.length < 3) return null;
+  // Chronological (songs come in best-first); show them in round order.
+  const ordered = [...songs].sort((a, b) => (a.roundName ?? '').localeCompare(b.roundName ?? ''));
+  return (
+    <div className="cover-strip" aria-hidden="true">
+      {ordered.map((s) => {
+        const tone = s.effectiveNet > 3 ? 'pos' : s.effectiveNet < 0 ? 'neg' : 'mid';
+        return (
+          <a
+            key={`${s.roundId}-${s.trackId}`}
+            className={`cover-strip__cell cover-strip__cell--${tone}`}
+            href={`#song-${s.roundId}-${s.trackId}`}
+            title={`${s.title} (${s.effectiveNet > 0 ? '+' : ''}${s.effectiveNet})`}
+          >
+            <SongArt title={s.title} spotifyId={s.spotifyId} size="sm" px={40} />
+          </a>
+        );
+      })}
+    </div>
   );
 }
 

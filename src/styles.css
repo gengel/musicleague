@@ -2762,3 +2762,92 @@ td.archetype-col {
 }
 .player-head--hero .avatar { border-color: var(--tint, var(--line)); box-shadow: 0 0 18px -4px var(--tint); }
 .name-cell { display: inline-flex; align-items: center; gap: 0.45rem; }
+
+/* ---- Best-song hero + runner-up tiles ---- */
+.song-hero {
+  display: flex;
+  gap: 0.9rem;
+  padding: 0.6rem 0;
+}
+.song-hero__art { position: relative; flex: none; }
+.song-hero__art .art,
+.song-hero__art img { border-radius: 10px; }
+.song-hero__badge {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-body);
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+}
+.song-hero__badge.pos { color: var(--pos); }
+.song-hero__badge.neg { color: var(--neg); }
+.song-hero__body { min-width: 0; }
+.song-hero__title { font-size: var(--fs-lead); font-family: var(--font-display); }
+.song-hero__links { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.4rem; }
+
+.song-tiles { display: flex; gap: 0.7rem; margin-top: 0.4rem; flex-wrap: wrap; }
+.song-tile { width: 56px; }
+.song-tile__art { position: relative; }
+.song-tile__art .art,
+.song-tile__art img { border-radius: 8px; }
+.song-tile__badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+}
+.song-tile__badge.pos { color: var(--pos); }
+.song-tile__badge.neg { color: var(--neg); }
+.song-tile__title {
+  margin-top: 0.5rem;
+  color: var(--dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.song-list--muted { opacity: 0.7; }
+
+/* ---- Cover strip on Submissions ---- */
+.cover-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 0.9rem;
+}
+.cover-strip__cell {
+  display: block;
+  border-radius: 6px;
+  overflow: hidden;
+  border-bottom: 3px solid var(--line);
+  line-height: 0;
+}
+.cover-strip__cell .art,
+.cover-strip__cell img { border-radius: 6px 6px 0 0; }
+.cover-strip__cell--pos { border-bottom-color: var(--pos); }
+.cover-strip__cell--mid { border-bottom-color: var(--line); }
+.cover-strip__cell--neg { border-bottom-color: var(--neg); }
+
+/* ---- Theme medal ---- */
+.theme-medal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.theme-medal--win { border-color: var(--theme); background: rgba(224, 179, 65, 0.08); }
+.theme-medal--lose { opacity: 0.85; }
+.theme-medal__icon { font-size: 1.4rem; line-height: 1; }
+.theme-medal__text { display: flex; flex-direction: column; }

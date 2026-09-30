@@ -32,6 +32,50 @@ export function ThemeChip({
 }
 
 /**
+ * A medal for a player's own themed round: a gold rosette when they won it,
+ * a cracked disc when they did not. Used on the profile header where the
+ * outcome deserves a mark rather than a sentence.
+ */
+export function ThemeMedal({
+  roundName,
+  outcome,
+  pending,
+}: {
+  roundName?: string;
+  outcome?: ThemeOutcome;
+  pending?: boolean;
+}) {
+  if (pending) {
+    return (
+      <span className="theme-medal theme-medal--pending" title={`Their theme round is still to come: ${roundName}`}>
+        <span className="theme-medal__icon">◔</span>
+        <span className="theme-medal__text">
+          <strong>Theme round to come</strong>
+          <span className="dim small">{roundName}</span>
+        </span>
+      </span>
+    );
+  }
+  if (!outcome) return null;
+  const won = outcome.outcome === 'won';
+  return (
+    <span
+      className={`theme-medal theme-medal--${won ? 'win' : 'lose'}`}
+      title={outcome.reason}
+    >
+      <span className="theme-medal__icon">{won ? '🏅' : '💢'}</span>
+      <span className="theme-medal__text">
+        <strong>
+          {won ? 'Won their theme round' : 'Lost their theme round'} ({outcome.points > 0 ? '+' : ''}
+          {outcome.points})
+        </strong>
+        <span className="dim small">{roundName}</span>
+      </span>
+    </span>
+  );
+}
+
+/**
  * A banner naming the round's theme player and how the bonus fell out.
  * Shown at the top of a round view. Spells out that the round ranking below
  * is as voted and the bonus lands on the season total, so the two never look
