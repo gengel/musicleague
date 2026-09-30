@@ -13,6 +13,7 @@ import { Card, Empty } from './ui';
 
 function UpvoteTargetingPanel({ stats }: { stats: Stats }) {
   const flows = useMemo(() => computeVoterFlows(stats), [stats]);
+  const hasVaryingSpent = useMemo(() => new Set(flows.map((f) => f.upvotesSpent)).size > 1, [flows]);
   if (!flows.length) return null;
 
   return (
@@ -25,7 +26,7 @@ function UpvoteTargetingPanel({ stats }: { stats: Stats }) {
         <thead>
           <tr>
             <th>Voter</th>
-            <th className="num">Spent</th>
+            {hasVaryingSpent && <th className="num">Spent</th>}
             <th className="num">Targets</th>
             <th>Top recipient</th>
             <th className="num">Their share</th>
@@ -40,7 +41,7 @@ function UpvoteTargetingPanel({ stats }: { stats: Stats }) {
                 <td>
                   <strong>{f.voterName}</strong>
                 </td>
-                <td className="num">{f.upvotesSpent}</td>
+                {hasVaryingSpent && <td className="num">{f.upvotesSpent}</td>}
                 <td className="num">{f.upvoteTargets}</td>
                 <td className="dim">
                   {top ? `${top.targetName} (${top.points})` : '—'}
@@ -60,6 +61,7 @@ function UpvoteTargetingPanel({ stats }: { stats: Stats }) {
 function DownvoteTargetingPanel({ stats }: { stats: Stats }) {
   const flows = useMemo(() => computeVoterFlows(stats), [stats]);
   const withDown = flows.filter((f) => f.downvotesSpent > 0);
+  const hasVaryingSpent = useMemo(() => new Set(withDown.map((f) => f.downvotesSpent)).size > 1, [withDown]);
   if (!withDown.length) return null;
 
   return (
@@ -72,7 +74,7 @@ function DownvoteTargetingPanel({ stats }: { stats: Stats }) {
         <thead>
           <tr>
             <th>Voter</th>
-            <th className="num">Spent</th>
+            {hasVaryingSpent && <th className="num">Spent</th>}
             <th className="num">Targets</th>
             <th>Top target</th>
             <th className="num">Their share</th>
@@ -87,7 +89,7 @@ function DownvoteTargetingPanel({ stats }: { stats: Stats }) {
                 <td>
                   <strong>{f.voterName}</strong>
                 </td>
-                <td className="num">{f.downvotesSpent}</td>
+                {hasVaryingSpent && <td className="num">{f.downvotesSpent}</td>}
                 <td className="num">{f.downvoteTargets}</td>
                 <td className="dim">
                   {top ? `${top.targetName} (${top.points})` : '—'}

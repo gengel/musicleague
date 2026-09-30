@@ -17,7 +17,7 @@ decisions.
 
 ```bash
 npx tsc -b 2>&1 | grep -vE 'Unknown user|minimum-release'   # typecheck; those two lines are harmless npm noise
-npx vitest run                                              # expect 474 passed
+npx vitest run                                              # expect 475 passed
 npx vite build && git checkout -- dist && git clean -fq dist/assets   # build check, then RESTORE the tracked dist/
 npm run bake -- --league league2 --base ./                  # rebuilds docs/v2 (config: leagues/league2.json)
 npx vite preview --outDir docs/v2 --port 4220 &             # serve it; stop with: pkill -f 'vite preview'
@@ -97,10 +97,11 @@ v2 (`6976f5d`…`68415a5`), in order:
 - **Today:** a design review of every tab (`DESIGN-REVIEW.md`).
 - **Fix #round/N highlighting (G7)** (`a75e5fc`).
 - **Fix phone layout problems (G8)** (`3ac84d6`): nav scroll strip, `nowrap` on names, hidden secondary columns, contained Songs heatmaps.
+- **Hide single-value columns and filters (G9)**: Round column and filter chips in Songs, Spent in Room, Per song / Best round / Rounds voted in Standings.
 
 ## 5. Current state
 
-- The build is clean, 474 tests pass, and `docs/v2` is baked and current.
+- The build is clean, 475 tests pass, and `docs/v2` is baked and current.
 - **Known open issues:**
   1. `DESIGN-REVIEW.md` §1–8 lists the remaining backlog.
 - **Older backlog (`REVIEW-v2.md`), status as checked today:**
@@ -118,12 +119,11 @@ new commit (never amend). Don't push unless asked.
 
 1. Add the gate helper (G2) and apply it panel by panel. Add unit tests
    for the helper.
-2. Hide single-value columns (G9).
-3. Remove the duplicate tables and panels (G1, the Songs lists, Room
+2. Remove the duplicate tables and panels (G1, the Songs lists, Room
    "Points received", Players "end to end"). Update any tests that assert
    those panels exist.
-4. Move method subtitles and runner-ups into `InfoTip` (G4, G5).
-5. Impact work: This Round podium, Players card grid, Standings chart
+3. Move method subtitles and runner-ups into `InfoTip` (G4, G5).
+4. Impact work: This Round podium, Players card grid, Standings chart
    defaults, round page.
 
 ## 7. User preferences (standing)

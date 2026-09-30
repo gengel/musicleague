@@ -19,6 +19,7 @@ export function TheRaceTab({
     .sort((a, b) => b.pointsCounted - a.pointsCounted);
   const anyTheme = stats.players.some((p) => p.themeBonus !== 0);
   const themeReason = new Map(stats.themeOutcomes.map((o) => [o.playerId, o.reason]));
+  const hasMultipleRounds = stats.roundsPlayed > 1;
 
   return (
     <>
@@ -49,10 +50,10 @@ export function TheRaceTab({
                 <th>Player</th>
                 <th className="num">Score</th>
                 {anyTheme && <th className="num">Theme</th>}
-                <th className="num col-secondary">Per song</th>
-                <th className="num col-secondary">Best round</th>
+                {hasMultipleRounds && <th className="num col-secondary">Per song</th>}
+                {hasMultipleRounds && <th className="num col-secondary">Best round</th>}
                 <th className="num col-secondary">↓ taken</th>
-                <th className="num col-secondary">Rounds voted</th>
+                {hasMultipleRounds && <th className="num col-secondary">Rounds voted</th>}
               </tr>
             </thead>
             <tbody>
@@ -79,14 +80,20 @@ export function TheRaceTab({
                         <ThemeChip points={p.themeBonus} reason={themeReason.get(p.playerId)} compact />
                       </td>
                     )}
-                    <td className="num dim col-secondary">{p.songs > 0 ? p.avgPerSong.toFixed(1) : '—'}</td>
-                    <td className="num dim col-secondary">{best > 0 ? `+${best}` : best || '—'}</td>
+                    {hasMultipleRounds && (
+                      <td className="num dim col-secondary">{p.songs > 0 ? p.avgPerSong.toFixed(1) : '—'}</td>
+                    )}
+                    {hasMultipleRounds && (
+                      <td className="num dim col-secondary">{best > 0 ? `+${best}` : best || '—'}</td>
+                    )}
                     <td className="num dim col-secondary">{p.downvotesReceived || '—'}</td>
-                    <td className="num dim col-secondary">
-                      {p.roundsVoted
-                        ? `${p.roundsVoted} of ${stats.roundsPlayed}`
-                        : <span className="neg">never voted</span>}
-                    </td>
+                    {hasMultipleRounds && (
+                      <td className="num dim col-secondary">
+                        {p.roundsVoted
+                          ? `${p.roundsVoted} of ${stats.roundsPlayed}`
+                          : <span className="neg">never voted</span>}
+                      </td>
+                    )}
                   </tr>
                 );
               })}

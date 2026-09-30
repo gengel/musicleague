@@ -424,3 +424,43 @@ describe('degraded exports', () => {
     expect(await screen.findByText(/contained no submissions/i)).toBeDefined();
   });
 });
+
+describe('G9 single-value column suppression', () => {
+  it('hides single-value columns and filters when only one round is played', async () => {
+    stubLayout();
+    const csv = `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+Round 1,Ada,Song 1,Artist 1,id1
+Round 1,Bo,Song 2,Artist 2,id2
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+Round 1,Ada,Bo,Song 2,10
+Round 1,Bo,Ada,Song 1,10
+`;
+    const user = userEvent.setup();
+    render(<App />);
+    const input = document.querySelector('input[type=file]') as HTMLInputElement;
+    await user.upload(input, new File([csv], 'Single Round League.csv', { type: 'text/csv' }));
+    expect(await screen.findByRole('heading', { level: 1, name: /Single Round League/i })).toBeDefined();
+
+    // Standings tab: Where it stands should NOT show Per song, Best round, or Rounds voted
+    await user.click(screen.getByRole('tab', { name: 'Standings' }));
+    const whereCard = screen.getByText('Where it stands').closest('.card') as HTMLElement;
+    expect(within(whereCard).queryByRole('columnheader', { name: 'Per song' })).toBeNull();
+    expect(within(whereCard).queryByRole('columnheader', { name: 'Best round' })).toBeNull();
+    expect(within(whereCard).queryByRole('columnheader', { name: 'Rounds voted' })).toBeNull();
+    expect(within(whereCard).getByRole('columnheader', { name: 'Score' })).toBeDefined();
+
+    // Songs tab: Every song table should NOT have a Round column or Round filter chips
+    await user.click(screen.getByRole('tab', { name: 'Songs' }));
+    const songCard = screen.getByText('Every song').closest('.card') as HTMLElement;
+    expect(within(songCard).queryByRole('columnheader', { name: 'Round' })).toBeNull();
+    expect(within(songCard).queryByText('Round', { selector: '.seg__label' })).toBeNull();
+
+    // Room tab: Where the upvotes go should NOT have Spent column when all spent are identical (10)
+    await user.click(screen.getByRole('tab', { name: 'Room' }));
+    const upvotesCard = screen.getByText('Where the upvotes go').closest('.card') as HTMLElement;
+    expect(within(upvotesCard).queryByRole('columnheader', { name: 'Spent' })).toBeNull();
+  });
+});

@@ -46,6 +46,8 @@ export function SongsPanel({ stats }: { stats: Stats }) {
     return songs;
   }, [stats.songs, roundFilter, contentFilter]);
 
+  const hasMultipleRounds = stats.league.rounds.length > 1;
+
   const columns: Column<SongStats>[] = [
     {
       key: 'song',
@@ -68,7 +70,9 @@ export function SongsPanel({ stats }: { stats: Stats }) {
       label: 'Submitted by',
       value: (s) => (s.submitterId ? nameOf.get(s.submitterId) ?? '' : 'anonymous'),
     },
-    { key: 'round', label: 'Round', value: (s) => s.roundSequence, render: (s) => s.roundName },
+    ...(hasMultipleRounds
+      ? [{ key: 'round', label: 'Round', value: (s: SongStats) => s.roundSequence, render: (s: SongStats) => s.roundName }]
+      : []),
     {
       key: 'year',
       label: 'Year',
@@ -170,13 +174,15 @@ export function SongsPanel({ stats }: { stats: Stats }) {
       wide
     >
       <div className="song-filters">
-        <div className="seg seg--wrap">
-          <span className="seg__label">Round</span>
-          <button className={roundFilter === 'all' ? 'seg__btn seg__btn--on' : 'seg__btn'} onClick={() => setRoundFilter('all')}>All</button>
-          {stats.league.rounds.map((r) => (
-            <button key={r.id} className={roundFilter === r.id ? 'seg__btn seg__btn--on' : 'seg__btn'} onClick={() => setRoundFilter(r.id)}>{r.name}</button>
-          ))}
-        </div>
+        {hasMultipleRounds && (
+          <div className="seg seg--wrap">
+            <span className="seg__label">Round</span>
+            <button className={roundFilter === 'all' ? 'seg__btn seg__btn--on' : 'seg__btn'} onClick={() => setRoundFilter('all')}>All</button>
+            {stats.league.rounds.map((r) => (
+              <button key={r.id} className={roundFilter === r.id ? 'seg__btn seg__btn--on' : 'seg__btn'} onClick={() => setRoundFilter(r.id)}>{r.name}</button>
+            ))}
+          </div>
+        )}
         <div className="seg seg--wrap">
           <span className="seg__label">Show</span>
           {([['all', 'All'], ['covers', 'Covers'], ['forfeited', 'Forfeited']] as [ContentFilter, string][]).map(([key, label]) => (
