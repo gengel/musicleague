@@ -33,6 +33,11 @@
   --pos: #63d68f;
   --neg: #f2707f;
   --theme: #e0b341;
+  /* Taste-chart series. "Submissions" must not use the player tint: the tint is
+     drawn from their covers, so a pink-tinted player collided with --neg and a
+     green-tinted one with --pos. Neutral white-ish reads as "their own songs"
+     against the green/red vote colours, and the shapes differ too. */
+  --series-submit: #dcdce6;
   --radius: 14px;
   /* Type scale: caption / body / lead / title / display. */
   --fs-cap: 12px;
@@ -2569,8 +2574,10 @@ td.archetype-col {
   align-items: center;
 }
 .taste-panel__legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+/* Legend spans the whole grid, above the panels it describes. */
+.taste-block__legend { grid-column: 1 / -1; margin: 0 0 -0.2rem; gap: 0.2rem 1rem; }
 .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-.dot--submit { background: var(--tint, var(--accent)); }
+.dot--submit { background: var(--series-submit); }
 .dot--reward { border: 2px solid var(--pos); }
 .dot--downvote { background: var(--neg); }
 
@@ -2583,7 +2590,7 @@ td.archetype-col {
 .era-timeline__col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; gap: 2px; }
 .era-timeline__cell { height: 14px; display: flex; align-items: center; justify-content: center; width: 100%; }
 .era-timeline__dot { border-radius: 50%; background: var(--line); transition: none; }
-.era-timeline__dot--submit { background: var(--tint, var(--accent)); }
+.era-timeline__dot--submit { background: var(--series-submit); }
 .era-timeline__ring { border-radius: 50%; box-sizing: border-box; background: transparent; border: 2px solid var(--pos); }
 .era-timeline__label { font-size: 9px; line-height: 1; margin-top: 2px; }
 

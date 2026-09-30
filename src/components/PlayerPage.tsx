@@ -467,10 +467,16 @@ function TasteBlock({ view: a }: { view: ScopeView }) {
     <div className="taste-block">
       <span className="sr-only">{srText}.</span>
 
-      <div className="taste-panel__legend dim small" style={{ gridColumn: '1 / -1', marginBottom: '-0.5rem' }}>
-        <span style={{ marginRight: '1rem' }}><span className="dot dot--submit" /> submissions</span>
-        <span style={{ marginRight: '1rem' }}><span className="dot dot--reward" /> upvotes</span>
-        {a.downvoteGenres.length > 0 && <span><span className="dot dot--downvote" /> downvotes</span>}
+      {/* Shared legend for the dial and the era timeline. Downvotes are not
+          plotted in either, so they are not listed here; the genre panel labels
+          its own upvoted/downvoted groups inline. */}
+      <div className="taste-block__legend taste-panel__legend dim small">
+        <span>
+          <span className="dot dot--submit" /> submissions
+        </span>
+        <span>
+          <span className="dot dot--reward" /> upvotes
+        </span>
       </div>
 
       {hasPop && (
@@ -548,7 +554,7 @@ function PopularityDial({ submit, reward }: { submit?: number; reward?: number }
       {submit !== undefined &&
         (() => {
           const p = point(submit, 44);
-          return <circle cx={p.x} cy={p.y} r="5" fill="var(--tint, var(--accent))" />;
+          return <circle cx={p.x} cy={p.y} r="5" fill="var(--series-submit)" />;
         })()}
       <text x="6" y="55" className="dial__end">
         deep
