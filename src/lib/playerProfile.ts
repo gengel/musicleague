@@ -495,6 +495,40 @@ export function buildPlayerProfile(
   };
 }
 
+/**
+ * A one-line career storyline for the header, or undefined when there is no
+ * story worth telling. Reads a climb, a slide, or a run of podiums across the
+ * player's finishes. `appearances` are current-first (as built).
+ */
+export function careerStoryline(
+  appearances: { label: string; finish?: number; of?: number; current: boolean }[],
+): string | undefined {
+  const ranked = appearances.filter((a) => a.finish && a.of);
+  if (ranked.length < 2) {
+    const only = ranked[0];
+    if (only && only.finish === 1) return 'Won it';
+    if (only && only.finish && only.of && only.finish <= 3) return `${ordinalPlain(only.finish)} place`;
+    return undefined;
+  }
+  // Oldest → newest for a left-to-right arc.
+  const chron = [...ranked].reverse();
+  const first = chron[0];
+  const last = chron[chron.length - 1];
+  const climb = (first.finish ?? 0) - (last.finish ?? 0);
+  const arc = `${ordinalPlain(first.finish!)} → ${ordinalPlain(last.finish!)}`;
+  if (climb >= 5) return `Climbed ${arc}`;
+  if (climb <= -5) return `Slid ${arc}`;
+  if (chron.every((a) => a.finish && a.finish <= 3)) return 'Podium every season';
+  if (last.finish === 1) return `${arc} — champion`;
+  return arc;
+}
+
+function ordinalPlain(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 /** Every player's slug in the current league, for routing. */
 export function playerSlugIndex(stats: Stats): Map<string, string> {
   const bySlug = new Map<string, string>();

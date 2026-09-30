@@ -73,7 +73,9 @@ export function artworkTargets(
     const id = song.spotifyId;
     if (!id || seen.has(id)) continue;
     seen.add(id);
-    targets.push({ id, sizes: hero.has(id) ? ['lg', 'xl'] : ['lg'] });
+    // Every track also gets the 64px thumbnail, used in the small cover-mosaic
+    // avatars; hero songs additionally get 640px for the large hero tiles.
+    targets.push({ id, sizes: hero.has(id) ? ['sm', 'lg', 'xl'] : ['sm', 'lg'] });
   }
   return targets;
 }

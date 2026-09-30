@@ -23,8 +23,9 @@ ${rows.map((_, i) => `R1,P${(i + 1) % count},P${i},Song ${i},${count - i}`).join
   it('asks for a cover per track and the hero variant only where needed', () => {
     const targets = artworkTargets([{ name: 'x.csv', text: withIds(12) }], 3);
     expect(targets).toHaveLength(12);
-    // Every track needs the table cover.
+    // Every track needs the table cover and the avatar thumbnail.
     for (const t of targets) expect(t.sizes).toContain('lg');
+    for (const t of targets) expect(t.sizes).toContain('sm');
     // The 640px variant is ~70x the weight, so only a few get it: the top
     // three asked for, plus the round winner (already among them here).
     const hero = targets.filter((t) => t.sizes.includes('xl'));
@@ -55,7 +56,7 @@ Round,Submitter,Song Title,Artist,Spotify URI
 R1,Ada,Song,Someone,spotify:track:2SHTKB8YYlawTGIuJ2b2ok
 `;
     expect(artworkTargets([{ name: 'x.csv', text: csv }])).toEqual([
-      { id: '2SHTKB8YYlawTGIuJ2b2ok', sizes: ['lg', 'xl'] },
+      { id: '2SHTKB8YYlawTGIuJ2b2ok', sizes: ['sm', 'lg', 'xl'] },
     ]);
   });
 });

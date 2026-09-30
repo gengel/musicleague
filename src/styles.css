@@ -2651,3 +2651,65 @@ td.archetype-col {
 .taste-facet__label { display: flex; align-items: center; gap: 0.35rem; }
 .person__label { display: flex; align-items: center; gap: 0.35rem; }
 .scope-tab { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* ---- Player hero header ---- */
+.player-head--hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  isolation: isolate;
+}
+.player-head__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  filter: blur(34px) saturate(1.3);
+  transform: scale(1.25);
+  opacity: 0.4;
+}
+/* Dark wash so the blurred cover never drops text contrast below AA. */
+.player-head--hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(13, 13, 17, 0.72), rgba(13, 13, 17, 0.92));
+}
+.player-head__id {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.player-head__story {
+  margin-top: 0.25rem;
+  font-size: var(--fs-cap);
+  font-weight: 600;
+  color: var(--tint, var(--accent-2));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ---- Avatars ---- */
+.avatar {
+  display: inline-grid;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.25);
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.avatar--mosaic { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.avatar--mosaic img { width: 100%; height: 100%; }
+.avatar--initials {
+  place-items: center;
+  color: #0d0d11;
+  font-weight: 700;
+  font-family: var(--font-display);
+}
+.player-head--hero .avatar { border-color: var(--tint, var(--line)); box-shadow: 0 0 18px -4px var(--tint); }
+.name-cell { display: inline-flex; align-items: center; gap: 0.45rem; }

@@ -1,9 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { embeddedGenres } from 'virtual:league-data';
 import type { SongStats, Stats } from '../lib/stats';
 import type { History } from '../lib/history';
 import {
   buildPlayerProfile,
+  careerStoryline,
   highlightSongs,
   playerSlug,
   tasteLead,
@@ -12,7 +13,8 @@ import {
   type PlayerProfile,
   type RankedOpponent,
 } from '../lib/playerProfile';
-import { SongArt, SongLinks, SongPlayer, SongTags } from './SongMedia';
+import { SongArt, SongLinks, SongPlayer, SongTags, artFor } from './SongMedia';
+import { PlayerAvatar, usePlayerTint } from './PlayerAvatar';
 import { InfoTip, MethodDrawer } from './InfoTip';
 import { Icon, eraIcon, genreIcon, popularityIcon, type IconName } from './Icons';
 import { ThemeChip } from './ThemeChip';
@@ -226,25 +228,41 @@ function aggregateView(agg: AggregateAppearance): ScopeView {
 function PlayerHeader({ profile }: { profile: PlayerProfile }) {
   const current = profile.appearances.find((a) => a.current);
   const p = current?.player;
+  const topSongs = profile.aggregate.songs.slice(0, 4).map((s) => s.spotifyId);
+  const bestId = profile.aggregate.songs[0]?.spotifyId;
+  const tint = usePlayerTint(profile.playerId, bestId);
+  const backdrop = artFor(bestId, 'lg');
+  const story = careerStoryline(profile.appearances);
+
   return (
     <Card wide>
-      <header className="player-head">
-        <div>
-          <h2 className="player-head__name display">{profile.name}</h2>
-          <div className="player-head__meta dim small">
-            {profile.appearances.map((a, i) => (
-              <span key={a.leagueId}>
-                {i > 0 && ' · '}
-                {a.label}:{' '}
-                {a.finish ? (
-                  <strong>
-                    {ordinal(a.finish)} of {a.of}
-                  </strong>
-                ) : (
-                  'did not submit'
-                )}
-              </span>
-            ))}
+      <header
+        className="player-head player-head--hero"
+        style={{ '--tint': tint } as CSSProperties}
+      >
+        {backdrop && (
+          <div className="player-head__bg" style={{ backgroundImage: `url(${backdrop})` }} aria-hidden="true" />
+        )}
+        <div className="player-head__id">
+          <PlayerAvatar name={profile.name} spotifyIds={topSongs} tint={tint} size={56} />
+          <div>
+            <h2 className="player-head__name display">{profile.name}</h2>
+            <div className="player-head__meta dim small">
+              {profile.appearances.map((a, i) => (
+                <span key={a.leagueId}>
+                  {i > 0 && ' · '}
+                  {a.label}:{' '}
+                  {a.finish ? (
+                    <strong>
+                      {ordinal(a.finish)} of {a.of}
+                    </strong>
+                  ) : (
+                    'did not submit'
+                  )}
+                </span>
+              ))}
+            </div>
+            {story && <div className="player-head__story">{story}</div>}
           </div>
         </div>
         {p && (
