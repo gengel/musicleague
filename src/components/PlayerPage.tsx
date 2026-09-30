@@ -4,6 +4,7 @@ import type { SongStats, Stats } from '../lib/stats';
 import type { History } from '../lib/history';
 import {
   buildPlayerProfile,
+  highlightSongs,
   playerSlug,
   type AggregateAppearance,
   type LeagueAppearance,
@@ -52,57 +53,70 @@ export function PlayerPage({
 
   if (!profile) return <Card wide><Empty>No such player.</Empty></Card>;
 
-  return <PlayerScopes profile={profile} onNavigate={onNavigate} />;
+  return <PlayerTabs profile={profile} onNavigate={onNavigate} />;
 }
 
 /**
- * The scope switcher: All leagues (pooled) plus one option per league.
- * Defaults to All, the aggregate career view the reader most often wants;
- * each league remains viewable independently one click away.
+ * Player profile sub-tabs.
+ *
+ * The first three tabs are the pooled, all-leagues view broken up by question:
+ * Summary (at a glance), Submissions (their songs), Relationships (who they
+ * rank and who ranks them). Each league then gets its own tab with the full
+ * single-season breakdown, so a season can be read independently.
  */
-function PlayerScopes({
+function PlayerTabs({
   profile,
   onNavigate,
 }: {
   profile: PlayerProfile;
   onNavigate: (slug: string) => void;
 }) {
-  // Scopes: 'all' first, then each league newest-first (appearances are
-  // current-first already).
-  const scopes: { key: string; label: string }[] = [
-    { key: 'all', label: 'All leagues' },
-    ...profile.appearances.map((a) => ({ key: a.leagueId, label: a.label })),
-  ];
+  const pooled = aggregateView(profile.aggregate);
+  const leagueViews = profile.appearances.map((a) => ({ id: a.leagueId, label: a.label, view: leagueView(a) }));
   const multi = profile.appearances.length > 1;
-  const [scope, setScope] = useState(multi ? 'all' : profile.appearances[0]?.leagueId ?? 'all');
 
-  const view: ScopeView =
-    scope === 'all'
-      ? aggregateView(profile.aggregate)
-      : leagueView(profile.appearances.find((a) => a.leagueId === scope) ?? profile.appearances[0]);
+  type TabKey = string;
+  const tabs: { key: TabKey; label: string }[] = [
+    { key: 'summary', label: 'Summary' },
+    { key: 'submissions', label: 'Submissions' },
+    { key: 'relationships', label: 'Relationships' },
+    ...(multi ? leagueViews.map((l) => ({ key: l.id, label: l.label })) : []),
+  ];
+  const [tab, setTab] = useState<TabKey>('summary');
+
+  // For a single-league player the pooled view *is* that league, so the
+  // aggregate tabs already show everything; no separate per-league tab needed.
+  const perLeague = leagueViews.find((l) => l.id === tab);
 
   return (
     <>
       <PlayerHeader profile={profile} />
       {profile.themePending || profile.themeOutcome ? <ThemeBriefCard profile={profile} /> : null}
 
-      {multi && (
-        <div className="scope-tabs" role="tablist" aria-label="League scope">
-          {scopes.map((s) => (
-            <button
-              key={s.key}
-              role="tab"
-              aria-selected={scope === s.key}
-              className={`scope-tab${scope === s.key ? ' scope-tab--on' : ''}`}
-              onClick={() => setScope(s.key)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="scope-tabs" role="tablist" aria-label="Profile sections">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            className={`scope-tab${tab === t.key ? ' scope-tab--on' : ''}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      <SectionsCard view={view} onNavigate={onNavigate} />
+      {tab === 'summary' && <SummaryCard view={pooled} onNavigate={onNavigate} />}
+      {tab === 'submissions' && <SubmissionsCard view={pooled} title="Submissions — all leagues" />}
+      {tab === 'relationships' && <RelationshipsCard view={pooled} onNavigate={onNavigate} />}
+      {perLeague && (
+        <>
+          <SummaryCard view={perLeague.view} onNavigate={onNavigate} />
+          <SubmissionsCard view={perLeague.view} title="Submissions" />
+          <RelationshipsCard view={perLeague.view} onNavigate={onNavigate} />
+        </>
+      )}
     </>
   );
 }
@@ -279,13 +293,8 @@ function BriefList({ title, rows }: { title: string; rows: [string, string][] })
   );
 }
 
-function SectionsCard({
-  view: a,
-  onNavigate,
-}: {
-  view: ScopeView;
-  onNavigate: (slug: string) => void;
-}) {
+function SummaryCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (slug: string) => void }) {
+  const { best, worst } = highlightSongs(a.songs);
   return (
     <Card title={a.title} wide>
       <div className="player-record dim small">
@@ -309,54 +318,77 @@ function SectionsCard({
         </p>
       )}
 
-      {(a.submitGenres.length > 0 || a.decades.length > 0) && (
-        <p className="dim small player-tags">
-          {a.submitGenres.length > 0 && <>Submits: {a.submitGenres.map((g) => g[0]).join(', ')}. </>}
-          {a.decades.length > 0 && <>Eras: {a.decades.map((d) => `${d[0]} (${d[1]})`).join(', ')}.</>}
-        </p>
-      )}
-
-      <PlayerFacts view={a} onNavigate={onNavigate} />
-
-      {(a.voteGenres.length > 0 || a.voteDecades.length > 0) && (
-        <div className="vote-breakdowns">
-          {a.voteGenres.length > 0 && (
-            <VoteBreakdown title="Upvotes by genre" rows={a.voteGenres} />
+      <div className="summary-cols">
+        <section className="summary-block">
+          <h4 className="player-sub">{best.length > 1 ? 'Best submissions' : 'Best submission'}</h4>
+          {best.length === 0 ? (
+            <Empty>No submissions yet.</Empty>
+          ) : (
+            <div className="song-list">
+              {best.map((s) => (
+                <SongRow key={`${s.roundId}-${s.trackId}`} song={s} />
+              ))}
+            </div>
           )}
-          {a.voteDecades.length > 0 && <VoteBreakdown title="Upvotes by era" rows={a.voteDecades} />}
-        </div>
-      )}
+          {worst && (
+            <>
+              <h4 className="player-sub">Weakest submission</h4>
+              <div className="song-list">
+                <SongRow song={worst} />
+              </div>
+            </>
+          )}
+        </section>
 
-      <h4 className="player-sub">Submissions</h4>
+        <section className="summary-block">
+          <h4 className="player-sub">People</h4>
+          <PlayerFacts view={a} onNavigate={onNavigate} />
+          {(a.submitGenres.length > 0 || a.voteGenres.length > 0) && (
+            <p className="dim small player-tags">
+              {a.submitGenres.length > 0 && <>Submits: {a.submitGenres.map((g) => g[0]).join(', ')}. </>}
+              {a.voteGenres.length > 0 && <>Rewards: {a.voteGenres.map((g) => g[0]).join(', ')}.</>}
+            </p>
+          )}
+        </section>
+      </div>
+    </Card>
+  );
+}
+
+function SubmissionsCard({ view: a, title }: { view: ScopeView; title: string }) {
+  return (
+    <Card title={title} subtitle={`${a.songs.length} songs${a.finishes && a.finishes.length > 1 ? ', across all leagues' : ''}`} wide>
       {a.songs.length === 0 ? (
         <Empty>No submissions.</Empty>
       ) : (
         <div className="song-list">
           {a.songs.map((s) => (
-            <article className="song-row" key={`${s.roundId}-${s.trackId}`}>
-              <div className="song-row__art">
-                <SongArt title={s.title} spotifyId={s.spotifyId} size="sm" />
-              </div>
-              <div className="song-row__body">
-                <strong>{s.title || 'Untitled'}</strong>
-                {s.artist && <span className="dim"> — {s.artist}</span>}
-                <div className="dim small">{s.roundName}</div>
-                <SongTags year={s.year} obscurity={s.obscurity} artist={s.artist} durationMs={s.durationMs} cover={s.cover} />
-                {s.forfeited && <span className="tag tag--neg">forfeited</span>}
-              </div>
-              <div className="song-row__score">
-                <strong className={s.effectiveNet < 0 ? 'neg' : s.effectiveNet > 0 ? 'pos' : 'dim'}>
-                  {s.effectiveNet > 0 ? '+' : ''}
-                  {s.effectiveNet}
-                </strong>
-                <div className="dim small">+{s.upvotes}/−{s.downvotes}</div>
-              </div>
-              <div className="song-row__links">
-                <SongLinks title={s.title} artist={s.artist} spotifyId={s.spotifyId} />
-                {s.spotifyId && <SongPlayer title={s.title} spotifyId={s.spotifyId} compact />}
-              </div>
-            </article>
+            <SongRow key={`${s.roundId}-${s.trackId}`} song={s} />
           ))}
+        </div>
+      )}
+      {(a.voteGenres.length > 0 || a.voteDecades.length > 0) && (
+        <>
+          <h4 className="player-sub">What they submit</h4>
+          <div className="vote-breakdowns">
+            {a.submitGenres.length > 0 && (
+              <VoteBreakdown title="Submissions by genre" rows={a.submitGenres} suffix="" />
+            )}
+            {a.decades.length > 0 && <VoteBreakdown title="Submissions by era" rows={a.decades} suffix="" />}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function RelationshipsCard({ view: a, onNavigate }: { view: ScopeView; onNavigate: (slug: string) => void }) {
+  return (
+    <Card title={`Relationships${a.finishes && a.finishes.length > 1 ? ' — all leagues' : ''}`} wide>
+      {(a.voteGenres.length > 0 || a.voteDecades.length > 0) && (
+        <div className="vote-breakdowns">
+          {a.voteGenres.length > 0 && <VoteBreakdown title="Upvotes by genre" rows={a.voteGenres} />}
+          {a.voteDecades.length > 0 && <VoteBreakdown title="Upvotes by era" rows={a.voteDecades} />}
         </div>
       )}
 
@@ -364,82 +396,94 @@ function SectionsCard({
       {a.ranks.length === 0 ? (
         <Empty>They cast no votes.</Empty>
       ) : (
-        <table className="t">
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th className="num">Up</th>
-              <th className="num">Down</th>
-              <th className="num">Net</th>
-              {a.showDevotion && <th className="num">Devotion</th>}
-              <th className="num">They gave back</th>
-            </tr>
-          </thead>
-          <tbody>
-            {a.ranks.map((r) => (
-              <tr key={r.opponentId}>
-                <td>
-                  <button className="linklike" onClick={() => onNavigate(playerSlug(r.name))}>
-                    {r.name}
-                  </button>
-                </td>
-                <td className="num pos">{r.up || ''}</td>
-                <td className="num neg">{r.down ? `−${r.down}` : ''}</td>
-                <td className={`num ${r.net < 0 ? 'neg' : r.net > 0 ? 'pos' : 'dim'}`}>
-                  {r.net > 0 ? '+' : ''}
-                  {r.net}
-                </td>
-                {a.showDevotion && <td className="num dim">{Math.round(r.devotion * 100)}%</td>}
-                <td className="num dim">
-                  {r.reciprocalNet === undefined
-                    ? '—'
-                    : `${r.reciprocalNet > 0 ? '+' : ''}${r.reciprocalNet}`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <OpponentTable rows={a.ranks} onNavigate={onNavigate} showDevotion={a.showDevotion} backLabel="They gave back" />
       )}
 
       <h4 className="player-sub">Their fans and critics</h4>
       {a.backers.length === 0 ? (
         <Empty>No votes received.</Empty>
       ) : (
-        <table className="t">
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th className="num">Up</th>
-              <th className="num">Down</th>
-              <th className="num">Net</th>
-              <th className="num">They got back</th>
-            </tr>
-          </thead>
-          <tbody>
-            {a.backers.map((r) => (
-              <tr key={r.opponentId}>
-                <td>
-                  <button className="linklike" onClick={() => onNavigate(playerSlug(r.name))}>
-                    {r.name}
-                  </button>
-                </td>
-                <td className="num pos">{r.up || ''}</td>
-                <td className="num neg">{r.down ? `−${r.down}` : ''}</td>
-                <td className={`num ${r.net < 0 ? 'neg' : r.net > 0 ? 'pos' : 'dim'}`}>
-                  {r.net > 0 ? '+' : ''}
-                  {r.net}
-                </td>
-                <td className="num dim">
-                  {r.reciprocalNet === undefined
-                    ? '—'
-                    : `${r.reciprocalNet > 0 ? '+' : ''}${r.reciprocalNet}`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <OpponentTable rows={a.backers} onNavigate={onNavigate} showDevotion={false} backLabel="They got back" />
       )}
     </Card>
+  );
+}
+
+/** One submission row, shared by Summary and Submissions. */
+function SongRow({ song: s }: { song: SongStats }) {
+  return (
+    <article className="song-row">
+      <div className="song-row__art">
+        <SongArt title={s.title} spotifyId={s.spotifyId} size="sm" />
+      </div>
+      <div className="song-row__body">
+        <strong>{s.title || 'Untitled'}</strong>
+        {s.artist && <span className="dim"> — {s.artist}</span>}
+        <div className="dim small">{s.roundName}</div>
+        <SongTags year={s.year} obscurity={s.obscurity} artist={s.artist} durationMs={s.durationMs} cover={s.cover} />
+        {s.forfeited && <span className="tag tag--neg">forfeited</span>}
+      </div>
+      <div className="song-row__score">
+        <strong className={s.effectiveNet < 0 ? 'neg' : s.effectiveNet > 0 ? 'pos' : 'dim'}>
+          {s.effectiveNet > 0 ? '+' : ''}
+          {s.effectiveNet}
+        </strong>
+        <div className="dim small">+{s.upvotes}/−{s.downvotes}</div>
+      </div>
+      <div className="song-row__links">
+        <SongLinks title={s.title} artist={s.artist} spotifyId={s.spotifyId} />
+        {s.spotifyId && <SongPlayer title={s.title} spotifyId={s.spotifyId} compact />}
+      </div>
+    </article>
+  );
+}
+
+/** A who-they-rank / fans table, shared by both directions. */
+function OpponentTable({
+  rows,
+  onNavigate,
+  showDevotion,
+  backLabel,
+}: {
+  rows: RankedOpponent[];
+  onNavigate: (slug: string) => void;
+  showDevotion: boolean;
+  backLabel: string;
+}) {
+  return (
+    <table className="t">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th className="num">Up</th>
+          <th className="num">Down</th>
+          <th className="num">Net</th>
+          {showDevotion && <th className="num">Devotion</th>}
+          <th className="num">{backLabel}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.opponentId}>
+            <td>
+              <button className="linklike" onClick={() => onNavigate(playerSlug(r.name))}>
+                {r.name}
+              </button>
+            </td>
+            <td className="num pos">{r.up || ''}</td>
+            <td className="num neg">{r.down ? `−${r.down}` : ''}</td>
+            <td className={`num ${r.net < 0 ? 'neg' : r.net > 0 ? 'pos' : 'dim'}`}>
+              {r.net > 0 ? '+' : ''}
+              {r.net}
+            </td>
+            {showDevotion && <td className="num dim">{Math.round(r.devotion * 100)}%</td>}
+            <td className="num dim">
+              {r.reciprocalNet === undefined ? '—' : `${r.reciprocalNet > 0 ? '+' : ''}${r.reciprocalNet}`}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -449,8 +493,16 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-/** A points-weighted bar chart of upvotes, by genre or era. */
-function VoteBreakdown({ title, rows }: { title: string; rows: [string, number][] }) {
+/** A weighted bar chart. `suffix` distinguishes points (default '+') from counts (''). */
+function VoteBreakdown({
+  title,
+  rows,
+  suffix = '+',
+}: {
+  title: string;
+  rows: [string, number][];
+  suffix?: string;
+}) {
   const max = rows[0]?.[1] ?? 1;
   return (
     <div className="vote-breakdown">
@@ -464,7 +516,10 @@ function VoteBreakdown({ title, rows }: { title: string; rows: [string, number][
               style={{ width: `${Math.round((pts / max) * 100)}%` }}
             />
           </div>
-          <span className="vote-breakdown__pts dim">+{pts}</span>
+          <span className="vote-breakdown__pts dim">
+            {suffix}
+            {pts}
+          </span>
         </div>
       ))}
     </div>

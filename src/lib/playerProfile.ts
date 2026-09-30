@@ -139,6 +139,19 @@ function topN<K>(map: Map<K, number>, n: number): [K, number][] {
   return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 
+/**
+ * Picks the submissions worth highlighting: always the single best, plus up to
+ * two more that clear +6, and always exactly one worst (their lowest). `songs`
+ * is expected sorted by counted score, best first.
+ */
+export function highlightSongs(songs: SongStats[]): { best: SongStats[]; worst?: SongStats } {
+  if (!songs.length) return { best: [], worst: undefined };
+  const best = [songs[0], ...songs.slice(1, 3).filter((s) => s.effectiveNet >= 6)];
+  const worst = songs[songs.length - 1];
+  // Don't repeat the same song as both best and worst when there is only one.
+  return { best, worst: worst === best[0] ? undefined : worst };
+}
+
 /** Builds one appearance from a league's stats. */
 function appearanceFor(
   playerId: string,

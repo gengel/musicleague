@@ -262,19 +262,24 @@ describe('dashboard with the sample league', () => {
     await user.click(screen.getByRole('tab', { name: 'Players' }));
     await user.click(document.querySelectorAll('.player-btn')[0] as HTMLElement);
     expect(window.location.hash).toMatch(/^#player\//);
-    expect(screen.getByText('Submissions')).toBeDefined();
+    // The profile opens on the Summary sub-tab.
+    expect(screen.getByRole('tab', { name: 'Summary' })).toBeDefined();
   });
 
   it('opens a deep player page from the Players tab', async () => {
     const user = await openDemo();
     await user.click(screen.getByRole('tab', { name: 'Players' }));
     expect(screen.getByText('Players, end to end')).toBeDefined();
-    // Clicking a player opens their full profile (deep page), not an inline tab.
+    // Clicking a player opens their full profile (deep page) on Summary.
     const playerBtns = document.querySelectorAll('.player-btn');
     await user.click(playerBtns[0] as HTMLElement);
-    // The deep page shows a Submissions section and a Who they rank table.
-    expect(screen.getByText('Submissions')).toBeDefined();
+    expect(screen.getByRole('tab', { name: 'Summary' })).toBeDefined();
+    // Relationships sub-tab holds the Who-they-rank table.
+    await user.click(screen.getByRole('tab', { name: 'Relationships' }));
     expect(screen.getByText('Who they rank')).toBeDefined();
+    // Submissions sub-tab lists their songs.
+    await user.click(screen.getByRole('tab', { name: 'Submissions' }));
+    expect(document.querySelector('.song-list')).not.toBeNull();
   });
 
   it('breaks every score into its parts', async () => {

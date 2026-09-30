@@ -2438,3 +2438,12 @@ td.archetype-col {
   font-weight: 600;
 }
 .scope-tab:hover:not(.scope-tab--on) { color: var(--text); border-color: var(--accent); }
+
+/* ---- Player summary tab: two-column layout ---- */
+.summary-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem 1.6rem;
+  margin-top: 0.5rem;
+}
+.summary-block .player-sub:first-child { margin-top: 0; }

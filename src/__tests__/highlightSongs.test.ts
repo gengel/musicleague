@@ -1,0 +1,45 @@
+import { describe, expect, it } from 'vitest';
+import { highlightSongs } from '../lib/playerProfile';
+import type { SongStats } from '../lib/stats';
+
+const song = (title: string, effectiveNet: number): SongStats =>
+  ({ title, effectiveNet, trackId: title, roundId: 'r' }) as unknown as SongStats;
+
+describe('highlightSongs', () => {
+  it('always shows the single best, plus up to two more that clear +6', () => {
+    // Sorted best-first, as the profile provides.
+    const songs = [song('A', 10), song('B', 8), song('C', 6), song('D', 3), song('E', -4)];
+    const { best, worst } = highlightSongs(songs);
+    // A always; B and C clear +6; D (3) does not.
+    expect(best.map((s) => s.title)).toEqual(['A', 'B', 'C']);
+    expect(worst?.title).toBe('E');
+  });
+
+  it('shows the best even when nothing clears +6', () => {
+    const songs = [song('A', 3), song('B', 1), song('C', -2)];
+    const { best } = highlightSongs(songs);
+    expect(best.map((s) => s.title)).toEqual(['A']); // just the top one
+  });
+
+  it('caps extras at two, so at most three best', () => {
+    const songs = [song('A', 20), song('B', 15), song('C', 10), song('D', 9)];
+    expect(highlightSongs(songs).best).toHaveLength(3);
+  });
+
+  it('always returns a worst distinct from the best', () => {
+    const songs = [song('A', 10), song('B', -5)];
+    const { best, worst } = highlightSongs(songs);
+    expect(best.map((s) => s.title)).toEqual(['A']);
+    expect(worst?.title).toBe('B');
+  });
+
+  it('does not repeat a single song as both best and worst', () => {
+    const { best, worst } = highlightSongs([song('Only', 4)]);
+    expect(best.map((s) => s.title)).toEqual(['Only']);
+    expect(worst).toBeUndefined();
+  });
+
+  it('handles no songs', () => {
+    expect(highlightSongs([])).toEqual({ best: [], worst: undefined });
+  });
+});
