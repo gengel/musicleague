@@ -1,4 +1,5 @@
 import type { PlayerStats, Stats } from './stats';
+import { projectStandings } from './projection';
 
 /**
  * What could still happen, given how this league has actually behaved.
@@ -61,9 +62,23 @@ export interface BandedPlayer {
   rank: number;
   /** Points behind the leader (0 for the leader). */
   behind: number;
+  /** Share of simulated seasons this player won, 0..1, when available. */
+  winShare?: number;
 }
 
-export type BandKey = 'leader' | 'contention' | 'outside' | 'eliminated';
+export type BandKey =
+  | 'locked'
+  | 'crowned'
+  | 'yourstolose'
+  | 'drivers'
+  | 'stillinit'
+  | 'chance'
+  | 'gameover'
+  // Fallback bands when there is no win-probability model (unknown finish line).
+  | 'leader'
+  | 'contention'
+  | 'outside'
+  | 'eliminated';
 
 export interface ContentionBand {
   key: BandKey;
@@ -164,6 +179,90 @@ function form(stats: Stats): { name: string; early: number; late: number; swing:
 }
 
 /**
+ * Places players into named bands by their win probability — the share of
+ * simulated seasons they won. Thresholds and names are deliberately playful,
+ * since the point of this panel is the story of the race, not an audit.
+ *
+ * A band only appears when someone is in it, and every contender lands in
+ * exactly one, so the win shares in each band's players sum to the whole race.
+ */
+const WIN_BANDS: {
+  key: BandKey;
+  label: string;
+  note: string;
+  /** Inclusive lower bound as a fraction, 0..1. Checked high to low. */
+  min: (p: number) => boolean;
+}[] = [
+  {
+    key: 'locked',
+    label: 'Clinched',
+    note: 'Wins every simulated season. The title is mathematically theirs.',
+    min: (p) => p >= 1,
+  },
+  {
+    key: 'crowned',
+    label: 'One hand on the trophy',
+    note: 'Wins 90% or more of simulated seasons — only a collapse stops them.',
+    min: (p) => p >= 0.9,
+  },
+  {
+    key: 'yourstolose',
+    label: 'Yours to lose',
+    note: 'Out in front: wins 65–89% of simulated seasons.',
+    min: (p) => p >= 0.65,
+  },
+  {
+    key: 'drivers',
+    label: 'Flip of a coin',
+    note: 'A real favourite, but far from safe: wins 40–64% of seasons.',
+    min: (p) => p >= 0.4,
+  },
+  {
+    key: 'stillinit',
+    label: 'Still in it',
+    note: 'Live, with work to do: wins 10–39% of seasons.',
+    min: (p) => p >= 0.1,
+  },
+  {
+    key: 'chance',
+    label: "So you're telling me there's a chance",
+    note: 'A long shot: wins 1–9% of seasons.',
+    min: (p) => p >= 0.01,
+  },
+  {
+    key: 'gameover',
+    label: 'Game over',
+    note: 'Did not win a single simulated season.',
+    min: () => true, // everyone left over, i.e. < 1%
+  },
+];
+
+export function winProbabilityBands(
+  ranked: PlayerStats[],
+  winShareOf: Map<string, number>,
+): ContentionBand[] {
+  const banded = new Map<BandKey, BandedPlayer[]>(WIN_BANDS.map((b) => [b.key, []]));
+  ranked.forEach((p, i) => {
+    const winShare = winShareOf.get(p.playerId) ?? 0;
+    const band = WIN_BANDS.find((b) => b.min(winShare))!;
+    banded.get(band.key)!.push({
+      playerId: p.playerId,
+      name: p.name,
+      points: p.pointsCounted,
+      rank: i + 1,
+      behind: (ranked[0]?.pointsCounted ?? 0) - p.pointsCounted,
+      winShare,
+    });
+  });
+  return WIN_BANDS.filter((b) => banded.get(b.key)!.length > 0).map((b) => ({
+    key: b.key,
+    label: b.label,
+    note: b.note,
+    players: banded.get(b.key)!,
+  }));
+}
+
+/**
  * Groups contenders into a few probability bands rather than a yes/no "can
  * still win". A player's reach is `rounds left × the biggest swing the league
  * has actually produced` — the honest yardstick — measured against the gap to
@@ -176,7 +275,8 @@ export function contentionBands(
   realisticBudget: number | undefined,
 ): ContentionBand[] {
   if (!ranked.length) return [];
-  const banded: Record<BandKey, BandedPlayer[]> = {
+  type LegacyKey = 'leader' | 'contention' | 'outside' | 'eliminated';
+  const banded: Record<LegacyKey, BandedPlayer[]> = {
     leader: [],
     contention: [],
     outside: [],
@@ -562,11 +662,24 @@ export function future(stats: Stats): Future {
     chosen.push(projection);
   }
 
+  // Prefer win-probability bands when the season has a known finish line, so
+  // the title race reads in the same percentages as the Race prediction panel.
+  // Fall back to the gap-based bands when there is no finish line to simulate
+  // toward, or when the projection has too little to go on.
+  let bands = contentionBands(ranked, leader.pointsCounted, realisticBudget);
+  if (roundsLeft !== undefined && roundsLeft > 0) {
+    const projection = projectStandings(stats, { roundsLeft, runs: 500 });
+    if (!projection.insufficientData) {
+      const winShareOf = new Map(projection.forecasts.map((f) => [f.playerId, f.winShare]));
+      bands = winProbabilityBands(ranked, winShareOf);
+    }
+  }
+
   return {
     roundsLeft,
     swing,
     projections: chosen,
-    bands: contentionBands(ranked, leader.pointsCounted, realisticBudget),
+    bands,
   };
 }
 

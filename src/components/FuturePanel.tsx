@@ -30,6 +30,14 @@ export function FuturePanel({
   }
 
   const { swing, roundsLeft } = outlook;
+  const hasWinShares = outlook.bands.some((b) => b.players.some((p) => p.winShare !== undefined));
+  // A win share of 0.5–99.5% rounds to a readable integer; show <1% and >99%
+  // as such so a long shot never rounds to "0%" and a near-lock never to "100%".
+  const fmtWin = (p: number): string => {
+    if (p >= 0.995 && p < 1) return '>99%';
+    if (p > 0 && p < 0.005) return '<1%';
+    return `${Math.round(p * 100)}%`;
+  };
 
   return (
     <>
@@ -92,7 +100,7 @@ export function FuturePanel({
         subtitle={
           roundsLeft === undefined
             ? 'Grouped by how close each player is, given the season so far.'
-            : `Grouped by reach — ${roundsLeft} rounds left at the biggest swing this league has actually produced (${n1(swing.realistic)} a round).`
+            : `Chance of winning the title, from ${500} simulated seasons over the ${roundsLeft} remaining round${roundsLeft === 1 ? '' : 's'}.`
         }
         wide
       >
@@ -114,6 +122,9 @@ export function FuturePanel({
                     ) : (
                       <span className="band__name">{p.name}</span>
                     )}
+                    {p.winShare !== undefined && (
+                      <span className="band__win dim small">{fmtWin(p.winShare)}</span>
+                    )}
                     <span className={`band__pts ${p.points < 0 ? 'neg' : 'pos'}`}>
                       {p.points > 0 ? '+' : ''}
                       {p.points}
@@ -126,10 +137,9 @@ export function FuturePanel({
           ))}
         </div>
         <p className="note">
-          Bands, not percentages: a dozen rounds of a friendly league is far too little to justify a
-          real probability. "In contention" means the gap is within about half the biggest swing the
-          league has produced; "outside shot" means it would take a run better than anything seen so
-          far.
+          {hasWinShares
+            ? 'Win chance is the share of simulated seasons each player won, assuming the league keeps voting the way it has. The remaining rounds are resampled from real ballots 500 times; see "How the simulation works" under Race prediction.'
+            : 'Bands, not percentages: without a known finish line there is too little to justify a real probability, so players are grouped by how close they are on the season so far.'}
         </p>
       </Card>
     </>

@@ -2380,6 +2380,9 @@ td.archetype-col {
 }
 
 .theme-banner {
+  /* Sits as a direct child of the multi-column .grid, so span the whole row
+     rather than taking a single column's width. */
+  grid-column: 1 / -1;
   margin: 0 0 1rem;
   padding: 0.7rem 0.95rem;
   border-radius: var(--radius);
@@ -2534,20 +2537,30 @@ td.archetype-col {
 .band--contention { border-top-color: var(--accent-2); }
 .band--outside { border-top-color: var(--theme); }
 .band--eliminated { border-top-color: var(--neg); opacity: 0.85; }
+/* Win-probability bands, warm (safe) → cool (long shot). */
+.band--locked { border-top-color: var(--pos); }
+.band--crowned { border-top-color: var(--pos); }
+.band--yourstolose { border-top-color: var(--accent-2); }
+.band--drivers { border-top-color: var(--theme); }
+.band--stillinit { border-top-color: var(--theme); opacity: 0.95; }
+.band--chance { border-top-color: var(--neg); opacity: 0.9; }
+.band--gameover { border-top-color: var(--line); opacity: 0.8; }
 .band__head { margin-bottom: 0.5rem; }
 .band__label { font-weight: 700; display: block; }
 .band__players { list-style: none; margin: 0; padding: 0; }
 .band__player {
   display: grid;
-  grid-template-columns: 1.4rem 1fr auto;
+  grid-template-columns: 1.4rem 1fr auto auto;
   align-items: baseline;
-  gap: 0.4rem;
+  gap: 0.4rem 0.5rem;
   padding: 0.25rem 0;
   border-bottom: 1px solid var(--line);
 }
 .band__player:last-child { border-bottom: none; }
 .band__name { font-weight: 600; }
-.band__behind { grid-column: 2 / 4; }
+/* Win % sits just left of the points, right-aligned and tabular. */
+.band__win { text-align: right; font-variant-numeric: tabular-nums; }
+.band__behind { grid-column: 2 / 5; }
 
 /* ---- Player profile scope toggle (All leagues / per season) ---- */
 .scope-tabs {
