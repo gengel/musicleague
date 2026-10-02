@@ -132,4 +132,21 @@ describe('winProbabilityBands', () => {
     expect(bands[0].key).toBe('chance');
     expect(bands[0].players[0].winShare).toBe(0);
   });
+
+  it('orders players within a band by win share, not standings points', () => {
+    // P leads on points but Q has the higher win share; within the band Q
+    // should come first.
+    const bands = winProbabilityBands(
+      [player('P', 30), player('Q', 20)],
+      new Map([
+        ['P', 0.2],
+        ['Q', 0.35],
+      ]),
+    );
+    const band = bands.find((b) => b.key === 'stillinit')!;
+    expect(band.players.map((p) => p.name)).toEqual(['Q', 'P']);
+    // Standings rank is preserved even though the display order is by win share.
+    expect(band.players.find((p) => p.name === 'P')!.rank).toBe(1);
+    expect(band.players.find((p) => p.name === 'Q')!.rank).toBe(2);
+  });
 });

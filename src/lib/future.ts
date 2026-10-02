@@ -287,7 +287,15 @@ export function winProbabilityBands(
     .filter((k) => banded.get(k)!.length > 0)
     .map((k) => {
       const m = meta.get(k)!;
-      return { key: k, label: m.label, note: m.note, players: banded.get(k)! };
+      // Within a band, order by win chance (the figure now headlined), not by
+      // standings points; ties fall back to the smaller gap, then name.
+      const players = [...banded.get(k)!].sort(
+        (a, b) =>
+          (b.winShare ?? 0) - (a.winShare ?? 0) ||
+          a.behind - b.behind ||
+          a.name.localeCompare(b.name),
+      );
+      return { key: k, label: m.label, note: m.note, players };
     });
 }
 
