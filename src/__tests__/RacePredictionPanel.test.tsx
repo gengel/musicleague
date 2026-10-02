@@ -19,19 +19,24 @@ function statsInProgress(scoring: 'competitive' | 'friendly') {
   });
 }
 
-describe('RacePredictionPanel explanations', () => {
-  it('offers an opener for the win chance, the range and the median', () => {
+describe('RacePredictionPanel (the title race)', () => {
+  it('shows named win-probability bands with a per-player win %', () => {
     const { container } = render(<RacePredictionPanel stats={statsInProgress('competitive')} />);
-    const tips = within(container).getAllByRole('button', {
-      name: /How the win chance|projected range|the median/i,
-    });
-    expect(tips.length).toBe(3);
+    // Bands render as .band blocks, each player carrying a win-% chip.
+    expect(container.querySelectorAll('.band').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.band__win').length).toBeGreaterThan(0);
   });
 
-  it('spells out the method, including the resampling and the fixed seed', () => {
+  it('explains the projected range', () => {
+    const { container } = render(<RacePredictionPanel stats={statsInProgress('competitive')} />);
+    const tips = within(container).getAllByRole('button', { name: /projected range/i });
+    expect(tips.length).toBe(1);
+  });
+
+  it('spells out the method, including the resampling, the maths and the fixed seed', () => {
     const { container } = render(<RacePredictionPanel stats={statsInProgress('competitive')} />);
 
-    expect(within(container).getByText(/built from how the league has actually voted/i)).toBeDefined();
+    expect(within(container).getByText(/from how the league has actually voted/i)).toBeDefined();
 
     // MethodDrawer keeps its body in the DOM while collapsed, so the content is
     // assertable without a click (native <details> toggling is unreliable in jsdom).
@@ -39,6 +44,8 @@ describe('RacePredictionPanel explanations', () => {
     const body = container.querySelector('.method__body') as HTMLElement;
     expect(body.textContent).toMatch(/every real ballot/i);
     expect(body.textContent).toMatch(/fixed random seed/i);
+    // The maths behind the certainty bands is spelled out.
+    expect(body.textContent).toMatch(/clinched/i);
     // Competitive league, so the forfeit paragraph is included.
     expect(body.textContent).toMatch(/forfeit/i);
   });

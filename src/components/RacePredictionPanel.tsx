@@ -1,10 +1,27 @@
 import { useMemo } from 'react';
 import type { Stats } from '../lib/stats';
 import { projectStandings } from '../lib/projection';
-import { Card, playerColor } from './ui';
+import { future } from '../lib/future';
+import { playerSlug } from '../lib/playerProfile';
+import { Card } from './ui';
 import { InfoTip, MethodDrawer } from './InfoTip';
 
-export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | null {
+/**
+ * The race for the title, as one card.
+ *
+ * The named win-probability bands tell the story — who is clinched, who is a
+ * flip of a coin, who is mathematically out — and the table underneath gives
+ * each live contender's projected final-score range. Both come from the same
+ * 500-season resample, so they are shown together rather than as two panels
+ * that restate the same percentage.
+ */
+export function RacePredictionPanel({
+  stats,
+  onOpenPlayer,
+}: {
+  stats: Stats;
+  onOpenPlayer?: (slug: string) => void;
+}): JSX.Element | null {
   const roundsLeft = stats.totalRounds != null ? stats.totalRounds - stats.roundsPlayed : 0;
 
   const projection = useMemo(() => {
@@ -12,9 +29,11 @@ export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | 
     return projectStandings(stats, { roundsLeft, runs: 500 });
   }, [stats, roundsLeft]);
 
+  const bands = useMemo(() => future(stats).bands, [stats]);
+
   if (roundsLeft <= 0) {
     return (
-      <Card title="Race prediction" wide>
+      <Card title="The title race" wide>
         <p className="dim small">Season complete. Final standings above.</p>
       </Card>
     );
@@ -23,112 +42,108 @@ export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | 
   if (!projection || projection.insufficientData) return null;
 
   const { forecasts } = projection;
-  const MIN_PCT = 0.02;
-  const shown = forecasts.filter((f) => f.winShare >= MIN_PCT);
-  const othersShare = forecasts
-    .filter((f) => f.winShare < MIN_PCT)
-    .reduce((acc, f) => acc + f.winShare, 0);
+  const hasWinShares = bands.some((b) => b.players.some((p) => p.winShare !== undefined));
 
-  // Use the same standings-sorted player order for consistent colors
-  const allPlayers = [...stats.players]
-    .filter((p) => p.songs > 0)
-    .sort((a, b) => b.pointsCounted - a.pointsCounted);
-  const colorOf = (name: string) => {
-    const idx = allPlayers.findIndex((p) => p.name === name);
-    return idx >= 0 ? playerColor(idx, allPlayers.length) : '#888';
+  // A win share of 0.5–99.5% rounds to a readable integer; show <1% and >99%
+  // so a long shot never reads "0%" nor a near-lock "100%" (those labels are
+  // reserved for the mathematically certain bands).
+  const fmtWin = (p: number): string => {
+    if (p >= 0.995 && p < 1) return '>99%';
+    if (p > 0 && p < 0.005) return '<1%';
+    return `${Math.round(p * 100)}%`;
   };
-
-  const fmtPct = (n: number) => `${Math.round(n * 100)}%`;
   const fmtScore = (n: number) => `${n >= 0 ? '+' : ''}${Math.round(n)}`;
 
   const competitive = stats.scoring === 'competitive';
-  const subtitle = `${roundsLeft} round${roundsLeft !== 1 ? 's' : ''} left · ${
-    projection.runs
-  } simulated seasons, built from how the league has actually voted.`;
+  const subtitle = `Chance of winning the title over the ${roundsLeft} remaining round${
+    roundsLeft !== 1 ? 's' : ''
+  }, from ${projection.runs} seasons simulated from how the league has actually voted.`;
+
+  // Only the contenders still alive are worth a projected-range row; the
+  // mathematically-out players are in the bands above with their gap.
+  const liveIds = new Set(
+    bands.filter((b) => b.key !== 'gameover').flatMap((b) => b.players.map((p) => p.playerId)),
+  );
+  const rangeRows = forecasts.filter((f) => liveIds.has(f.playerId)).slice(0, 8);
 
   return (
-    <Card title="Race prediction" subtitle={subtitle} wide>
-      <div className="race-forecast">
-        <div className="race-forecast__head dim small">
-          Chance of winning
-          <InfoTip label="How the win chance is worked out">
-            Each of the {projection.runs} simulated seasons plays out the {roundsLeft} remaining
-            round{roundsLeft !== 1 ? 's' : ''} and crowns whoever ends on top. A player's percentage
-            is the share of those seasons they won. It is a count of outcomes, not a rating, so the
-            figures across all players add up to 100%.
-          </InfoTip>
-        </div>
-        {shown.map((f) => (
-          <div key={f.playerId} className="race-forecast__row">
-            <span>{f.name}</span>
-            <div className="race-forecast__bar">
-              <div
-                className="race-forecast__fill"
-                style={{ width: fmtPct(f.winShare), background: colorOf(f.name) }}
-              />
+    <Card title="The title race" subtitle={subtitle} wide>
+      <div className="bands">
+        {bands.map((band) => (
+          <div className={`band band--${band.key}`} key={band.key}>
+            <div className="band__head">
+              <span className="band__label">{band.label}</span>
+              <span className="band__note dim small">{band.note}</span>
             </div>
-            <span className="race-forecast__pct">{fmtPct(f.winShare)}</span>
+            <ul className="band__players">
+              {band.players.map((p) => (
+                <li key={p.playerId} className="band__player">
+                  <span className="band__rank dim">{p.rank}</span>
+                  {onOpenPlayer ? (
+                    <button
+                      className="linklike band__name"
+                      onClick={() => onOpenPlayer(playerSlug(p.name))}
+                    >
+                      {p.name}
+                    </button>
+                  ) : (
+                    <span className="band__name">{p.name}</span>
+                  )}
+                  {p.winShare !== undefined && (
+                    <span className="band__win dim small">{fmtWin(p.winShare)}</span>
+                  )}
+                  <span className={`band__pts ${p.points < 0 ? 'neg' : 'pos'}`}>
+                    {p.points > 0 ? '+' : ''}
+                    {p.points}
+                  </span>
+                  {p.behind > 0 && <span className="band__behind dim small">−{p.behind} back</span>}
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
-        {othersShare >= 0.005 && (
-          <div className="race-forecast__row">
-            <span className="dim">Others</span>
-            <div className="race-forecast__bar">
-              <div
-                className="race-forecast__fill"
-                style={{ width: fmtPct(othersShare), background: '#555' }}
-              />
-            </div>
-            <span className="race-forecast__pct">{fmtPct(othersShare)}</span>
-          </div>
-        )}
       </div>
 
-      <div className="table-wrap">
-        <table className="t" style={{ marginTop: 16 }}>
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th className="num col-secondary">Now</th>
-              <th className="num">
-                <span className="th-tip">
-                  Projected range
-                  <InfoTip label="What the projected range means">
-                    The band from the 10th to the 90th percentile of their final score across the
-                    {' '}{projection.runs} seasons: a lucky run lands near the top, an unlucky one
-                    near the bottom, and four in five seasons fall in between. A wide band means
-                    their finish is still volatile; a narrow one means it is close to settled.
-                  </InfoTip>
-                </span>
-              </th>
-              <th className="num">
-                <span className="th-tip">
-                  Median
-                  <InfoTip label="What the median is">
-                    Their middle outcome: half the simulated seasons finished above this score,
-                    half below. A steadier middle guess than the average, which a single runaway
-                    season could drag.
-                  </InfoTip>
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {forecasts.slice(0, 6).map((f) => (
-              <tr key={f.playerId}>
-                <td className="nowrap">{f.name}</td>
-                <td className="num dim col-secondary">{fmtScore(f.currentPoints)}</td>
-                <td className="num dim nowrap">
-                  {fmtScore(f.finalScore.p10)} … {fmtScore(f.finalScore.p90)}
-                </td>
-                <td className={`num ${f.finalScore.median >= 0 ? 'pos' : 'neg'}`}>
-                  {fmtScore(f.finalScore.median)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {hasWinShares && (
+        <>
+          <div className="race-range__head dim small">
+            Where they could finish
+            <InfoTip label="What the projected range means">
+              Across the {projection.runs} simulated seasons, this is the band from each player's
+              10th- to 90th-percentile final score — four in five of their seasons land inside it.
+              A wide band means their finish is still volatile; a narrow one means it is nearly
+              settled. The median is their middle outcome.
+            </InfoTip>
+          </div>
+          <div className="table-wrap">
+            <table className="t">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th className="num col-secondary">Now</th>
+                  <th className="num">Projected range</th>
+                  <th className="num">Median</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rangeRows.map((f) => (
+                  <tr key={f.playerId}>
+                    <td className="nowrap">{f.name}</td>
+                    <td className="num dim col-secondary">{fmtScore(f.currentPoints)}</td>
+                    <td className="num dim nowrap">
+                      {fmtScore(f.finalScore.p10)} … {fmtScore(f.finalScore.p90)}
+                    </td>
+                    <td className={`num ${f.finalScore.median >= 0 ? 'pos' : 'neg'}`}>
+                      {fmtScore(f.finalScore.median)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       <MethodDrawer summary="How the simulation works">
         <p>
           The remaining rounds are played out {projection.runs} times, and this panel counts how
@@ -150,9 +165,12 @@ export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | 
           </p>
         )}
         <p>
-          The run uses a fixed random seed, so the same standings always produce the same
-          projection. It cannot know what songs people will actually pick, so read it as "if the
-          league keeps voting the way it has", not a tip.
+          "Clinched" and "Game over" are not from the simulation but from the maths: a player is
+          clinched only when no rival can catch them even with a perfect run in every remaining
+          round, and out only when they cannot reach the current leader by the same measure. The
+          run uses a fixed random seed, so the same standings always produce the same projection,
+          and it cannot know what songs people will actually pick — read it as "if the league keeps
+          voting the way it has", not a tip.
         </p>
       </MethodDrawer>
     </Card>

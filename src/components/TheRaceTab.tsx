@@ -282,14 +282,8 @@ export function TheRaceTab({
 
   return (
     <>
-      {anyTheme && (
-        <p className="theme-banner">
-          <strong>This league adds a theme bonus.</strong> Each round is themed around one player;
-          that player gets <span className="pos">+3</span> for winning their own round and{' '}
-          <span className="neg">−3</span> for anything else, including not submitting. Music League
-          doesn't apply this — this page does — so it is shown separately wherever a total appears.
-        </p>
-      )}
+      {/* The theme banner is rendered once at the top of the Standings tab by
+          App, above "What can still happen", so it does not repeat here. */}
       {/* The forfeit/skip superlatives moved into "What can still happen"
           above; this strip keeps the two that are about the room's taste. */}
       <SuperlativeStrip stats={stats} labels={['Broadest support base', 'Most polarizing act']} />
@@ -334,8 +328,26 @@ export function TheRaceTab({
         </p>
       </Card>
 
-      <RacePredictionPanel stats={stats} />
+      <RacePredictionPanel stats={stats} onOpenPlayer={onOpenPlayer} />
       <ScoreTimeline stats={stats} />
     </>
+  );
+}
+
+/**
+ * The theme-bonus explainer, rendered once at the very top of the Standings
+ * tab (above "What can still happen") so it introduces the ±3 before any total
+ * that includes it. Returns null when the league has no themed rounds.
+ */
+export function ThemeBanner({ stats }: { stats: Stats }): JSX.Element | null {
+  const anyTheme = stats.players.some((p) => p.breakdown.theme !== 0);
+  if (!anyTheme) return null;
+  return (
+    <p className="theme-banner">
+      <strong>This league adds a theme bonus.</strong> Each round is themed around one player; that
+      player gets <span className="pos">+3</span> for winning their own round and{' '}
+      <span className="neg">−3</span> for anything else, including not submitting. Music League
+      doesn't apply this — this page does — so it is shown separately wherever a total appears.
+    </p>
   );
 }

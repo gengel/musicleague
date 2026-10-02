@@ -21,7 +21,7 @@ import { buildDemoCsv, buildDemoEnrichment } from './lib/demo';
 import { FileDrop } from './components/FileDrop';
 import { Card } from './components/ui';
 import { ThisRoundTab } from './components/ThisRoundTab';
-import { TheRaceTab } from './components/TheRaceTab';
+import { TheRaceTab, ThemeBanner } from './components/TheRaceTab';
 import { TheSongsTab } from './components/TheSongsTab';
 import { TheRoomTab } from './components/TheRoomTab';
 import { PlayersTab } from './components/PlayersTab';
@@ -254,7 +254,8 @@ export default function App() {
           />
         ) : activeTab === 'Standings' ? (
           <>
-            <FuturePanel stats={stats} onOpenPlayer={(slug) => navigate(`player/${slug}`)} />
+            <ThemeBanner stats={stats} />
+            <FuturePanel stats={stats} />
             <TheRaceTab stats={stats} onOpenPlayer={(slug) => navigate(`player/${slug}`)} />
           </>
         ) : activeTab === 'Songs' ? (
