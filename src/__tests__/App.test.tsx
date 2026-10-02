@@ -158,11 +158,19 @@ describe('dashboard with the sample league', () => {
     expect(coldRows.some((r) => r.includes('Ada') && r.includes('Gus'))).toBe(true);
   });
 
-  it('shows the forfeit superlative on The Race tab', async () => {
+  it('still surfaces the forfeit story on the Standings tab', async () => {
     const user = await openDemo();
     await user.click(screen.getByRole('tab', { name: 'Standings' }));
-    // Forfeit story is told via the superlative strip on The Race tab
-    expect(screen.getByText(/Most forfeited by not voting/)).toBeDefined();
+    // The dedicated "Most forfeited" box was removed; the forfeit story now
+    // lives in the Forfeited column of the standings table and the scenario
+    // cards' prose. At least one must mention forfeiting.
+    expect(
+      screen.getAllByText(/forfeit/i).length,
+      'expected the forfeit story somewhere on the Standings tab',
+    ).toBeGreaterThan(0);
+    // The removed superlative box must be gone.
+    expect(screen.queryByText(/Most forfeited by not voting/)).toBeNull();
+    expect(screen.queryByText(/Most rounds skipped voting/)).toBeNull();
   });
 
   it('shows every song, with no paging', async () => {

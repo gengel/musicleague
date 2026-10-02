@@ -3,7 +3,6 @@ import type { Stats } from '../lib/stats';
 import { future } from '../lib/future';
 import { Card, Empty, n1, StatTile } from './ui';
 import { LabelIcon } from './Icons';
-import { SuperlativeStrip } from './SuperlativeStrip';
 
 /**
  * What can still change, and what it would take.
@@ -62,14 +61,6 @@ export function FuturePanel({ stats }: { stats: Stats }) {
             hint="if every voter maxed one song"
           />
         </div>
-
-        {/* Who is bleeding points to not voting — the levers still in a
-            player's own hands. Omitted automatically in friendly leagues,
-            where nothing is forfeited. */}
-        <SuperlativeStrip
-          stats={stats}
-          labels={['Most forfeited by not voting', 'Most rounds skipped voting']}
-        />
 
         <div className="scenarios">
           {outlook.projections.map((projection) => (
