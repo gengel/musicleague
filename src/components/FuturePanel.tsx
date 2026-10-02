@@ -58,7 +58,11 @@ export function FuturePanel({ stats }: { stats: Stats }) {
           <StatTile
             label="Round ceiling"
             value={n1(swing.ceiling)}
-            hint="every other voter who turned up stacking the largest vote seen"
+            hint={
+              stats.budget
+                ? 'every other player spending their whole budget on one song'
+                : 'every other player stacking the largest vote seen on one song'
+            }
           />
         </div>
 

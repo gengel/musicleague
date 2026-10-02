@@ -144,6 +144,17 @@ describe('future', () => {
     expect(swing.perRound).toBeGreaterThan(0);
   });
 
+  it('builds the ceiling from the full roster and the budget, not past turnout', () => {
+    // A fixed 10-point budget and 7 players (so 6 others could pile onto a
+    // song): the ceiling is 60 regardless of how few voted in the demo rounds.
+    const stats = computeStats(parseLeague([{ name: 'd.csv', text: buildDemoCsv() }]), {
+      totalRounds: 10,
+      budget: { upvotes: 10, downvotes: 10 },
+    });
+    const roster = stats.players.filter((p) => p.songs > 0 || p.roundsVoted > 0).length;
+    expect(future(stats).swing.ceiling).toBe(10 * (roster - 1));
+  });
+
   it('says whether the title is still open', () => {
     const projection = withRounds(10).projections.find((p) => p.label === 'The title')!;
     expect(projection).toBeDefined();

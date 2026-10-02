@@ -383,14 +383,21 @@ export function future(stats: Stats): Future {
       .filter((n) => n > 0),
   );
 
-  // Ceiling: every other voter in a round spending their per-song limit on one
-  // song. Computed per round and maximised, because a round with more voters
-  // has a higher ceiling — using a median voter count would put the ceiling
-  // below scores that have actually happened.
-  const ceiling = Math.max(
-    0,
-    ...played.map((r) => r.observedPerSongCap * Math.max(0, r.voters.length - 1)),
-  );
+  // Ceiling: the most a single song could score in one round. The whole league
+  // minus that song's own submitter could vote on it, each spending their full
+  // per-song limit — so this is a future-round projection, not a past result,
+  // and it uses the full roster rather than how many happened to turn up early
+  // in the season.
+  //
+  // The per-song limit is the league's fixed upvote budget when it has one — a
+  // voter is free to stack their whole budget on a single song — falling back
+  // to the largest single vote actually seen when the export carries no
+  // settings.
+  const rosterSize = stats.players.filter((p) => p.songs > 0 || p.roundsVoted > 0).length;
+  const otherVoters = Math.max(0, rosterSize - 1);
+  const observedCap = Math.max(0, ...played.map((r) => r.observedPerSongCap));
+  const perSongLimit = stats.budget ? Math.max(stats.budget.upvotes, observedCap) : observedCap;
+  const ceiling = perSongLimit * otherVoters;
 
   // The most one player can gain on another in a round: their best case while
   // the other has their worst.
