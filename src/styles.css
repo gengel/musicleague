@@ -2559,7 +2559,15 @@ td.archetype-col {
 }
 .band__player:last-child { border-bottom: none; }
 .band__name { font-weight: 600; }
+/* The win % is the headline figure in each row: prominent and tabular. */
+.band__win {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
 .band__behind { grid-column: 2 / 4; }
+.race-bands__head { margin: 0 0 0.6rem; display: inline-flex; align-items: center; gap: 0.3rem; }
 
 /* ---- Player profile scope toggle (All leagues / per season) ---- */
 .scope-tabs {

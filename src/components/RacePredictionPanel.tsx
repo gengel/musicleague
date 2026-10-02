@@ -3,7 +3,7 @@ import type { Stats } from '../lib/stats';
 import { projectStandings } from '../lib/projection';
 import { future } from '../lib/future';
 import { playerSlug } from '../lib/playerProfile';
-import { Card, playerColor } from './ui';
+import { Card } from './ui';
 import { InfoTip, MethodDrawer } from './InfoTip';
 
 /**
@@ -66,66 +66,19 @@ export function RacePredictionPanel({
   );
   const rangeRows = forecasts.filter((f) => liveIds.has(f.playerId)).slice(0, 8);
 
-  // The at-a-glance picture: a win-% bar per player, in standings colour, with
-  // the long tail folded into one "Others" row so the chart stays legible.
-  const standingsOrder = [...stats.players]
-    .filter((p) => p.songs > 0)
-    .sort((a, b) => b.pointsCounted - a.pointsCounted);
-  const colorOf = (name: string) => {
-    const i = standingsOrder.findIndex((p) => p.name === name);
-    return i >= 0 ? playerColor(i, standingsOrder.length) : '#888';
-  };
-  const MIN_BAR = 0.02;
-  const barRows = forecasts.filter((f) => f.winShare >= MIN_BAR);
-  const othersShare = forecasts
-    .filter((f) => f.winShare < MIN_BAR)
-    .reduce((acc, f) => acc + f.winShare, 0);
-  const barMax = Math.max(0.01, ...forecasts.map((f) => f.winShare));
-
   return (
     <Card title="The title race" subtitle={subtitle} wideSubtitle wide>
-      <div className="race-forecast">
-        <div className="race-forecast__head dim small">
-          Chance of winning
+      {hasWinShares && (
+        <p className="race-bands__head dim small">
+          % is each player's chance of winning
           <InfoTip label="How the win chance is worked out">
             Each of the {projection.runs} simulated seasons plays out the {roundsLeft} remaining
             round{roundsLeft !== 1 ? 's' : ''} and crowns whoever ends on top. A player's percentage
             is the share of those seasons they won, so the figures across all players add up to
             100%.
           </InfoTip>
-        </div>
-        {barRows.map((f) => (
-          <div key={f.playerId} className="race-forecast__row">
-            {onOpenPlayer ? (
-              <button className="linklike" onClick={() => onOpenPlayer(playerSlug(f.name))}>
-                {f.name}
-              </button>
-            ) : (
-              <span>{f.name}</span>
-            )}
-            <div className="race-forecast__bar">
-              <div
-                className="race-forecast__fill"
-                style={{ width: `${(f.winShare / barMax) * 100}%`, background: colorOf(f.name) }}
-              />
-            </div>
-            <span className="race-forecast__pct">{fmtWin(f.winShare)}</span>
-          </div>
-        ))}
-        {othersShare >= 0.005 && (
-          <div className="race-forecast__row">
-            <span className="dim">Others</span>
-            <div className="race-forecast__bar">
-              <div
-                className="race-forecast__fill"
-                style={{ width: `${(othersShare / barMax) * 100}%`, background: '#555' }}
-              />
-            </div>
-            <span className="race-forecast__pct">{fmtWin(othersShare)}</span>
-          </div>
-        )}
-      </div>
-
+        </p>
+      )}
       <div className="bands">
         {bands.map((band) => (
           <div className={`band band--${band.key}`} key={band.key}>
@@ -147,10 +100,14 @@ export function RacePredictionPanel({
                   ) : (
                     <span className="band__name">{p.name}</span>
                   )}
-                  <span className={`band__pts ${p.points < 0 ? 'neg' : 'pos'}`}>
-                    {p.points > 0 ? '+' : ''}
-                    {p.points}
-                  </span>
+                  {p.winShare !== undefined ? (
+                    <span className="band__win">{fmtWin(p.winShare)}</span>
+                  ) : (
+                    <span className={`band__win ${p.points < 0 ? 'neg' : 'pos'}`}>
+                      {p.points > 0 ? '+' : ''}
+                      {p.points}
+                    </span>
+                  )}
                   {p.behind > 0 && <span className="band__behind dim small">−{p.behind} back</span>}
                 </li>
               ))}
