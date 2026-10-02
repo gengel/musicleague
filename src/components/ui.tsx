@@ -63,12 +63,16 @@ export function Empty({ children }: { children: ReactNode }) {
 
 export interface Column<T> {
   key: string;
-  label: string;
+  /** Header content. A node so a column can carry an InfoTip. */
+  label: ReactNode;
   /** Sort value. Strings sort alphabetically, numbers descending-first. */
   value: (row: T) => number | string;
-  render?: (row: T) => ReactNode;
+  /** Rendered cell. `index` is the row's position in the current sort order. */
+  render?: (row: T, index: number) => ReactNode;
   align?: 'left' | 'right';
   title?: string;
+  /** Extra class on both the header and the cells, e.g. `col-secondary`. */
+  className?: string;
 }
 
 export function SortableTable<T>({
@@ -120,8 +124,16 @@ export function SortableTable<T>({
                 <th
                   key={col.key}
                   title={col.title}
-                  className={`${col.align === 'right' ? 'num' : ''}${sortKey === col.key ? ' sorted' : ''}`}
-                  onClick={() => {
+                  className={[
+                    col.align === 'right' ? 'num' : '',
+                    sortKey === col.key ? 'sorted' : '',
+                    col.className ?? '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={(e) => {
+                    // A header may host an InfoTip; opening it must not sort.
+                    if ((e.target as HTMLElement).closest('.infotip')) return;
                     if (sortKey === col.key) setAsc((v) => !v);
                     else {
                       setSortKey(col.key);
@@ -136,11 +148,16 @@ export function SortableTable<T>({
             </tr>
           </thead>
           <tbody>
-            {visible.map((row) => (
+            {visible.map((row, i) => (
               <tr key={rowKey(row)} className={highlight?.(row) ? 'row--flag' : undefined}>
                 {columns.map((col) => (
-                  <td key={col.key} className={col.align === 'right' ? 'num' : ''}>
-                    {col.render ? col.render(row) : String(col.value(row))}
+                  <td
+                    key={col.key}
+                    className={[col.align === 'right' ? 'num' : '', col.className ?? '']
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {col.render ? col.render(row, i) : String(col.value(row))}
                   </td>
                 ))}
               </tr>

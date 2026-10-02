@@ -594,6 +594,20 @@ code {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   margin-top: 12px;
+  /* Scrolling shadows: the two `local` gradients are painted with the card
+     colour and scroll with the content, masking the two fixed `scroll` edge
+     glows. An edge therefore lights up only while there is more table in that
+     direction, so a clipped column reads as scrollable rather than broken.
+     The glow is light, not a black shadow, because the theme is dark. */
+  background-image:
+    linear-gradient(to right, var(--bg-card) 40%, rgba(21, 21, 27, 0)),
+    linear-gradient(to left, var(--bg-card) 40%, rgba(21, 21, 27, 0)),
+    linear-gradient(to right, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0)),
+    linear-gradient(to left, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0));
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-repeat: no-repeat;
+  background-size: 34px 100%, 34px 100%, 20px 100%, 20px 100%;
+  background-attachment: local, local, scroll, scroll;
 }
 
 table {
@@ -2295,6 +2309,21 @@ td.archetype-col {
   .col-secondary {
     display: none !important;
   }
+  /* The standings carry a term per column, so on a phone they are wider than
+     the screen. Pin the score — the figure the rest add up to — to the right
+     edge so it stays readable while the terms scroll under it. */
+  thead th.standings-score,
+  tbody td.standings-score {
+    position: sticky;
+    right: 0;
+    background: var(--bg-card);
+    box-shadow: -9px 0 9px -7px rgba(0, 0, 0, 0.75);
+  }
+  thead th,
+  tbody td {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
   .epm-cell {
     min-width: 64px;
     padding: 8px 6px;
@@ -2660,6 +2689,23 @@ td.archetype-col {
 }
 
 /* ---- InfoTip: tucked-away "how this was worked out" ---- */
+/* A numeric column header with an InfoTip: keep the label and the ⓘ on one
+   line, and let the popover sit right of centre so it does not run off the
+   table's right edge. */
+.th-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+.th-tip .infotip__pop {
+  left: auto;
+  right: 0;
+  transform: none;
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+}
 .infotip { position: relative; display: inline-flex; vertical-align: baseline; }
 .infotip__btn {
   width: 15px;

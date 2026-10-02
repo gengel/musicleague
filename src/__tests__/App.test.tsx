@@ -235,18 +235,20 @@ describe('dashboard with the sample league', () => {
     expect(within(card).queryByRole('columnheader', { name: /Forfeit/ })).toBeNull();
   });
 
-  it('gives the score breakdown table sortable upvote, downvote and forfeit columns', async () => {
+  it('gives the standings table sortable upvote, downvote and forfeit columns', async () => {
     const user = await openDemo();
     await user.click(screen.getByRole('tab', { name: 'Standings' }));
-    const card = screen.getByText('How the scores add up').closest('.card') as HTMLElement;
-    expect(within(card).getByRole('columnheader', { name: /Total score/ })).toBeDefined();
+    const card = screen.getByText('Where it stands').closest('.card') as HTMLElement;
+    expect(within(card).getByRole('columnheader', { name: /Score/ })).toBeDefined();
     for (const name of ['Upvotes', 'Downvotes', 'Forfeited']) {
-      expect(within(card).getByRole('columnheader', { name })).toBeDefined();
+      expect(within(card).getByRole('columnheader', { name: new RegExp(name) })).toBeDefined();
     }
 
     // Sorting by forfeits must put the biggest forfeiter on top.
-    await user.click(within(card).getByRole('columnheader', { name: 'Forfeited' }));
+    await user.click(within(card).getByRole('columnheader', { name: /Forfeited/ }));
     expect(card.querySelectorAll('tbody tr')[0].textContent).toContain('Gus');
+    // The standings position stays in its own column, so sorting cannot lose it.
+    expect(card.querySelectorAll('tbody tr')[0].querySelector('td')?.textContent).not.toBe('1');
   });
 
   it('does not show the scoring rule toggles', async () => {
@@ -303,25 +305,15 @@ describe('dashboard with the sample league', () => {
   it('breaks every score into its parts', async () => {
     const user = await openDemo();
     await user.click(screen.getByRole('tab', { name: 'Standings' }));
-    const card = screen.getByText('How the scores add up').closest('.card') as HTMLElement;
+    const card = screen.getByText('Where it stands').closest('.card') as HTMLElement;
 
     // The demo league has downvotes and non-voters, so every term shows.
-    for (const header of ['Upvotes', 'Downvotes', 'Forfeited', 'Total score']) {
+    for (const header of ['Upvotes', 'Downvotes', 'Forfeited', 'Score']) {
       expect(within(card).getByRole('columnheader', { name: new RegExp(header) })).toBeDefined();
     }
     expect(card.querySelectorAll('.dbar').length).toBe(7);
     // The axis is what makes above/below zero readable at a glance.
     expect(card.querySelectorAll('.dbar__axis').length).toBe(7);
-
-    // Each row must reconcile: upvotes − downvotes − forfeited + floored.
-    const rows = [...card.querySelectorAll('tbody tr')];
-    expect(rows.length).toBe(7);
-    for (const row of rows) {
-      const cells = [...row.querySelectorAll('td')].map((c) => c.textContent ?? '');
-      const num = (text: string) => Number(text.replace(/[^0-9.-]/g, '') || 0);
-      const [, , up, down, forfeit, floored, total] = cells;
-      expect(num(up) - num(down) - num(forfeit) + num(floored)).toBe(num(total));
-    }
   });
 
   it('sorts a table when a header is clicked', async () => {
@@ -425,6 +417,98 @@ describe('degraded exports', () => {
   });
 });
 
+describe('standings as one reconciling table', () => {
+  /** A header's own label, without its InfoTip popover or sort arrow. */
+  function headerLabel(h: HTMLElement): string {
+    const clone = h.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('.infotip, .arrow').forEach((n) => n.remove());
+    return (clone.textContent ?? '').trim();
+  }
+  const num = (s: string | null | undefined) => Number((s ?? '').replace(/[−–—]/g, '-')) || 0;
+
+  // The sample league has a non-voter and a [standings] section that makes the
+  // scoring inference land on competitive, so forfeits are live.
+  it('puts the score last and makes the columns to its left add up to it', async () => {
+    const user = await openDemo();
+    await user.click(screen.getByRole('tab', { name: 'Standings' }));
+    const card = screen.getByText('Where it stands').closest('.card') as HTMLElement;
+
+    const headers = within(card).getAllByRole('columnheader').map(headerLabel);
+    expect(headers).toContain('Upvotes');
+    expect(headers).toContain('Downvotes');
+    expect(headers).toContain('Forfeited');
+    // Score is the last column: the figure the others add up to.
+    expect(headers[headers.length - 1]).toBe('Score');
+
+    const idx = {
+      up: headers.indexOf('Upvotes'),
+      down: headers.indexOf('Downvotes'),
+      forfeited: headers.indexOf('Forfeited'),
+      floored: headers.indexOf('Floored'),
+      theme: headers.indexOf('Theme'),
+      score: headers.indexOf('Score'),
+    };
+    const at = (cells: HTMLElement[], i: number) => (i >= 0 ? num(cells[i].textContent) : 0);
+
+    // The README's identity, per player:
+    //   upvotes − downvotes − forfeited + floored (+ theme) = score
+    const rows = within(card).getAllByRole('row').slice(1);
+    expect(rows.length).toBeGreaterThan(0);
+    let sawAForfeit = false;
+    for (const row of rows) {
+      const cells = within(row).getAllByRole('cell');
+      const forfeited = at(cells, idx.forfeited);
+      if (forfeited !== 0) sawAForfeit = true;
+      expect(at(cells, idx.score)).toBe(
+        at(cells, idx.up) +
+          at(cells, idx.down) +
+          forfeited +
+          at(cells, idx.floored) +
+          at(cells, idx.theme),
+      );
+    }
+    // The reconciliation would pass trivially if nothing was ever forfeited.
+    expect(sawAForfeit).toBe(true);
+  });
+
+  it('is the only standings table: the separate breakdown panel is gone', async () => {
+    const user = await openDemo();
+    await user.click(screen.getByRole('tab', { name: 'Standings' }));
+    expect(screen.queryByText('How the scores add up')).toBeNull();
+    expect(screen.getAllByText('Where it stands')).toHaveLength(1);
+  });
+
+  it('drops the adjustment columns when a league has no downvotes or forfeits', async () => {
+    stubLayout();
+    // Everyone voted and nobody downvoted, so the score is exactly the upvotes.
+    const clean = `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+Round 1,Ada,Song 1,Artist 1,id1
+Round 1,Bo,Song 2,Artist 2,id2
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+Round 1,Ada,Bo,Song 2,5
+Round 1,Bo,Ada,Song 1,4
+`;
+    const user = userEvent.setup();
+    render(<App />);
+    const input = document.querySelector('input[type=file]') as HTMLInputElement;
+    await user.upload(input, new File([clean], 'Clean League.csv', { type: 'text/csv' }));
+    expect(await screen.findByRole('heading', { level: 1, name: /Clean League/i })).toBeDefined();
+    await user.click(screen.getByRole('tab', { name: 'Standings' }));
+
+    const card = screen.getByText('Where it stands').closest('.card') as HTMLElement;
+    const headers = within(card).getAllByRole('columnheader').map(headerLabel);
+    expect(headers).not.toContain('Downvotes');
+    expect(headers).not.toContain('Forfeited');
+    expect(headers).not.toContain('Floored');
+    expect(headers).not.toContain('Theme');
+    expect(headers).toContain('Upvotes');
+    expect(headers[headers.length - 1]).toBe('Score');
+  });
+});
+
 describe('G9 single-value column suppression', () => {
   it('hides single-value columns and filters when only one round is played', async () => {
     stubLayout();
@@ -450,7 +534,7 @@ Round 1,Bo,Ada,Song 1,10
     expect(within(whereCard).queryByRole('columnheader', { name: 'Per song' })).toBeNull();
     expect(within(whereCard).queryByRole('columnheader', { name: 'Best round' })).toBeNull();
     expect(within(whereCard).queryByRole('columnheader', { name: 'Rounds voted' })).toBeNull();
-    expect(within(whereCard).getByRole('columnheader', { name: 'Score' })).toBeDefined();
+    expect(within(whereCard).getByRole('columnheader', { name: /Score/ })).toBeDefined();
 
     // Songs tab: Every song table should NOT have a Round column or Round filter chips
     await user.click(screen.getByRole('tab', { name: 'Songs' }));
