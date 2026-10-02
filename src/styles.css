@@ -2258,6 +2258,14 @@ td.archetype-col {
   gap: 6px;
   margin: 12px 0;
 }
+.race-forecast__head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
 .race-forecast__row {
   display: grid;
   grid-template-columns: 140px 1fr 44px;

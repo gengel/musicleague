@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { Stats } from '../lib/stats';
 import { projectStandings } from '../lib/projection';
 import { Card, playerColor } from './ui';
+import { InfoTip, MethodDrawer } from './InfoTip';
 
 export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | null {
   const roundsLeft = stats.totalRounds != null ? stats.totalRounds - stats.roundsPlayed : 0;
@@ -40,11 +41,23 @@ export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | 
   const fmtPct = (n: number) => `${Math.round(n * 100)}%`;
   const fmtScore = (n: number) => `${n >= 0 ? '+' : ''}${Math.round(n)}`;
 
-  const subtitle = `Resampled from ${stats.roundsPlayed} played round${stats.roundsPlayed !== 1 ? 's' : ''} × 500 simulations.`;
+  const competitive = stats.scoring === 'competitive';
+  const subtitle = `${roundsLeft} round${roundsLeft !== 1 ? 's' : ''} left · ${
+    projection.runs
+  } simulated seasons, built from how the league has actually voted.`;
 
   return (
     <Card title="Race prediction" subtitle={subtitle} wide>
       <div className="race-forecast">
+        <div className="race-forecast__head dim small">
+          Chance of winning
+          <InfoTip label="How the win chance is worked out">
+            Each of the {projection.runs} simulated seasons plays out the {roundsLeft} remaining
+            round{roundsLeft !== 1 ? 's' : ''} and crowns whoever ends on top. A player's percentage
+            is the share of those seasons they won. It is a count of outcomes, not a rating, so the
+            figures across all players add up to 100%.
+          </InfoTip>
+        </div>
         {shown.map((f) => (
           <div key={f.playerId} className="race-forecast__row">
             <span>{f.name}</span>
@@ -77,8 +90,27 @@ export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | 
             <tr>
               <th>Player</th>
               <th className="num col-secondary">Now</th>
-              <th className="num">Projected range</th>
-              <th className="num">Median</th>
+              <th className="num">
+                <span className="th-tip">
+                  Projected range
+                  <InfoTip label="What the projected range means">
+                    The band from the 10th to the 90th percentile of their final score across the
+                    {' '}{projection.runs} seasons: a lucky run lands near the top, an unlucky one
+                    near the bottom, and four in five seasons fall in between. A wide band means
+                    their finish is still volatile; a narrow one means it is close to settled.
+                  </InfoTip>
+                </span>
+              </th>
+              <th className="num">
+                <span className="th-tip">
+                  Median
+                  <InfoTip label="What the median is">
+                    Their middle outcome: half the simulated seasons finished above this score,
+                    half below. A steadier middle guess than the average, which a single runaway
+                    season could drag.
+                  </InfoTip>
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -97,9 +129,32 @@ export function RacePredictionPanel({ stats }: { stats: Stats }): JSX.Element | 
           </tbody>
         </table>
       </div>
-      <p className="note">
-        Assumes voters keep their observed appetite for spreading vs. concentrating points.
-      </p>
+      <MethodDrawer summary="How the simulation works">
+        <p>
+          The remaining rounds are played out {projection.runs} times, and this panel counts how
+          those seasons ended. Each simulated round is built only from how the league has already
+          voted — no assumptions about who is "better".
+        </p>
+        <p>
+          Every real ballot cast so far is kept as a shape: how many points that voter gave out and
+          in what sizes. A simulated round reuses the league's real size — its typical song count
+          and voter count — and for each voter draws one of those real ballots at random and scatters
+          its points across the songs. So the amount of praise and spite in a round, and how
+          concentrated it is, matches the league's own habits rather than a flat average.
+        </p>
+        {competitive && (
+          <p>
+            Forfeits carry forward too: a player who has skipped voting in some rounds skips future
+            ones at the same rate, and in this league's competitive scoring a skipped round costs
+            them the upvotes their song earned while still taking any downvotes.
+          </p>
+        )}
+        <p>
+          The run uses a fixed random seed, so the same standings always produce the same
+          projection. It cannot know what songs people will actually pick, so read it as "if the
+          league keeps voting the way it has", not a tip.
+        </p>
+      </MethodDrawer>
     </Card>
   );
 }

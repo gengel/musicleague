@@ -386,30 +386,9 @@ export function future(stats: Stats): Future {
     });
   }
 
-  /* ---- What voting alone would be worth ---- */
-  const silent = ranked
-    .filter((p) => p.roundsMissedVoting > 0)
-    .sort((a, b) => b.forfeitedUpvotes - a.forfeitedUpvotes);
-  if (silent.length && stats.scoring === 'competitive') {
-    const worst = silent[0];
-    const wouldBe = worst.pointsCounted + worst.forfeitedUpvotes;
-    const wouldPass = ranked.filter(
-      (p) => p.playerId !== worst.playerId && p.pointsCounted < wouldBe,
-    ).length;
-    const nowBehind = ranked.length - (ranked.indexOf(worst) + 1);
-    projections.push({
-      label: 'Points left on the table',
-      headline: `${worst.name} has already lost ${plural(worst.forfeitedUpvotes, 'point')} by not voting.`,
-      detail: `In this league, skipping your vote forfeits the upvotes your own song earned that round. ${worst.name}'s songs earned ${worst.forfeitedUpvotes} that were taken away for not voting${
-        wouldPass - nowBehind > 0
-          ? `; had they voted, they would sit above ${plural(Math.max(0, wouldPass - nowBehind), 'more player')}`
-          : ''
-      }. Voting in future rounds keeps those points.`,
-      status: 'live',
-      subject: worst.playerId,
-      interest: 85,
-    });
-  }
+  /* ---- What voting alone would be worth ----
+   * (Removed: the "Points left on the table" card duplicated the Forfeited
+   * column and the "didn't vote" flag now shown in the standings table.) */
 
   /* ---- Where the real leverage is ----
    *
