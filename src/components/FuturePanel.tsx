@@ -51,9 +51,9 @@ export function FuturePanel({ stats }: { stats: Stats }) {
             hint="median round winner"
           />
           <StatTile
-            label="Biggest swing seen"
+            label="Biggest one-round swing"
             value={n1(swing.realistic)}
-            hint="best round minus worst"
+            hint={`best song result (+${n1(swing.bestObserved)}) minus worst (${n1(swing.worstObserved)})`}
           />
           <StatTile
             label="Round ceiling"
