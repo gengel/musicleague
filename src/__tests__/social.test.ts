@@ -177,10 +177,9 @@ describe('future', () => {
     const projections = withRounds(10).projections;
     const forfeitNote = projections.find((p) => /forfeited \d+ pts by not voting/.test(p.detail));
     expect(forfeitNote).toBeDefined();
-    // It must say voting is the precondition and that skipping moves them the
-    // wrong way — never imply a mere "bigger target per round" closes it.
-    expect(forfeitNote!.detail).toMatch(/precondition/i);
-    expect(forfeitNote!.detail).toMatch(/wrong way|take[s]? downvotes/i);
+    // It must say the climb is unreachable while they keep skipping — never
+    // imply a mere "bigger target per round" closes it.
+    expect(forfeitNote!.detail).toMatch(/not reachable while they keep skipping|none of that is reachable while they keep skipping/i);
     expect(forfeitNote!.detail).not.toMatch(/real target is closer to/i);
   });
 

@@ -444,7 +444,7 @@ export function future(stats: Stats): Future {
       chaser.forfeitedUpvotes >= gapPts
         ? ` ${chaser.name} has already forfeited ${chaser.forfeitedUpvotes} pts by not voting — more than the whole gap — so simply voting from here could close it without outscoring anyone.`
         : ` ${chaser.name} has forfeited ${chaser.forfeitedUpvotes} pts by not voting, part of why they are back here.`;
-    return `${stillOwed} But none of that is reachable while they keep skipping: a non-voter forfeits their own upvotes and still takes downvotes, so every round they sit out moves them the wrong way. Voting is the precondition — the target only applies once they do.`;
+    return `${stillOwed} But none of that is reachable while they keep skipping!`;
   };
 
   if (budget !== undefined && gap > budget) {
