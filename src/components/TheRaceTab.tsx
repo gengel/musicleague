@@ -290,15 +290,9 @@ export function TheRaceTab({
           doesn't apply this — this page does — so it is shown separately wherever a total appears.
         </p>
       )}
-      <SuperlativeStrip
-        stats={stats}
-        labels={[
-          'Most forfeited by not voting',
-          'Most rounds skipped voting',
-          'Broadest support base',
-          'Most polarizing act',
-        ]}
-      />
+      {/* The forfeit/skip superlatives moved into "What can still happen"
+          above; this strip keeps the two that are about the room's taste. */}
+      <SuperlativeStrip stats={stats} labels={['Broadest support base', 'Most polarizing act']} />
 
       <Card
         title="Where it stands"

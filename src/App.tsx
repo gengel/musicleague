@@ -254,8 +254,8 @@ export default function App() {
           />
         ) : activeTab === 'Standings' ? (
           <>
-            <TheRaceTab stats={stats} onOpenPlayer={(slug) => navigate(`player/${slug}`)} />
             <FuturePanel stats={stats} onOpenPlayer={(slug) => navigate(`player/${slug}`)} />
+            <TheRaceTab stats={stats} onOpenPlayer={(slug) => navigate(`player/${slug}`)} />
           </>
         ) : activeTab === 'Songs' ? (
           <TheSongsTab stats={stats} />

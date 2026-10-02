@@ -194,12 +194,6 @@ const WIN_BANDS: {
   min: (p: number) => boolean;
 }[] = [
   {
-    key: 'locked',
-    label: 'Clinched',
-    note: 'Wins every simulated season. The title is mathematically theirs.',
-    min: (p) => p >= 1,
-  },
-  {
     key: 'crowned',
     label: 'One hand on the trophy',
     note: 'Wins 90% or more of simulated seasons — only a collapse stops them.',
@@ -226,26 +220,58 @@ const WIN_BANDS: {
   {
     key: 'chance',
     label: "So you're telling me there's a chance",
-    note: 'A long shot: wins 1–9% of seasons.',
-    min: (p) => p >= 0.01,
-  },
-  {
-    key: 'gameover',
-    label: 'Game over',
-    note: 'Did not win a single simulated season.',
-    min: () => true, // everyone left over, i.e. < 1%
+    note: 'A long shot, but not mathematically out.',
+    min: () => true, // everyone below 10% who can still win
   },
 ];
 
+// The two certainty bands are decided by the maths, not the simulation: a
+// player can win 100% of simulated seasons without the title being clinched
+// (an unlikely swing could still catch them), and 0% without being eliminated.
+const LOCKED_BAND = {
+  key: 'locked' as BandKey,
+  label: 'Clinched',
+  note: 'Cannot be caught: the title is theirs whatever happens in the rounds left.',
+};
+const GAMEOVER_BAND = {
+  key: 'gameover' as BandKey,
+  label: 'Game over',
+  note: 'Mathematically out — cannot reach the lead even with a perfect run.',
+};
+
+/**
+ * @param clinchedId  the player who has mathematically clinched, if any.
+ * @param eliminatedIds  players who mathematically cannot win.
+ */
 export function winProbabilityBands(
   ranked: PlayerStats[],
   winShareOf: Map<string, number>,
+  clinchedId?: string,
+  eliminatedIds: Set<string> = new Set(),
 ): ContentionBand[] {
-  const banded = new Map<BandKey, BandedPlayer[]>(WIN_BANDS.map((b) => [b.key, []]));
+  const order: BandKey[] = [
+    'locked',
+    'crowned',
+    'yourstolose',
+    'drivers',
+    'stillinit',
+    'chance',
+    'gameover',
+  ];
+  const banded = new Map<BandKey, BandedPlayer[]>(order.map((k) => [k, []]));
   ranked.forEach((p, i) => {
     const winShare = winShareOf.get(p.playerId) ?? 0;
-    const band = WIN_BANDS.find((b) => b.min(winShare))!;
-    banded.get(band.key)!.push({
+    let key: BandKey;
+    if (p.playerId === clinchedId) {
+      key = 'locked';
+    } else if (eliminatedIds.has(p.playerId)) {
+      key = 'gameover';
+    } else {
+      // Not mathematically settled: use the simulation, but never let a player
+      // fall into a certainty band by probability alone.
+      key = WIN_BANDS.find((b) => b.min(winShare))!.key;
+    }
+    banded.get(key)!.push({
       playerId: p.playerId,
       name: p.name,
       points: p.pointsCounted,
@@ -254,12 +280,15 @@ export function winProbabilityBands(
       winShare,
     });
   });
-  return WIN_BANDS.filter((b) => banded.get(b.key)!.length > 0).map((b) => ({
-    key: b.key,
-    label: b.label,
-    note: b.note,
-    players: banded.get(b.key)!,
-  }));
+  const meta = new Map(
+    [LOCKED_BAND, ...WIN_BANDS, GAMEOVER_BAND].map((b) => [b.key, b]),
+  );
+  return order
+    .filter((k) => banded.get(k)!.length > 0)
+    .map((k) => {
+      const m = meta.get(k)!;
+      return { key: k, label: m.label, note: m.note, players: banded.get(k)! };
+    });
 }
 
 /**
@@ -671,7 +700,27 @@ export function future(stats: Stats): Future {
     const projection = projectStandings(stats, { roundsLeft, runs: 500 });
     if (!projection.insufficientData) {
       const winShareOf = new Map(projection.forecasts.map((f) => [f.playerId, f.winShare]));
-      bands = winProbabilityBands(ranked, winShareOf);
+
+      // Mathematical certainty, independent of the simulation. The most a
+      // player can gain over the rest of the season is a perfect round every
+      // round: roundsLeft × the single-song ceiling. (perRound also nets off
+      // the worst a rival's song could do, which is the right swing for a
+      // head-to-head.) A chaser is out when even that cannot reach the current
+      // leader; the leader is clinched when no chaser can reach the leader's
+      // current score — i.e. everyone else is out.
+      const maxGain = roundsLeft * perRound;
+      const eliminatedIds = new Set(
+        ranked
+          .filter((p) => leader.pointsCounted - p.pointsCounted > maxGain)
+          .map((p) => p.playerId),
+      );
+      // The leader has clinched when every other player is mathematically out.
+      const clinchedId =
+        ranked.length >= 2 && ranked.slice(1).every((p) => eliminatedIds.has(p.playerId))
+          ? leader.playerId
+          : undefined;
+
+      bands = winProbabilityBands(ranked, winShareOf, clinchedId, eliminatedIds);
     }
   }
 
