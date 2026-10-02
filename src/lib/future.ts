@@ -432,31 +432,19 @@ export function future(stats: Stats): Future {
       (p) => realisticBudget === undefined || leader.pointsCounted - p.pointsCounted <= realisticBudget,
     );
   /**
-   * A per-round target that pretends both players will vote every remaining
-   * round is a lie for a non-voter: their earned upvotes keep forfeiting.
-   * This factors that in by adjusting the target by the chaser's per-round
-   * forfeit rate — worse if they keep forfeiting, easier if they start voting.
+   * A per-round catch-up target assumes the chaser actually banks what their
+   * song earns each round. For a non-voter in competitive mode that is false:
+   * they forfeit their upvotes and still take downvotes, so each skipped round
+   * moves them *backwards*. The honest framing is that voting is the
+   * precondition for any climb, not a knob that makes the target larger.
    */
-  const forfeitAwareNote = (
-    chaser: typeof leader,
-    gapPts: number,
-    perRoundNeeded: number,
-  ): string => {
+  const forfeitAwareNote = (chaser: typeof leader, gapPts: number): string => {
     if (stats.scoring !== 'competitive' || chaser.forfeitedUpvotes === 0) return '';
-    const roundsMissed = chaser.roundsMissedVoting;
-    const perRoundForfeit = roundsMissed > 0 ? chaser.forfeitedUpvotes / roundsMissed : 0;
-    const rounds = chaser.roundsSubmitted || 1;
-    const forfeitRate = chaser.forfeitedUpvotes / rounds;
-    if (chaser.forfeitedUpvotes >= gapPts) {
-      return ` But ${chaser.name} has already forfeited ${chaser.forfeitedUpvotes} pts by not voting — more than the gap. Voting the rest of the way would close it on its own.`;
-    }
-    if (forfeitRate >= 1) {
-      // On average this player loses at least 1 pt per round to forfeit.
-      // The catch-up target grows if that keeps up.
-      const inflated = Math.ceil(perRoundNeeded + forfeitRate);
-      return ` But ${chaser.name} has forfeited ${chaser.forfeitedUpvotes} pts by not voting — if that habit continues, the real target is closer to ${inflated} a round, not ${perRoundNeeded}.`;
-    }
-    return ` ${chaser.name} has also forfeited ${chaser.forfeitedUpvotes} pts by not voting; ${perRoundForfeit >= 1 ? 'voting from here on would speed it up' : 'closing that habit would help too'}.`;
+    const stillOwed =
+      chaser.forfeitedUpvotes >= gapPts
+        ? ` ${chaser.name} has already forfeited ${chaser.forfeitedUpvotes} pts by not voting — more than the whole gap — so simply voting from here could close it without outscoring anyone.`
+        : ` ${chaser.name} has forfeited ${chaser.forfeitedUpvotes} pts by not voting, part of why they are back here.`;
+    return `${stillOwed} But none of that is reachable while they keep skipping: a non-voter forfeits their own upvotes and still takes downvotes, so every round they sit out moves them the wrong way. Voting is the precondition — the target only applies once they do.`;
   };
 
   if (budget !== undefined && gap > budget) {
@@ -479,7 +467,7 @@ export function future(stats: Stats): Future {
           : perRoundNeeded <= bestObserved
             ? `more than a typical winning round (${typicalWin}) but inside the best anyone has managed (${bestObserved})`
             : `more than the best round anyone has managed so far (${bestObserved}), so it would take something unprecedented`
-      }.${forfeitAwareNote(runnerUp, gap, perRoundNeeded)}${
+      }.${forfeitAwareNote(runnerUp, gap)}${
         chasers.length > 1
           ? plausible.length < chasers.length
             ? ` ${chasers.length} players are mathematically alive, though only ${plausible.length} on swings this league has actually produced.`
@@ -508,7 +496,7 @@ export function future(stats: Stats): Future {
     projections.push({
       label: 'Last place',
       headline: `${last.name} needs ${escapeGap} on ${secondLast.name} to climb off the bottom.`,
-      detail: `That is ${perRoundEscape} a round, against a typical winning score of ${typicalWin}.${forfeitAwareNote(last, escapeGap, perRoundEscape)}`,
+      detail: `That is ${perRoundEscape} a round, against a typical winning score of ${typicalWin}.${forfeitAwareNote(last, escapeGap)}`,
       status: 'live',
       subject: last.playerId,
       interest: 90,

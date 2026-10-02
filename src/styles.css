@@ -391,6 +391,7 @@ code {
   font-size: 13px;
   max-width: 80ch;
 }
+.card__head p.card__sub--wide { max-width: none; }
 
 .card__body {
   padding: 16px 18px 18px;
@@ -2550,7 +2551,7 @@ td.archetype-col {
 .band__players { list-style: none; margin: 0; padding: 0; }
 .band__player {
   display: grid;
-  grid-template-columns: 1.4rem 1fr auto auto;
+  grid-template-columns: 1.4rem 1fr auto;
   align-items: baseline;
   gap: 0.4rem 0.5rem;
   padding: 0.25rem 0;
@@ -2558,9 +2559,7 @@ td.archetype-col {
 }
 .band__player:last-child { border-bottom: none; }
 .band__name { font-weight: 600; }
-/* Win % sits just left of the points, right-aligned and tabular. */
-.band__win { text-align: right; font-variant-numeric: tabular-nums; }
-.band__behind { grid-column: 2 / 5; }
+.band__behind { grid-column: 2 / 4; }
 
 /* ---- Player profile scope toggle (All leagues / per season) ---- */
 .scope-tabs {

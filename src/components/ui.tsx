@@ -10,18 +10,21 @@ export function Card({
   subtitle,
   children,
   wide,
+  wideSubtitle,
 }: {
   title?: string;
   subtitle?: string;
   children: ReactNode;
   wide?: boolean;
+  /** Let the subtitle use the card's full width instead of the 80ch reading cap. */
+  wideSubtitle?: boolean;
 }) {
   return (
     <section className={`card${wide ? ' card--wide' : ''}`}>
       {title && (
         <header className="card__head">
           <h2 className="display">{title}</h2>
-          {subtitle && <p>{subtitle}</p>}
+          {subtitle && <p className={wideSubtitle ? 'card__sub--wide' : undefined}>{subtitle}</p>}
         </header>
       )}
       <div className="card__body">{children}</div>

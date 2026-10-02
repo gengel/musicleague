@@ -173,6 +173,17 @@ describe('future', () => {
     expect(mentioned.length).toBeGreaterThan(0);
   });
 
+  it('is honest that continued non-voting makes a climb impossible, not just harder', () => {
+    const projections = withRounds(10).projections;
+    const forfeitNote = projections.find((p) => /forfeited \d+ pts by not voting/.test(p.detail));
+    expect(forfeitNote).toBeDefined();
+    // It must say voting is the precondition and that skipping moves them the
+    // wrong way — never imply a mere "bigger target per round" closes it.
+    expect(forfeitNote!.detail).toMatch(/precondition/i);
+    expect(forfeitNote!.detail).toMatch(/wrong way|take[s]? downvotes/i);
+    expect(forfeitNote!.detail).not.toMatch(/real target is closer to/i);
+  });
+
   it('tells one story per player rather than several about the same one', () => {
     const projections = withRounds(10).projections;
     const subjects = projections.filter((p) => p.subject !== '__league__').map((p) => p.subject);

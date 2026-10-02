@@ -20,11 +20,12 @@ function statsInProgress(scoring: 'competitive' | 'friendly') {
 }
 
 describe('RacePredictionPanel (the title race)', () => {
-  it('shows named win-probability bands with a per-player win %', () => {
+  it('shows a win-% bar chart and named win-probability bands', () => {
     const { container } = render(<RacePredictionPanel stats={statsInProgress('competitive')} />);
-    // Bands render as .band blocks, each player carrying a win-% chip.
+    // The bar chart: a labelled fill per contender.
+    expect(container.querySelectorAll('.race-forecast__fill').length).toBeGreaterThan(0);
+    // The named bands beneath.
     expect(container.querySelectorAll('.band').length).toBeGreaterThan(0);
-    expect(container.querySelectorAll('.band__win').length).toBeGreaterThan(0);
   });
 
   it('explains the projected range', () => {
