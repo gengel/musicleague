@@ -117,10 +117,29 @@ v2 (`6976f5d`…`68415a5`), in order:
 - **Non-voter flag** (`8830bd0`): G9 hid the "Rounds voted" column, which
   also carried the only "never voted" marker. The flag now sits beside the
   player's name so it survives both that and the phone column hiding.
+- **League names** (`b4ead84`): season 1 is **Streaming Consciousness**,
+  season 2 is **Now That's What I Call You**, set by the `label` in
+  `leagues/*.json`. The bake also writes the name into the built page's
+  `<title>`. League names are prose now, so copy must not use them as a
+  noun modifier ("Points in <league>", not "<league> points").
+- **One standings table** (`96f248e`): "Where it stands" and "How the
+  scores add up" were merged. The columns are the terms of one identity,
+  ending in the score:
+  `upvotes − downvotes − forfeited + floored + theme = score`. Each term
+  column disappears when it is zero for everyone. `ScoreBreakdownPanel.tsx`
+  is deleted. `SortableTable` gained `ReactNode` labels, a per-column
+  `className` and a row index, and ignores clicks that land on an InfoTip.
+  Rank is its own column so sorting cannot lose the standings position. On
+  phones the score column is `position: sticky; right: 0`, because a table
+  with a column per term is wider than a phone.
+- **Scroll cue for wide tables** (`96f248e`): `.table-wrap` now uses the
+  `background-attachment: local/scroll` trick to light up an edge only when
+  there is more table in that direction. The glow is light, not a black
+  shadow, because the theme is dark.
 
 ## 5. Current state
 
-- The build and typecheck are clean, **477 tests pass**, and `docs/v2` is
+- The build and typecheck are clean, **480 tests pass**, and `docs/v2` is
   baked and in sync with `src` (a rebake produces no diff).
 - **`origin/main` is at `08bc77f`**, so eight of these commits were pushed.
   The commits after it are local only. Check with the user before pushing;

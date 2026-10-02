@@ -276,14 +276,9 @@ export function TheRaceTab({
       downvotes: acc.downvotes + p.breakdown.downvotes,
       forfeited: acc.forfeited + p.breakdown.forfeited,
       absorbed: acc.absorbed + p.breakdown.absorbed,
-      total: acc.total + p.breakdown.total,
     }),
-    { upvotes: 0, downvotes: 0, forfeited: 0, absorbed: 0, total: 0 },
+    { upvotes: 0, downvotes: 0, forfeited: 0, absorbed: 0 },
   );
-  // Signed totals cancel out, so the sum of the column can be smaller than a
-  // single player's score. Report the positive side separately to say so.
-  const positive = rows.reduce((a, p) => a + Math.max(0, p.breakdown.total), 0);
-  const belowCount = rows.filter((p) => p.breakdown.total < 0).length;
 
   return (
     <>
@@ -342,16 +337,6 @@ export function TheRaceTab({
           {league.downvotes > 0 && <>, {n1(league.downvotes)} downvote points</>}
           {league.forfeited > 0 && <>, {n1(league.forfeited)} forfeited</>}
           {league.absorbed > 0 && <>, {n1(league.absorbed)} discarded by the zero floor</>}.
-          {positive !== league.total ? (
-            <>
-              {' '}
-              Positive scores add up to {n1(positive)}; the score column sums to{' '}
-              {n1(league.total)} because {belowCount} {belowCount === 1 ? 'player is' : 'players are'}{' '}
-              below zero.
-            </>
-          ) : (
-            <> That leaves {n1(league.total)} on the board.</>
-          )}
         </p>
       </Card>
 

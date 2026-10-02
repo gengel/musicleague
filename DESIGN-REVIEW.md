@@ -20,19 +20,18 @@ M = a few hours, L = a day or more.
 
 ## 1. Cross-cutting issues (fix these first; they affect every tab)
 
-**G1 [declutter, done in `0ffb23f` + `70f2d6d`] The same 12-player table
-appeared six times.** "Players, end to end" and "Points received" are gone,
-`PlayersPanel.tsx` with them; "Where it stands" is the canonical table.
-Originally seen in:
+**G1 [declutter, done in `0ffb23f`, `70f2d6d`, `96f248e`] The same
+12-player table appeared six times.** "Players, end to end", "Points
+received" and "How the scores add up" are gone, `PlayersPanel.tsx` and
+`ScoreBreakdownPanel.tsx` with them. "Where it stands" is now the single
+standings table, and it absorbed the breakdown's columns so the score is
+checkable in place. Originally seen in:
 - This Round: Standings (top 5)
 - Standings: "Where it stands" and "How the scores add up"
 - Players: "Players" (archetypes) and "Players, end to end"
 - Room: "Points received"
 
-They all rank the same 12 people by nearly the same number. Keep one
-canonical table ("Where it stands" on Standings). Fold the useful columns
-from the others into it, or move them to the player page. Delete
-"Players, end to end" and "Points received" outright.
+They all ranked the same 12 people by nearly the same number.
 
 **G2 [declutter, M] Nothing is gated for an early season.** With 1 round played:
 - the Rounds tab's four superlatives all name the same round
@@ -142,9 +141,14 @@ Hide a column when all its values are identical.
   top of each other, which reads as mud. Default to actual lines only,
   with the top 3 in full colour and the rest dimmed. Show a player's
   projection fan only on hover or when their legend entry is selected.
-- **[declutter, S]** "How the scores add up" is good, but it is audit
-  detail. Collapse it by default ("Show the arithmetic") or move it into a
-  `MethodDrawer`.
+- **[declutter, done in `96f248e`]** "How the scores add up" was a second
+  ranking of the same players. It is merged into "Where it stands", whose
+  columns are now the terms of one identity ending in the score. Its
+  diverging bar, league-totals note and sortability were kept.
+- **[declutter, S]** The forfeit/skip superlative cards ("−7 pts Joel", "1
+  round Go_BirdzDH") now duplicate the Forfeited column and the "didn't
+  vote" flag in that table. Drop them, or replace them with something the
+  table cannot show.
 - **[declutter, M]** "What can still happen" (stat tiles and cards) and
   "The title race" (leading / in contention) tell the same story. Keep the
   title race as the visual, then add the 2–3 most interesting cards (title,
