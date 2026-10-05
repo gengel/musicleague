@@ -17,7 +17,7 @@ import { computeStats, computeSuperlatives } from '../lib/stats';
 import { attachEnrichment, parseEnrichment } from '../lib/enrich';
 
 // ---------------------------------------------------------------------------
-// Placement audit — every label and the tab it belongs to (section 8, PLAN.md)
+// Placement audit — every label and the tab it belongs to (section 8, archive/PLAN.md)
 // ---------------------------------------------------------------------------
 
 const PLACEMENT: Record<string, string> = {

@@ -1,259 +1,196 @@
-# Design review: every tab, panel and page (v2 dashboard)
+# Backlog: design review of the v2 dashboard
 
-Reviewed on 2026-09-30 from screenshots of the baked `docs/v2/` build
-(league 2, **1 of 12 rounds played**), taken at 1440px and 390px wide.
-Pages covered: This Round, Standings, Players, Songs, Room, Rounds,
-`#round/1` and `#player/bob`, plus phone widths for This Round, Standings,
-Songs and Bob's page. Standings was cut off after "The title race" at
-4200px tall, so anything below that panel was not reviewed. The player
-Submissions and Relationships sub-tabs were reviewed from code only.
+The open work list. This file merges two earlier sources:
+- the original design review (2026-09-30, from screenshots of `docs/v2` at
+  1440px and 390px with 1 of 12 rounds played)
+- the older post-M7 review (now `archive/REVIEW-v2.md`)
 
-Aim: more impact, less clutter. The player page already follows the
-standing preference: the key facts pop, and the method sits in tooltips and
-drawers (`InfoTip` / `MethodDrawer`). No other tab does this yet.
+Last pruned on 2026-10-05 at `b12c3ef`. Work through it with the procedure
+in `HANDOFF.md` §3–§5: one item, verified, one commit.
 
-Each item is tagged **[impact]** (makes something pop), **[declutter]**
-(removes or merges things), or **[bug]**. Effort: S = under an hour,
-M = a few hours, L = a day or more.
-
----
-
-## 1. Cross-cutting issues (fix these first; they affect every tab)
-
-**G1 [declutter, done in `0ffb23f`, `70f2d6d`, `96f248e`] The same
-12-player table appeared six times.** "Players, end to end", "Points
-received" and "How the scores add up" are gone, `PlayersPanel.tsx` and
-`ScoreBreakdownPanel.tsx` with them. "Where it stands" is now the single
-standings table, and it absorbed the breakdown's columns so the score is
-checkable in place. Originally seen in:
-- This Round: Standings (top 5)
-- Standings: "Where it stands" and "How the scores add up"
-- Players: "Players" (archetypes) and "Players, end to end"
-- Room: "Points received"
-
-They all ranked the same 12 people by nearly the same number.
-
-**G2 [declutter, M] Nothing is gated for an early season.** With 1 round played:
-- the Rounds tab's four superlatives all name the same round
-- Songs shows 8 superlatives from 12 songs (Hold the Line appears in three)
-- the era×popularity and era×genre heatmaps are mostly `n=1` cells
-- the race prediction and 12 overlapping projection fans are mostly noise
-
-Only Room's Relationships panel is gated ("appears after 3 rounds").
-Add one shared helper, e.g. `gate(minRounds | minSamples)` in
-`src/lib/`, and apply it to every panel. A gated panel should become one
-slim "unlocks after round N" line, not an empty card.
-
-**G3 [declutter, S] The "Season in progress" banner is on every tab.** The
-header already says "1 of 12 rounds". Keep the banner on This Round only,
-or make it a small pill in the header.
-
-**G4 [declutter, M] Method text is shown on every card.** Most cards carry a
-grey subtitle explaining the method. Examples: "Upvotes received, minus
-downvotes, minus the upvotes forfeited…", "Resampled from 1 played round ×
-500 simulations", and "Archetype blends submissions (×2) + upvotes (×1)…".
-Move these into the card title's `InfoTip`, or into `MethodDrawer` for
-long ones, as the player page already does. Leave a subtitle only when it
-changes how the numbers read.
-
-**G5 [declutter, S] Superlative cards carry three grey runner-up lines each.**
-The label, the big number and the song name are the point. Move the
-runner-ups ("75% of voters Time Moves Slow · 75% of voters…") into a
-tooltip. This affects Songs, Standings (forfeit cards) and Rounds.
-
-**G6 [impact, M] Only the player page has visual hierarchy.** Every other
-tab is a stack of equal-weight cards and tables. Reuse the pieces built in
-M3–M5 (cover art, big numerals, player tint, `PlayerAvatar`):
-- This Round: a podium of the top 3 songs with covers.
-- Standings: a leader hero (avatar, score, storyline).
-- Players: a card grid (see Players, below).
-
-**G7 [bug, done in `a75e5fc`] `#round/N` highlighted the Players tab.** In `src/App.tsx:136`,
-`activeTab` falls back to `'Players'` for every non-tab route. It should
-be `'Rounds'` for `route.kind === 'round'`. Only `player` routes should
-fall back to `'Players'`.
-
-**G8 [bug/declutter, done in `3ac84d6`] Phone layout problems.**
-- The main nav wraps to two rows at 390px. Make it a single horizontally
-  scrolling strip.
-- Redacted names break mid-dash (`Meredith C--` then `-` on the next line)
-  in the standings, race and This Round tables. Add
-  `white-space: nowrap` on name cells.
-- Wide tables are clipped with no scroll cue: "Where it stands" loses
-  "Per song" onward, and the race table loses "Median". Hide secondary
-  columns under 620px, or add a fade on the scroll edge.
-- The Songs heatmaps overflow the card.
-
-**G9 [declutter, done in `53ad55c`] Hide columns and filters that have only one value.**
-- Songs: the ROUND column and the Round filter chips when there is one
-  round.
-- Room: the SPENT column is 10 for every voter in a fixed-budget league.
-- Standings: "Rounds voted 1 of 1", and "Per song" / "Best round" when
-  each equals the score.
-
-Hide a column when all its values are identical.
-
-**Caveats found afterwards, when G9 was implemented:**
-- A column can be single-valued and still carry a *second* signal. "Rounds
-  voted" read "1 of 1" for everyone who voted but "never voted" for the
-  three who did not. Hiding it dropped the only non-voter marker. Fixed in
-  `8830bd0` by moving the flag beside the player's name. **Before hiding a
-  column, check that no cell in it says something different in kind.**
-- The THEME column is still shown with "—" in 11 of 12 rows. It is not
-  single-valued so the rule leaves it, but it is nearly empty. Consider
-  hiding it until two or more players have a bonus.
-- G9 uses two different criteria: Songs keys off
-  `stats.league.rounds.length`, Standings off `stats.roundsPlayed`, Room off
-  "are all values equal". The last one is the general rule; the other two
-  are proxies. Worth unifying into one helper.
-
----
-
-## 2. This Round
-
-- **[impact, M]** The "Latest result" winner tile and ranking row 1 repeat
-  each other. Replace both with a podium of the top 3 songs (covers,
-  submitter avatars, scores), followed by "Show all 12".
-- **[declutter, S]** The "Next up" brief has four equal text columns, and
-  "Artists they reward" is six rows all tied at 2 pts. Ties carry no
-  signal: show at most three items, and hide a list when all its values
-  are equal. On a phone the four lists stack to about 1.5 screens.
-  Collapse them behind "Scout {name} →", which links to the player page's
-  brief.
-- **[declutter, S]** In the mini-standings, TOTAL equals CHANGE in round 1.
-  Hide CHANGE until round 2, and show movement as ▲/▼ arrows rather than a
-  second number. At 1440px the table has a very wide empty middle, so cap
-  its width or put it beside the result.
-
-## 3. Standings (the longest page; over 4200px on desktop)
-
-- **[declutter, S]** The theme-bonus explainer is a large permanent card
-  at the top. Move it into an `InfoTip` on the THEME column header and on
-  every theme chip.
-- **[declutter, S]** Merge the two forfeit/skip cards ("−7 pts Joel", "1
-  round Go_BirdzDH") into the table. The "never voted" flag is already
-  there; add a tooltip with the forfeited points.
-- **[declutter, M]** Race prediction shows the same numbers twice: bars
-  with a percentage, then a table of range and median. Merge them into one
-  row per player: name, a probability bar, and the projected range as a
-  whisker.
-- **[impact, M]** Score over time draws 12 translucent projection fans on
-  top of each other, which reads as mud. Default to actual lines only,
-  with the top 3 in full colour and the rest dimmed. Show a player's
-  projection fan only on hover or when their legend entry is selected.
-- **[declutter, done in `96f248e`]** "How the scores add up" was a second
-  ranking of the same players. It is merged into "Where it stands", whose
-  columns are now the terms of one identity ending in the score. Its
-  diverging bar, league-totals note and sortability were kept.
-- **[declutter, S]** The forfeit/skip superlative cards ("−7 pts Joel", "1
-  round Go_BirdzDH") now duplicate the Forfeited column and the "didn't
-  vote" flag in that table. Drop them, or replace them with something the
-  table cannot show.
-- **[declutter, M]** "What can still happen" (stat tiles and cards) and
-  "The title race" (leading / in contention) tell the same story. Keep the
-  title race as the visual, then add the 2–3 most interesting cards (title,
-  last place, too-close-to-call) under it. Drop the "Rounds left 11 of 12"
-  tile, since the header already says it.
-
-## 4. Players
-
-- **[impact, M]** Replace the picker chips and the two tables with a card
-  grid of 12 cards. Each card shows the avatar, rank, score, archetype
-  chip(s) and the one-line storyline (`careerStoryline`). A card opens the
-  player page. This is the "pop" version of what the tab is for.
-- **[bug, S]** The era spectrum labels collide ("Megan 2010 / Greggo 2011",
-  "Cynthia 2015 / t33nwitch 2016"). Stagger the labels into more rows, or
-  show avatars on the axis with names on hover.
-- **[declutter, S]** Delete the "Players, end to end" table (see G1). Move
-  the archetype table's GAP/AVG POP columns to the player page.
-
-## 5. Songs
-
-- **[declutter, S]** Cut the eight superlatives to four. Never name the
-  same song twice (Hold the Line is Most divisive, Most downvoted and
-  Biggest hit to bomb).
-- **[declutter, M]** There are four "What wins here" panels (era,
-  popularity, era×popularity, era×genre). Make one panel with a segmented
-  toggle, and gate the 2-D heatmaps until each cell has at least 3 songs
-  (G2). On a phone the heatmaps overflow.
-- **[impact, S]** "Every song" is the best table in the app, with covers
-  and tags. Make it the first thing on the tab, above the superlatives.
-- **[declutter, S]** "Room-uniting songs" and "Most divisive songs" repeat
-  the table's Voters reached and Spread columns. Remove them; the table is
-  sortable on both.
-
-## 6. Room
-
-- **[declutter, S]** The gated Relationships card is a small box alone at
-  the top left and reads as broken. Make it a slim full-width notice, or
-  hide it.
-- **[declutter, M]** "Where the upvotes go" and "Where the downvotes go"
-  are two tables with the same shape. Merge them into one voter table:
-  top recipient (up) beside top target (down), with share bars. Drop
-  SPENT (G9).
-- **[declutter, S]** Delete "Points received" (G1).
-- **[impact, S]** Voters who did not vote (Joel, Megan P, Go_BirdzDH) are
-  silently missing from the voter tables. Add a "3 didn't vote" line.
-
-## 7. Rounds and the round page
-
-- **[declutter, S]** Gate the four superlatives until at least 3 rounds
-  (all four currently name the same round).
-- **[declutter, S]** The sentence "Bob's 'El Pastor' won the round on +14
-  pts" repeats the winner tile directly below it. Remove it.
-- **[bug, S]** "Show all 12 songs ↓" sits outside the card and looks
-  orphaned. Move it inside the card footer.
-- **[impact, M]** `#round/1` is the same as the Rounds card, with nothing
-  extra. A round page should show the full ranking with covers, the
-  voter×song vote grid for that round, and every comment.
-
-## 8. Player page (`#player/<slug>`)
-
-- **[bug, done in `01164be`]** The season tabs are now right-aligned, and
-  the phone overflow is fixed.
-- **[impact, improved in `a12fb06`…`86af080`]** The taste block is much
-  stronger than when this review was written: one shared legend, the era
-  timeline split into dots (submissions) and rings (upvotes), and genre
-  split into upvoted and downvoted on *net* points, so a genre can no
-  longer appear in both lists. That last part matches the README's rule
-  that anything phrased as a feeling ranks on net.
-- **[bug, done in `981ab5d`]** Two follow-on defects from that work:
-  the "submissions" series used the per-player tint (drawn from their album
-  covers) while upvotes and downvotes use fixed `--pos` / `--neg`, so a
-  pink-tinted player made submissions and downvotes nearly identical, and a
-  green-tinted one would have collided with upvotes. And the legend listed a
-  downvotes series that neither the dial nor the era timeline plots.
-  **Lesson: the player tint is decoration, so never use it for a data
-  series that sits beside semantic colours.**
-- **[impact, S]** The hero's "+17 +3" is ambiguous (is the +3 inside the
-  17?). Show it as `+14 votes · +3 theme = +17`, or make the big number
-  the total with a smaller "+3 theme" chip beneath it.
-- **[impact, S]** The career line ("−2 career points · 11 songs · 1 round
-  win · 76 upvotes and 78 downvotes received · 1 round(s) not voted") is
-  small grey text. Make it 3–4 stat tiles with big numbers, and fix
-  "round(s)" to use proper pluralisation.
-- **[declutter, S]** On the popularity dial the two markers overlap at the
-  top, so it isn't clear which is which without the legend. Offset them
-  or label them directly. The era dots at 1440px are very small.
-- **[declutter, S]** In the People section, "Artists they reward" repeats
-  4 pts four times (ties again). Show the top 3, and only when they differ.
-- **[declutter, S]** `.taste-block`'s `grid-template-columns` is set once
-  and then overridden unconditionally about 80 lines later, under a
-  "Player page on phones" comment that is not in a media query. The first
-  rule is dead. Pre-existing, not from the recent work.
+Tags: **[impact]** makes something pop, **[declutter]** removes or merges,
+**[bug]**. Effort: S = under an hour, M = a few hours, L = a day or more.
+Items marked *(not re-checked)* were last examined before the Standings
+rework. Confirm they still apply before starting them.
 
 ---
 
 ## Suggested order
 
-G7, G8, G9 and G1 are done (see the tags above). What is left, in order:
+1. Small bugs: the era-spectrum label collisions (Players), the orphaned
+   "Show all N songs" link (Rounds), and the "round(s)" pluralisation
+   (player page).
+2. **G2 early-season gating.** This is the biggest clutter cut while only
+   one round has been played.
+3. The Score-over-time projection fans (Standings).
+4. Duplicate lists on Songs and Room.
+5. G4/G5: move method text and runner-up lines into `InfoTip`s.
+6. Impact work: This Round podium, Players card grid, round page.
 
-1. Remaining small bugs: the era spectrum label collisions on Players, and
-   the orphaned "Show all 12 songs" link on Rounds.
-2. G2 gating — the biggest remaining clutter cut, and the one that matters
-   most this early in a season.
-3. The remaining duplicate lists (Songs "Room-uniting"/"Most divisive",
-   the four "What wins here" panels).
-4. G4 and G5: method text and runner-ups into `InfoTip`s.
-5. Impact work: This Round podium, Players card grid, Standings chart
-   defaults, round page.
+---
+
+## 1. Cross-cutting
+
+**G2 [declutter, M] Nothing is gated for an early season.** With one round
+played:
+- the Rounds tab's four superlatives all name the same round
+- Songs shows 8 superlatives from 12 songs, and "Hold the Line" appears in
+  three of them
+- the era×popularity and era×genre heatmaps are mostly `n=1` cells
+- player-page taste sections rest on a single song
+
+Only Room's Relationships panel is gated, until 3 rounds. Add one shared
+helper in `src/lib/`, for example `gate(minRounds | minSamples)`, and apply
+it panel by panel with unit tests. A gated panel should become one slim
+"unlocks after round N" line, not an empty card.
+
+**G3 [declutter, S] The "Season in progress" banner shows on every tab**
+(`src/App.tsx`, the `stats.inProgress` block), even though the header
+already says "1 of 12 rounds". Keep it on This Round only, or turn it into
+a header pill. Ask the user first: they kept the Standings tab's banners
+on purpose.
+
+**G4 [declutter, M] Method text appears as grey subtitles on most cards
+outside Standings and the player page.** Move it into an `InfoTip` on the
+title, or into a `MethodDrawer`. Keep a subtitle only when it changes how
+the numbers read.
+
+**G5 [declutter, S] Superlative cards carry three grey runner-up lines.**
+Move them into a tooltip. This applies on Songs and Rounds.
+
+**G6 [impact, M] Only the player page has visual hierarchy.** Reuse the
+cover art, big numerals and `PlayerAvatar` elsewhere: a podium on This
+Round, and a card grid on Players.
+
+**G9 follow-up [declutter, S].** The single-value-column rule uses three
+different tests:
+- Songs uses `league.rounds.length`
+- Standings uses `roundsPlayed`
+- Room uses "all values equal"
+
+Unify these into one helper. **Before hiding any column, check that no
+cell says something different in kind** (see the HANDOFF lessons).
+
+## 2. This Round
+
+- **[impact, M]** The "Latest result" tile and ranking row 1 repeat each
+  other. Replace both with a top-3 podium with covers, then "Show all".
+- **[declutter, S]** In the "Next up" brief, tied lists carry no signal.
+  For example, "Artists they reward" lists six artists all tied at 2. Show
+  at most three items, and hide a list when all its values are equal.
+- **[declutter, S]** In the mini-standings, CHANGE equals TOTAL in round 1.
+  Hide CHANGE until round 2.
+
+## 3. Standings
+
+Most of this tab was reworked in 2026-10. See `HANDOFF.md` §6 for the
+current design. Still open:
+
+- **[impact, M] Score over time draws 12 overlapping projection fans**,
+  which read as mud. Default to the actual lines only, with the top 3 in
+  full colour and the rest dimmed. Show a player's fan only on hover or
+  when they are selected.
+- **[declutter, S] The THEME column** shows "—" in 11 of 12 rows. Consider
+  hiding it until two or more players have a bonus.
+
+Decided, do not reopen unless the user asks:
+- The theme banner stays as a full-width banner at the top of the tab.
+- "What can still happen" stays above the table, including the
+  "Rounds left" tile.
+- The title race uses **bands only**, with no bar chart. The win % is the
+  headline figure, and rows are sorted by win % within each band.
+
+## 4. Players
+
+- **[bug, S] Era-spectrum labels collide** (for example, "Megan 2010 /
+  Greggo 2011"). Stagger them, or put avatars on the axis and show names
+  on hover.
+- **[impact, M]** Replace the picker chips and tables with a 12-card grid.
+  Each card shows the avatar, rank, score, archetype and `careerStoryline`,
+  and opens the player page.
+
+## 5. Songs
+
+- **[declutter, S]** Cut the eight superlatives to four, and never name
+  the same song twice.
+- **[declutter, M]** Merge the four "What wins here" panels into one panel
+  with a segmented toggle. The four are era (`TheSongsTab.tsx`), popularity
+  (`PopularityBandsPanel.tsx`), era×popularity (`QuadrantPanel.tsx`) and
+  era×genre (`EraGenrePanel.tsx`). Gate the heatmaps under G2.
+- **[impact, S]** Move "Every song" to the top of the tab.
+- **[declutter, S]** Remove "Room-uniting songs" and "Most divisive songs"
+  (`SongsPanel.tsx`). The table is already sortable on both.
+
+## 6. Room
+
+- **[declutter, S]** The gated Relationships card reads as broken. Make it
+  a slim full-width notice.
+- **[declutter, M]** "Where the upvotes go" and "Where the downvotes go"
+  have the same shape. Merge them into one voter table.
+- **[impact, S]** Non-voters are silently missing from the voter tables.
+  Add a "3 didn't vote" line.
+
+## 7. Rounds and the round page
+
+- **[bug, S]** "Show all N songs ↓" (`PlayByPlayTab.tsx`) sits outside its
+  card. Move it into the card footer.
+- **[declutter, S]** The sentence "Bob's '…' won the round on +14 pts"
+  repeats the winner tile. Remove it.
+- **[impact, M]** `#round/N` shows nothing beyond the Rounds card. It
+  should show the full ranking with covers, the voter×song grid and the
+  comments. Only This Round links to it today. Add links from the Rounds
+  tab too.
+
+## 8. Player page
+
+- **[bug, S]** The text reads "1 round(s) not voted" (`PlayerPage.tsx`,
+  two places). Pluralise it properly.
+- **[impact, S]** The hero's "+17 +3" is ambiguous. Show
+  `+14 votes · +3 theme = +17`.
+- **[impact, S]** The career line is small grey text. Make it 3–4 stat
+  tiles.
+- **[declutter, S]** The popularity-dial markers overlap. Ties repeat in
+  "Artists they reward".
+- **[declutter, S]** `.taste-block` sets `grid-template-columns` twice, and
+  the first rule is dead CSS.
+- **[impact, S] (not re-checked)** Add a note saying "N songs without a
+  genre tag", and a "new this league" note for players with no history.
+
+## 9. Code and data hygiene
+
+- **`publish.single` is dead config.** Both league JSONs set it, and
+  `bake.mjs` assigns `opts.single` but never reads it. Wire it up, or
+  remove the field.
+- **`scripts/snapshot.mjs` is season-1 only.** It reads `src/data`/`dist`,
+  not `data/league2`/`docs/v2`. Fix it before round 2 lands (`HANDOFF.md`
+  §9).
+- **Stale pages in `docs/`:**
+  - Probably stale: `index0/1/2.html`, `league.html`, `league0..2.html`
+  - Still live: `league3.html`, linked from `docs/index.html`
+
+  Ask before deleting.
+- **Unreferenced components:** `Overview.tsx` and `Participation.tsx`. Ask
+  before deleting.
+- **`PairStats.downDevotion` was never added.** It would make "who they
+  target" comparable across voters.
+- **No soft warning for ballots that underspend the budget.**
+- **(not re-checked)** In-progress copy: some panels may still say "song of
+  the season" or "winner" mid-season.
+- **(not re-checked)** Contrast of the gold theme chip at small sizes
+  (WCAG AA).
+- **(low)** The kingmaker check (`decisiveVoters` in `future.ts`) re-scores
+  with forfeits applied. The theme bonus never changes round winners, by
+  design, so it is probably correct. Add a test before trusting it in a
+  themed round.
+
+## Done (for reference)
+
+- G1: duplicate tables removed.
+- G7: `#round/N` tab highlight.
+- G8: phone layout.
+- G9: hide single-value columns.
+- Player season tabs.
+- Taste block rework and its series colours.
+- `PlayerDetail` dead code removed.
+- Standings rework (2026-10): merged table, bands, theme banner, title-race
+  card, forfeit boxes removed, round ceiling fixed.

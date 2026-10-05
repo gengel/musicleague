@@ -23,7 +23,14 @@ at zero, so downvotes can only take it to nothing. Real leagues do not all
 behave that way: one league checked against its live standings summed raw nets,
 with seven of twelve players finishing below zero. So flooring is a switch.
 
-Both are resolved in the same order:
+**Theme bonus (a house rule, not Music League's).** In league 2 each round is
+themed around one player, read from the round title. That player gets +3 if
+their song wins the round and −3 if it loses or they do not submit. The bonus
+changes season totals only, never the round ranking, and is shown as its own
+term wherever a total appears. It is configured under `theme` in
+`leagues/league2.json`.
+
+Non-voters and flooring are resolved in the same order:
 
 1. `--competitive` / `--friendly` and `--floor` / `--no-floor` on the bake
    command always win.
@@ -46,7 +53,7 @@ round rank, round winner, season total, standings timeline. Round ranking always
 uses the raw score, so the zero floor never changes who won a round.
 
 ```bash
-npm run bake -- src/data --competitive --no-floor --redact
+npm run bake -- data/league1/export --competitive --no-floor --redact
 ```
 
 ## Running it
@@ -54,7 +61,7 @@ npm run bake -- src/data --competitive --no-floor --redact
 ```bash
 npm install
 npm run dev      # opens http://localhost:5173
-npm test         # 308 tests over the parser, the metrics, scoring, the UI and redaction
+npm test         # ~500 tests over the parser, the metrics, scoring, the UI and redaction
 npm run build    # type-check and produce dist/
 ```
 
@@ -63,8 +70,20 @@ Add `#demo` to the URL to load a synthetic sample league, e.g.
 
 ## Publishing a static copy
 
+The current site is built from a league config rather than flags:
+
+```bash
+npm run bake -- --league league2 --base ./   # reads leagues/league2.json, writes docs/v2/
+```
+
+`leagues/<id>.json` holds the export folder, enrichment folder, total
+rounds, scoring, flooring, vote budget, theme-bonus rules, earlier leagues to
+embed as player history, redaction, and the output folder. Explicit CLI flags
+still override it. `npm run build` alone writes `dist/` without any league
+data.
+
 `npm run build` gives a hostable `dist/`, but visitors would still have to drop
-the CSV in themselves. To bake the league into the page instead:
+the CSV in themselves. To bake an arbitrary export with flags instead:
 
 ```bash
 npm run bake -- "~/Downloads/My League.csv"           # -> dist/
@@ -108,7 +127,7 @@ Where an export does contain a round with no results yet — one still in voting
 that is detected on its own and the same language applies.
 
 ```bash
-npm run bake -- src/data --competitive --no-floor --rounds 10 --redact
+npm run bake -- data/league1/export --competitive --no-floor --rounds 10 --redact
 ```
 
 ## Redacting surnames for a public deploy
@@ -190,9 +209,15 @@ gracefully:
 - anonymous rounds → those songs are excluded from per-submitter stats
 - deleted accounts → shown as unknown rather than invented as a player
 
-## The network and future tabs
+## Tabs
 
-**Network** draws the league as a graph. An edge is the *mutual* warmth between
+This Round, Standings, Players, Songs, Room and Rounds, plus a page per
+player (`#player/<slug>`, combining every season) and per round
+(`#round/<n>`).
+
+## Relationships and what can still happen
+
+**Relationships** (on the Room tab, shown from round 3) draws the league as a graph. An edge is the *mutual* warmth between
 two players: each side's points given as a share of what the rules allowed, and
 the edge takes the colder of the two, so a one-way crush does not read as a
 friendship. That figure is then blended with three rounds' worth of the
@@ -209,12 +234,19 @@ calling it a cluster. The layout is a spring simulation with fixed starting
 positions and a fixed iteration count, so the same export always draws the same
 picture.
 
-**Future** projects what can still change. Every figure is grounded in observed
-play: the biggest round anyone has managed, the median winning score, and the
-largest swing the league has actually produced. It reports two counts — who is
-mathematically alive, and who is alive on swings that have really happened —
-because the theoretical ceiling, every voter maxing out one song, is so far from
-reality that it would call everyone a contender.
+**What can still happen** (top of the Standings tab) projects what can still
+change. Its figures are grounded in observed play: the best round so far, the
+median winning score, and the biggest one-round swing (best song result minus
+worst). The **round ceiling** is the theoretical maximum: every other player
+spending their whole upvote budget on one song.
+
+**The title race** runs 500 simulated seasons, rebuilt from the league's real
+ballots, and gives each player's chance of winning. Players are grouped into
+named bands by that chance and sorted by it within each band. Two bands are
+decided by maths, never by the simulation: **Clinched** (no rival can catch
+them even with a perfect run in every remaining round) and **Game over**
+(cannot reach the leader by the same measure). A projected 10th–90th
+percentile finish range is shown for each live player.
 
 Beyond the two ends of the table it looks for angles that are not simply gaps:
 the **kingmaker** whose ballot alone changed who won a round (found by
@@ -239,17 +271,18 @@ cost.
 **How a score adds up.** Every points figure is shown as its parts, because
 with downvotes and Competitive Mode forfeits a bare total is not checkable:
 
-    total = upvotes − downvotes − forfeited + floored
+    score = upvotes − downvotes − forfeited + floored + theme
 
-The last term is the part of the downvotes that never landed, since a song
-cannot score below zero; it is always zero in a league without flooring, and
-the column then disappears. Without the term the figures look like they do not
-reconcile. `ScoreBreakdown` in `src/lib/stats.ts` carries all five numbers per
-song and per player, and the panel "How the scores add up" on the Standings tab
-shows them side by side with a diverging bar: a zero axis with the counted score
-to its right in green or to its left in red, and a dashed outline behind it for
-what was earned in upvotes before downvotes and forfeits were taken off. A
-player can therefore be seen to have earned plenty and still finished below zero.
+`floored` is the part of the downvotes that never landed, since a song cannot
+score below zero; `theme` is the ±3 house bonus. Any term that is zero for
+everyone is hidden. Without these terms the figures look like they do not
+reconcile. `ScoreBreakdown` in `src/lib/stats.ts` carries the numbers per song
+and per player, and the single "Where it stands" table on the Standings tab
+has one column per term, ending in the score, plus a diverging bar: a zero
+axis with the counted score to its right in green or to its left in red, and a
+dashed outline behind it for what was earned in upvotes before downvotes and
+forfeits were taken off. A player can therefore be seen to have earned plenty
+and still finished below zero.
 
 **Affinity** — upvote points a voter gave someone, divided by what an even
 spread of their ballot would predict. 1.00 is a fair share, 2.00 is double, 0
@@ -318,7 +351,14 @@ src/lib/parse.ts    tolerant CSV parsing, both export generations
 src/lib/stats.ts    every derived metric
 src/lib/inspect.ts  pre-build validation summary
 src/lib/social.ts   mutual-warmth graph and clustering
-src/lib/future.ts   projections for the rounds still to play
+src/lib/future.ts   what can still happen: swing figures, scenario cards, bands
+src/lib/projection.ts  Monte Carlo season simulation behind the win chances
+src/lib/theme.ts    theme-bonus detection and scoring
+src/lib/config.ts   validation of leagues/*.json
+src/lib/history.ts  joins earlier leagues into player profiles by player id
+src/lib/route.ts    hash routing (#standings, #player/<slug>, #round/<n>)
+leagues/*.json      per-league config used by the bake
+data/<league>/      raw exports; enrich/<league>/ holds fetched enrichment
 src/lib/demo.ts     deterministic sample league
 src/components/     dashboard panels
 scripts/bake.mjs    CLI: validate an export and build a static copy

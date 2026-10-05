@@ -8,7 +8,7 @@
  *
  * Reads LASTFM_KEY from .env at the repo root. No secret needed for read
  * calls. The obscurity value is the raw listener count, stored alongside the
- * source and fetch date so snapshots can pin it (PLAN.md §6, invariant I7).
+ * source and fetch date so snapshots can pin it (archive/PLAN.md §6, invariant I7).
  *
  * Also captures duration_ms from the Last.fm response as a free side-product.
  */

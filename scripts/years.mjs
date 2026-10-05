@@ -10,7 +10,7 @@
  * A year here is "when MusicBrainz's best match was first released", which
  * is right most of the time but has been caught wrong before — Dolly
  * Parton's cover of "Shine" resolved to 1998 rather than 2001. Sanity
- * checking output before publishing it is a human step; see PLAN.md §9.
+ * checking output before publishing it is a human step; see archive/PLAN.md §9.
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';

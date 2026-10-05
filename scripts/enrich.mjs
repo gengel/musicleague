@@ -10,7 +10,7 @@
  *
  * Years are fetched automatically. Covers, Wikipedia facts and round
  * semantics need a person (or an LLM working from search results) to judge,
- * so this prints a worklist for those instead of guessing — see PLAN.md §9
+ * so this prints a worklist for those instead of guessing — see archive/PLAN.md §9
  * for why each one resists automation.
  */
 

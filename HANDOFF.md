@@ -1,203 +1,295 @@
 # Handoff: Music League dashboard v2
 
-For whoever picks this up next. Read this, then `DESIGN-REVIEW.md` (the
-backlog), before touching code. Written 2026-09-30, at commit `8830bd0`.
+Read this whole file before touching code. It is the single source of truth
+for how the project works today. Updated 2026-10-05 at commit `b12c3ef`.
+
+Other documents:
+- `README.md`: scoring rules and metric definitions (user-facing).
+- `DESIGN-REVIEW.md`: the open backlog. Pick work from there.
+- `archive/`: finished plans and old reviews. They are history only. Their test
+  counts, tab names and commands are out of date, so do not follow them.
+
+---
 
 ## 1. What this is
 
-A static, backend-free dashboard for a Music League CSV export. React 18,
-Vite and TypeScript; tests are Vitest with jsdom. The export is parsed at
-bake time and embedded in the page. The published site is **`docs/v2/`**
-(league 2, "Music League 2", currently 1 of 12 rounds played), with league
-1 joined in as player history. `README.md` explains the scoring rules and
-metric definitions. `PLAN-v2.md` is the original plan and records the M8
-decisions.
+A static, backend-free dashboard for a Music League CSV export, built with
+React 18, Vite and TypeScript. Tests use Vitest with jsdom. A "bake" step
+parses the export at build time and embeds it in the page.
 
-## 2. Commands
+- Published site: **`docs/v2/`**. This is league 2, **"Now That's What I Call
+  You"**: 12 players, 12 rounds, currently **1 of 12 played**. GitHub Pages
+  serves `docs/`.
+- League 1, **"Streaming Consciousness"** (11 rounds, finished), is embedded
+  as player history and joined by player id.
+- `docs/index.html` is a landing page that links both seasons.
+- Six tabs (`src/lib/route.ts` `TABS`): This Round, Standings, Players,
+  Songs, Room, Rounds. Plus the routes `#player/<slug>` and `#round/<n>`.
+
+League 2 rules (set in `leagues/league2.json`; Music League does not apply
+the theme bonus, this page does):
+- Competitive scoring: a player who skips voting forfeits the upvotes their
+  song earned that round, but still takes its downvotes.
+- No floor, so totals can go negative.
+- Each voter has exactly +10 / −10 points per round.
+- Theme bonus: each round is themed around one player, read from the round
+  title. That player gets +3 if their song wins the round, and −3 if it
+  loses or they do not submit. The bonus counts in totals only. The round
+  ranking is never changed by it.
+
+## 2. Repository map
+
+```
+leagues/league1.json, league2.json   per-league config (scoring, budget, theme, history, publish dir)
+data/league{1,2}/export/             the raw CSV exports (multi-file format)
+enrich/, enrich/league{1,2}/         years, durations, Last.fm obscurity (baked in)
+scripts/bake.mjs                     validate + build + embed. Entry point for publishing
+scripts/art.mjs, genres.mjs, years.mjs, enrich.mjs, obscurity.mjs   enrichment fetchers
+scripts/snapshot.mjs                 SEASON-1 ONLY: reads src/data, not data/league2 (see §9)
+src/App.tsx                          tabs, routing, page layout
+src/lib/stats.ts                     every derived metric; computeStats(league, options)
+src/lib/theme.ts                     theme-bonus detection and scoring
+src/lib/future.ts                    "What can still happen": swing figures, scenario cards, bands
+src/lib/projection.ts                Monte Carlo season simulation (projectStandings, 500 runs, fixed seed)
+src/lib/route.ts                     hash routing
+src/lib/history.ts                   joins league 1 into player profiles
+src/components/TheRaceTab.tsx        Standings tab: ThemeBanner, standings table
+src/components/FuturePanel.tsx       "What can still happen" card
+src/components/RacePredictionPanel.tsx  "The title race" card (bands + projected range)
+src/components/ui.tsx                Card, StatTile, SortableTable and other shared pieces
+src/components/InfoTip.tsx           InfoTip (ⓘ tooltip) and MethodDrawer (collapsible method text)
+src/styles.css                       all CSS, one file
+src/__tests__/                       Vitest suites
+dist/                                TRACKED build output; must be restored after `vite build` (§3)
+docs/v2/                             the published, baked site (commit it after a rebake)
+```
+
+Unreferenced but kept: `src/components/Overview.tsx` and `Participation.tsx`.
+Ask the user before deleting them.
+
+## 3. Commands (run in this order for every change)
 
 ```bash
 npx tsc -b 2>&1 | grep -vE 'Unknown user|minimum-release'   # typecheck; those two lines are harmless npm noise
-npx vitest run                                              # expect 477 passed
-npx vite build && git checkout -- dist && git clean -fq dist/assets   # build check, then RESTORE the tracked dist/
-npm run bake -- --league league2 --base ./                  # rebuilds docs/v2 (config: leagues/league2.json)
-npx vite preview --outDir docs/v2 --port 4220 &             # serve it; stop with: pkill -f 'vite preview'
+npx vitest run 2>&1 | grep -aE '×|Tests |FAIL'              # expect "496 passed"
+npx vite build 2>&1 | grep -aE 'error'; git checkout -- dist; git clean -fq dist/assets   # build check, then RESTORE dist/
+npm run bake -- --league league2 --base ./ >/dev/null 2>&1; echo "bake=$?"   # rebuilds docs/v2; expect bake=0
+(npx vite preview --outDir docs/v2 --port 4310 >/dev/null 2>&1 &); sleep 3   # serve docs/v2
+# ...screenshot (§4)...
+pkill -f 'vite preview'
 ```
 
-Gotchas:
-- `vite build` overwrites the tracked `dist/`. Always restore it
-  afterwards, as shown above, or the commit fills with build noise.
-- `--base ./` is required, because the site is hosted in a subfolder.
-- The bake prints a privacy "Note" at the end. That is expected, not an
-  error.
+Traps:
+- `vite build` overwrites the tracked `dist/`. If you skip the restore
+  line, the commit fills with build noise.
+- Always pass `--base ./`, because the site lives in a subfolder.
+- The bake prints a privacy "Note" at the end. That is expected.
+- `stats.budget` is only set when a budget is passed to `computeStats`. The
+  app passes it from the baked manifest. **Tests that rely on budget
+  behaviour must pass `budget: { upvotes: 10, downvotes: 10 }` themselves.**
+- Leftover debug tests: if you write a scratch `src/__tests__/zz-*.test.ts`
+  to print values, delete it before committing.
 
-## 3. Checking visually (required for any layout change)
+## 4. Visual check (required for any UI change)
 
-The user has rejected layout "fixes" that were never looked at. **Take a
-screenshot and actually open the image before you claim a layout works.**
-No playwright/puppeteer npm package is installed, so use the headless
-shell binary directly:
+The user has rejected changes that were never looked at. **Take a
+screenshot, open the image with the image reader, and look at it before
+saying a layout works.** Never put "verified" in a commit message or report
+unless you did.
+
+There is no playwright npm package. Use the headless-shell binary directly:
 
 ```bash
 H=~/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell
-$H --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --virtual-time-budget=6000 \
-   --window-size=1440,1400 --screenshot=/tmp/x.png "http://localhost:4220/#player/bob"
+mkdir -p /tmp/shot
+"$H" --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --virtual-time-budget=6000 \
+     --window-size=1440,2800 --screenshot=/tmp/shot/full.png "http://localhost:4310/#standings"
 ```
 
-- Check 1440px and 390px (phone). The headless shell honours narrow
-  widths; normal Chrome `--headless=new` does not go below about 500px.
-- Useful URLs: `#this-round`, `#standings`, `#players`, `#songs`, `#room`,
-  `#rounds`, `#round/1`, `#player/bob`, and `#player/caroline-c`
-  (redacted slug). Bob and Caroline played both leagues, so they show the
-  season tabs.
-- Very tall screenshots (4000px or more) get downscaled when viewed. For
-  detail, shoot a short window, around 1400px tall.
-- Delete `/tmp` screenshots afterwards.
+- Check widths of 1440 (desktop) and 390 (phone). Only the headless shell
+  honours widths under about 500px.
+- **Window height matters.** The capture is only the top W×H of the page.
+  On Standings, "The title race" starts at about y=1550, so use a height of
+  2800 or more. Cropping (`sips`, `--cropOffset`) proved unreliable, so make
+  the window taller instead. Images over 4000px tall are downscaled when
+  viewed and become hard to read.
+- URLs: `#this-round`, `#standings`, `#players`, `#songs`, `#room`,
+  `#rounds`, `#round/1`, `#player/bob`, `#player/caroline-c` (redacted
+  slug). Bob and Caroline played both seasons, so their pages show season
+  tabs.
+- Delete `/tmp/shot` afterwards.
 
-## 4. Work done to date
+## 5. Working rules (from the user, standing)
 
-Season-1 work (before `ba6b45f`): the parser, metrics, redaction, art,
-genres, snapshots, and the network and future tabs.
+1. **One small change at a time.** Run §3, then §4, then make a **new
+   commit** (never amend) with a message body that explains why. The user
+   iterates fast and often reverses decisions. A small commit makes each
+   reversal cheap.
+2. **Do not push** unless asked. `origin/main` is currently at `b12c3ef`,
+   so everything up to now has been pushed by the user.
+3. **Information should pop.** The figure that matters is big and bold. The
+   method and caveats go in an `InfoTip` (ⓘ) or a `MethodDrawer`, not in
+   grey paragraphs.
+4. **The only outside request allowed is Spotify, and only on play.** Fonts
+   and art are bundled or baked.
+5. **Correct maths beats nice copy.** Two past notes were removed because
+   they were mathematically wrong (§8). If a sentence claims a number,
+   check how the number is computed.
+6. Report honestly and briefly. Say what you checked and what you did not.
 
-v2 (`6976f5d`…`68415a5`), in order:
-- **M0–M7**:
-  - league config (`leagues/*.json`) and the theme bonus (±3) in scoring
-  - the bonus shown everywhere a total appears
-  - zero-sum audit
-  - league 1 embedded as history, joined by player id
-  - deep player pages (`#player/<slug>`) with hash routing (`src/lib/route.ts`)
-  - This Round landing tab
-  - published to `docs/v2`
-- **UX passes**:
-  - probability bands and theme schedule
-  - scannable This Round
-  - tab gating (Room relationships after 3 rounds)
-  - player sub-tabs: Summary / Submissions / Relationships, plus one tab
-    per season
-  - nemesis, taste block, history enrichment, mobile fixes
-- **M8, the player-page visual overhaul** (commits M1–M6, 2026-09):
-  - `InfoTip` and `MethodDrawer` (`src/components/InfoTip.tsx`)
-  - type scale; Inter Display bundled locally (no outside font requests)
-  - category icons (`Icons.tsx`: `popularityIcon`, `eraIcon`, `genreIcon`)
-  - hero header: cover-mosaic avatar (`PlayerAvatar.tsx`), player tint
-    from covers with a palette fallback (`src/lib/tint.ts`), blurred
-    backdrop, and the `careerStoryline` line ("CLIMBED 12TH → 1ST")
-  - taste graphics: popularity dial, era timeline, genre chips
-  - best-song hero tile, cover strip, theme medal (`ThemeChip.tsx`)
-  - labelled season tab group; name avatars in the Players grid
-  - 64px thumbnails baked for avatars
-- **Season tabs on the same row, right-aligned** (`01164be`). The earlier
-  attempts `f6e001f` and `68415a5` did not work. The cause was that
-  `.scope-tabs` is a direct child of the multi-column `main.grid`, so it
-  was only as wide as its content. The fix is `grid-column: 1 / -1`. On
-  phones (620px and below), the section and season groups each wrap to
-  their own line with compact, icon-free pills. Checked in screenshots at
-  1440, 1100, 820 and 390px. **Any new direct child of the player page
-  that should be full-width needs `grid-column: 1 / -1`** (cards get this
-  from `wide`).
-- **Today:** a design review of every tab (`DESIGN-REVIEW.md`).
-- **Fix #round/N highlighting (G7)** (`a75e5fc`).
-- **Fix phone layout problems (G8)** (`3ac84d6`): nav scroll strip, `nowrap` on names, hidden secondary columns, contained Songs heatmaps.
-- **Hide single-value columns and filters (G9)** (`53ad55c`): Round column and filter chips in Songs, Spent in Room, Per song / Best round / Rounds voted in Standings.
-- **Remove the duplicate tables (G1)** (`0ffb23f`): "Points received" from
-  Room and "Players, end to end" from Players. Follow-up `70f2d6d` deleted
-  the then-orphaned `PlayersPanel.tsx`, tidied the import list the deletion
-  left behind, and renamed the archetype card to "Archetypes" so two cards
-  are no longer both called "Players".
-- **Taste block rework** (`a12fb06`, `08bc77f`, `e3a717c`, `8663fde`,
-  `86af080`): one shared legend, era timeline as dots (submissions) plus
-  rings (upvotes), and genre split into upvoted/downvoted computed on
-  **net** points, so a genre cannot appear in both lists.
-- **Taste series colours** (`981ab5d`): the "submissions" series had been
-  using the player tint, which is derived from their album covers, while
-  upvotes/downvotes use fixed `--pos`/`--neg`. A pink-tinted player made
-  submissions and downvotes nearly identical. Submissions now use a fixed
-  `--series-submit`. **Never use the player tint for a data series.** The
-  legend also claimed a downvotes series the dial and era timeline do not
-  plot; it now lists only what is shown.
-- **Non-voter flag** (`8830bd0`): G9 hid the "Rounds voted" column, which
-  also carried the only "never voted" marker. The flag now sits beside the
-  player's name so it survives both that and the phone column hiding.
-- **League names** (`b4ead84`): season 1 is **Streaming Consciousness**,
-  season 2 is **Now That's What I Call You**, set by the `label` in
-  `leagues/*.json`. The bake also writes the name into the built page's
-  `<title>`. League names are prose now, so copy must not use them as a
-  noun modifier ("Points in <league>", not "<league> points").
-- **One standings table** (`96f248e`): "Where it stands" and "How the
-  scores add up" were merged. The columns are the terms of one identity,
-  ending in the score:
-  `upvotes − downvotes − forfeited + floored + theme = score`. Each term
-  column disappears when it is zero for everyone. `ScoreBreakdownPanel.tsx`
-  is deleted. `SortableTable` gained `ReactNode` labels, a per-column
-  `className` and a row index, and ignores clicks that land on an InfoTip.
-  Rank is its own column so sorting cannot lose the standings position. On
-  phones the score column is `position: sticky; right: 0`, because a table
-  with a column per term is wider than a phone.
-- **Scroll cue for wide tables** (`96f248e`): `.table-wrap` now uses the
-  `background-attachment: local/scroll` trick to light up an edge only when
-  there is more table in that direction. The glow is light, not a black
-  shadow, because the theme is dark.
+## 6. The Standings tab today (most recent work)
 
-## 5. Current state
+Render order (`src/App.tsx`, around line 256):
 
-- The build and typecheck are clean, **480 tests pass**, and `docs/v2` is
-  baked and in sync with `src` (a rebake produces no diff).
-- **`origin/main` is at `08bc77f`**, so eight of these commits were pushed.
-  The commits after it are local only. Check with the user before pushing;
-  the standing rule is not to push to `main` unless asked.
-- **Known open issues:** `DESIGN-REVIEW.md` §1–8 is the remaining backlog.
-  Nothing is known broken.
-- **Older backlog (`REVIEW-v2.md`):**
-  - `PlayerDetail` in `PlayersTab.tsx` is still dead code (item 6). It only
-    renders when `onOpenPlayer` is absent, which never happens in the app.
-  - `Overview.tsx` and `Participation.tsx` are also unreferenced (pre-dating
-    this work). Confirm before deleting: they may be wanted again.
-  - The stale `docs/index0-2.html` and `docs/league0-2.html` are still
-    there (item 5).
-  - `downDevotion` has not been added (item 9).
-  - Items 1–3 and 8 were not re-checked.
+1. **`<ThemeBanner/>`** (exported from `TheRaceTab.tsx`): a full-width
+   banner explaining the ±3 theme bonus.
+2. **`<FuturePanel/>`**, "What can still happen", built from `future(stats)`
+   in `src/lib/future.ts`:
+   - Five stat tiles:
+     - Rounds left
+     - Best round so far
+     - Typical winning round (the median round winner)
+     - **Biggest one-round swing**: best song result minus worst, e.g.
+       +14 − (−25) = 39
+     - **Round ceiling**, explained below
+   - Up to three scenario cards. Each is chosen only if it is interesting:
+     The title, Last place, Too close to call, plus kingmaker / form /
+     downvote exposure / fragile support once enough rounds exist.
+   - The "Most forfeited" and "Most rounds skipped" boxes were removed.
+     They duplicated the table.
+3. **`<TheRaceTab/>`**:
+   - **"Where it stands"**: a single sortable table. The columns are the
+     terms of one identity:
+     `upvotes − downvotes − forfeited + floored + theme = score`.
+     A term column is hidden when it is zero for everyone. A
+     "didn't vote" flag sits beside the player's name. On phones the
+     score column is sticky.
+   - **`<RacePredictionPanel/>`**, "The title race":
+     - A header line, "% is each player's chance of winning", with an
+       InfoTip.
+     - **Named bands** (`future(stats).bands`). Each row shows the
+       standings rank, the name, and **the win % as the bold headline
+       figure**, with "−N back" underneath. The points score is not shown.
+       Rows within a band are **sorted by win %, descending**, while the
+       rank number stays the standings rank.
+     - "Where they could finish": each live player's 10th–90th percentile
+       final score and median.
+     - A `MethodDrawer`, "How the simulation works".
+     - **There is no bar chart.** It was added, removed, re-added and
+       removed again. The user's latest decision is bands only.
+   - `<ScoreTimeline/>` (still draws 12 overlapping projection fans; see
+     the backlog).
 
-## 6. Next steps, in order
+### The maths behind it (in `src/lib/future.ts`)
 
-Do one item at a time: make the change, typecheck, run the tests, build
-and restore `dist`, rebake, screenshot and look at it, then commit with a
-new commit (never amend). Don't push unless asked.
+- **Win share** = the fraction of 500 simulated seasons a player finished
+  first (`projectStandings`). Each simulated round reuses real ballots'
+  shapes. Non-voters keep skipping at their observed rate.
+- **Bands** (`winProbabilityBands(ranked, winShareOf, clinchedId?, eliminatedIds?)`):
 
-1. Gate early-season panels (G2). This is the biggest remaining clutter
-   cut. Add one shared helper and apply it panel by panel, with unit
-   tests. A gated panel should become one slim "unlocks after round N"
-   line, not an empty card.
-2. The remaining small bugs: era spectrum label collisions on Players, and
-   the orphaned "Show all 12 songs" link on Rounds.
-3. The remaining duplicate lists: Songs "Room-uniting"/"Most divisive"
-   (the table is already sortable on both), and the four "What wins here"
-   panels merged behind a toggle.
-4. Move method subtitles and runner-ups into `InfoTip` (G4, G5).
-5. Impact work: This Round podium, Players card grid, Standings chart
-   defaults, round page.
+  | key | label | rule |
+  |---|---|---|
+  | `locked` | Clinched | **maths**: no rival can catch them even with a perfect run |
+  | `crowned` | One hand on the trophy | win share ≥ 90% |
+  | `yourstolose` | Yours to lose | ≥ 65% |
+  | `drivers` | Flip of a coin | ≥ 40% |
+  | `stillinit` | Still in it | ≥ 10% |
+  | `chance` | So you're telling me there's a chance | < 10% and not eliminated |
+  | `gameover` | Game over | **maths**: cannot reach the leader even with a perfect run |
 
-## 7. Lessons from the work so far
+  Clinched and Game over are **never** assigned from the win share. A 100%
+  or 0% simulation result does not mean certainty. The other bands come
+  from the simulation. Empty bands are omitted.
+- `maxGain = roundsLeft × perRound`, where `perRound = ceiling − min(0, worstObserved)`.
+- **Round ceiling** = `perSongLimit × (rosterSize − 1)`, where:
+  - `rosterSize` is the number of players with any song or any vote
+    (12 here).
+  - `perSongLimit` is the budget's upvotes (10) when a budget is
+    configured, else the largest single vote observed.
+  - For league 2 the ceiling is 10 × 11 = 110.
+- `contentionBands` is a legacy gap-based banding, used only when the
+  finish line (total rounds) is unknown. In that case there is no win
+  share, and band rows fall back to showing points.
+- `forfeitAwareNote(chaser, gapPts)` produces the one-line non-voter note:
+  "But none of that is reachable while they keep skipping!"
 
-- **Before hiding a "single-value" column, check that no cell in it says
-  something different in kind.** "Rounds voted" was "1 of 1" for everyone
-  who voted and "never voted" for those who did not; hiding it lost the
-  flag entirely. A signal that only appears in the exception rows is the
-  easiest thing to delete by accident.
-- **The player tint is decoration, not data.** It comes from their covers
-  and can land on any hue, so it must not encode a series that sits beside
-  `--pos` / `--neg`.
-- **A shared legend must match what is actually plotted.** It sat above
-  three panels but described a series only one of them had.
-- **Removing a component's last usage usually orphans a file.** After any
-  deletion, check for now-unreferenced files and imports; `tsc` will not
-  tell you, because an unused exported module still compiles.
+## 7. History of the work (condensed, oldest first)
 
-## 8. User preferences (standing)
+- **Season 1** (before `ba6b45f`): parser, metrics, redaction, art, genres,
+  snapshots, network and future analysis.
+- **v2 M0–M7**: league config files and theme-bonus scoring; the bonus
+  shown everywhere a total appears; a zero-sum audit; league 1 as history;
+  deep player pages and hash routing; the This Round tab; published to
+  `docs/v2`.
+- **UX passes**: tab gating (Room relationships after 3 rounds); player
+  sub-tabs (Summary / Submissions / Relationships / one per season).
+- **M8 player-page overhaul** (`807a23d`…`21917e3`): InfoTip/MethodDrawer;
+  Inter Display bundled; category icons; hero header with cover-mosaic
+  avatar and player tint; taste graphics (popularity dial, era timeline,
+  genre chips); best-song tile; theme medal.
+- **Season tabs fix** (`01164be`): any full-width direct child of the
+  player page's `main.grid` needs `grid-column: 1 / -1`.
+- **Design review** (`DESIGN-REVIEW.md`), then G7 round-tab highlight, G8
+  phone layout, G9 hide single-value columns, and G1 remove duplicate
+  tables.
+- **Taste rework**: one legend; dots for submissions and rings for upvotes;
+  upvoted/downvoted genres on net points; fixed series colours.
+- **League names** (`b4ead84`), set by `label` in `leagues/*.json` and
+  written into the page `<title>`.
+- **Standings tab rework** (`96f248e`…`b12c3ef`, 2026-10):
+  - The merged standings table.
+  - Win-probability bands that went through several iterations. They now
+    use maths-only certainty bands, show the win % as the headline figure,
+    and sort by win % within a band.
+  - The theme banner moved to the top of the tab.
+  - "The title race" folded into one card.
+  - The win-% bar chart was removed.
+  - Forfeit boxes were removed.
+  - The swing tile was relabelled.
+  - The round ceiling was corrected to use the full roster and the budget.
+  - The wrong non-voter maths was removed (§8).
 
-- Relevant information should pop; method and detail go in tooltips or
-  drawers.
-- No outside requests except Spotify, and only on play. Fonts and art are
-  bundled or baked.
-- Commit after each milestone, only once it is verified.
-- Report honestly. If something wasn't checked, say so. Never write
-  "verified" in a commit message without a screenshot you actually looked
-  at.
+## 8. Lessons (each one cost a round of rework)
+
+- **Check the maths behind any sentence with a number in it.** One note
+  said a non-voter had an "inflated per-round target". That was wrong: a
+  competitive non-voter loses ground every round, so no target is
+  reachable. Another was the "Round ceiling 48". It came from the largest
+  vote seen × songs, not from the real budget × other voters, so it
+  understated the true 110.
+- **Labels must say what the number is.** "Biggest swing seen" was really
+  "best song minus worst song in one round". Name it exactly.
+- **Certainty is a maths claim, not a statistic.** Never label someone
+  clinched or out from a simulation share.
+- **Before hiding a "single-value" column, check that no cell says
+  something different in kind.** "Rounds voted" carried the only
+  "never voted" flag.
+- **The player tint is decoration, not data.** It is derived from album
+  covers. Never use it for a series that sits beside `--pos` / `--neg`.
+- **A shared legend must match what is plotted.**
+- **Deleting a component's last use orphans files and imports.** `tsc`
+  will not warn about an unused exported module, so search for references
+  yourself.
+- **A full-width child of a CSS grid needs `grid-column: 1 / -1`.** Cards
+  get this from the `wide` prop. A long subtitle is capped at 80ch unless
+  the card has `wideSubtitle`.
+
+## 9. Updating for a new round (not yet done for v2; check carefully)
+
+1. Put the new export's CSVs in `data/league2/export/`. The export is
+   cumulative, so replace the old files.
+2. Enrich new tracks: `npm run enrich -- --league league2` (years) and
+   `npm run obscurity -- --league league2` (Last.fm; reads `LASTFM_KEY`
+   from `.env`, never print it). Art is fetched during the bake.
+3. If the theme player cannot be read from the round title, add them to
+   `theme.schedule` or `theme.overrides` in `leagues/league2.json`.
+4. Bake (§3), then check that the bake's printed standings match Music
+   League's site. Theme bonuses will differ from the site, because Music
+   League does not apply them.
+5. **`scripts/snapshot.mjs` predates league configs.** It archives
+   `src/data` and `dist`, not `data/league2` and `docs/v2`. `src/data` is
+   an untracked copy of `data/league1/export`. Do not rely on the snapshot
+   script for v2. Either update it to read `--league`, or copy the folders
+   by hand into `snapshots/`. Ask the user which they prefer.
+6. As rounds accrue, gated panels unlock on their own (e.g. Room
+   relationships at 3 rounds). Re-screenshot every tab.
