@@ -13,7 +13,7 @@
     "lose": -3,
     "skip": -3,
     "overrides": {},
-    "schedule": ["Bob", "t33nwitch"]
+    "schedule": ["Bob", "t33nwitch", "Cynthia"]
   },
   "history": ["league1"],
   "redact": true,

@@ -60,10 +60,12 @@ function ChapterCard({
   chapter,
   nameOf,
   comment,
+  footer,
 }: {
   chapter: RoundChapter;
   nameOf: Map<string, string>;
   comment?: { text: string; author: string };
+  footer?: React.ReactNode;
 }) {
   const { round, winner, twist, moments } = chapter;
   const lead = winner ? winnerSentence(chapter, nameOf) : '';
@@ -143,6 +145,7 @@ function ChapterCard({
           </blockquote>
         )}
       </div>
+      {footer && <div style={{ textAlign: 'center', marginTop: '16px' }}>{footer}</div>}
     </Card>
   );
 }
@@ -233,23 +236,20 @@ function ChapterGroup({
     : undefined;
   const songCount = stats.songs.filter((s) => s.roundId === chapter.round.round.id).length;
 
+  const toggleBtn = chapter.round.hasVotes && songCount > 0 ? (
+    <button
+      className="seg__btn"
+      onClick={() => setExpanded((v) => !v)}
+    >
+      {expanded ? `Hide all ${songCount} songs ↑` : `Show all ${songCount} songs ↓`}
+    </button>
+  ) : undefined;
+
   return (
     <div className="chapter-group">
-      <ChapterCard chapter={chapter} nameOf={nameOf} comment={comment} />
-      {chapter.round.hasVotes && songCount > 0 && (
-        <>
-          <div style={{ textAlign: 'center', margin: '-6px 0 8px' }}>
-            <button
-              className="seg__btn"
-              onClick={() => setExpanded((v) => !v)}
-            >
-              {expanded ? `Hide all ${songCount} songs ↑` : `Show all ${songCount} songs ↓`}
-            </button>
-          </div>
-          {expanded && (
-            <ChapterSongs chapter={chapter} nameOf={nameOf} allSongs={stats.songs} />
-          )}
-        </>
+      <ChapterCard chapter={chapter} nameOf={nameOf} comment={comment} footer={toggleBtn} />
+      {expanded && chapter.round.hasVotes && songCount > 0 && (
+        <ChapterSongs chapter={chapter} nameOf={nameOf} allSongs={stats.songs} />
       )}
     </div>
   );

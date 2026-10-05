@@ -208,14 +208,14 @@ R1,Bob,Cleo,Cleo1,1
 const L2 = join(__dirname, '..', '..', 'data', 'league2', 'export');
 const describeReal = existsSync(L2) ? describe : describe.skip;
 
-describeReal('league 2 round 1 (real data)', () => {
+describeReal('league 2 (real data)', () => {
   const files = existsSync(L2)
     ? readdirSync(L2)
         .filter((f) => f.endsWith('.csv'))
         .map((name) => ({ name, text: readFileSync(join(L2, name), 'utf8') }))
     : [];
 
-  it('gives Bob +3 for winning his own round, for 17 total', () => {
+  it('scores theme outcomes correctly for Bob and Nina', () => {
     const s = computeStats(parseLeague(files), {
       scoring: 'competitive',
       flooring: 'none',
@@ -226,6 +226,11 @@ describeReal('league 2 round 1 (real data)', () => {
     const bob = s.players.find((p) => p.name === 'Bob')!;
     expect(s.themeOutcomes.find((o) => o.playerName === 'Bob')?.outcome).toBe('won');
     expect(bob.themeBonus).toBe(3);
-    expect(bob.pointsCounted).toBe(17);
+    expect(bob.pointsCounted).toBe(-11);
+
+    const nina = s.players.find((p) => p.name === 't33nwitch')!;
+    expect(s.themeOutcomes.find((o) => o.playerName === 't33nwitch')?.outcome).toBe('lost');
+    expect(nina.themeBonus).toBe(-3);
+    expect(nina.pointsCounted).toBe(19);
   });
 });
