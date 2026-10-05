@@ -47,8 +47,9 @@ export function RacePredictionPanel({
   // A win share of 0.5–99.5% rounds to a readable integer; show <1% and >99%
   // so a long shot never reads "0%" nor a near-lock "100%" (those labels are
   // reserved for the mathematically certain bands).
-  const fmtWin = (p: number): string => {
+  const fmtWin = (p: number, bandKey?: string): string => {
     if (p >= 0.995 && p < 1) return '>99%';
+    if (p < 0.005 && bandKey === 'chance') return '<1%';
     if (p > 0 && p < 0.005) return '<1%';
     return `${Math.round(p * 100)}%`;
   };
@@ -101,7 +102,7 @@ export function RacePredictionPanel({
                     <span className="band__name">{p.name}</span>
                   )}
                   {p.winShare !== undefined ? (
-                    <span className="band__win">{fmtWin(p.winShare)}</span>
+                    <span className="band__win">{fmtWin(p.winShare, band.key)}</span>
                   ) : (
                     <span className={`band__win ${p.points < 0 ? 'neg' : 'pos'}`}>
                       {p.points > 0 ? '+' : ''}
