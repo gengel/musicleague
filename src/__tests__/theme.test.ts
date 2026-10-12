@@ -215,7 +215,7 @@ describeReal('league 2 (real data)', () => {
         .map((name) => ({ name, text: readFileSync(join(L2, name), 'utf8') }))
     : [];
 
-  it('scores theme outcomes correctly for Bob and Nina', () => {
+  it('scores theme outcomes correctly for Bob, Nina, and Cynthia', () => {
     const s = computeStats(parseLeague(files), {
       scoring: 'competitive',
       flooring: 'none',
@@ -226,11 +226,16 @@ describeReal('league 2 (real data)', () => {
     const bob = s.players.find((p) => p.name === 'Bob')!;
     expect(s.themeOutcomes.find((o) => o.playerName === 'Bob')?.outcome).toBe('won');
     expect(bob.themeBonus).toBe(3);
-    expect(bob.pointsCounted).toBe(-11);
+    expect(bob.pointsCounted).toBe(-1);
 
     const nina = s.players.find((p) => p.name === 't33nwitch')!;
     expect(s.themeOutcomes.find((o) => o.playerName === 't33nwitch')?.outcome).toBe('lost');
     expect(nina.themeBonus).toBe(-3);
-    expect(nina.pointsCounted).toBe(19);
+    expect(nina.pointsCounted).toBe(15);
+
+    const cynthia = s.players.find((p) => p.name === 'Cynthia Dallas')!;
+    expect(s.themeOutcomes.find((o) => o.playerName === 'Cynthia Dallas')?.outcome).toBe('won');
+    expect(cynthia.themeBonus).toBe(3);
+    expect(cynthia.pointsCounted).toBe(10);
   });
 });
