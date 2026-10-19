@@ -384,6 +384,52 @@ ${votes.join('\n')}
       expect(edge.strength).toBeLessThanOrEqual(1);
     }
   });
+
+  it('subtracts downvotes so a +5/−5 wash does not rank as an alliance', () => {
+    const csv = `[submissions]
+Round,Submitter,Song Title,Artist,Spotify Track ID
+R1,Ada,A1,x,s1
+R1,Bo,B1,x,s2
+R1,Cleo,C1,x,s3
+R1,Dev,D1,x,s4
+R2,Ada,A2,x,s5
+R2,Bo,B2,x,s6
+R2,Cleo,C2,x,s7
+R2,Dev,D2,x,s8
+
+[votes]
+Round,Voter,Submitter,Song Title,Points
+R1,Ada,Bo,B1,5
+R1,Bo,Ada,A1,5
+R2,Ada,Bo,B2,-5
+R2,Bo,Ada,A2,-5
+R1,Cleo,Dev,D1,3
+R1,Dev,Cleo,C1,3
+R2,Cleo,Dev,D2,3
+R2,Dev,Cleo,C2,3
+`;
+    const graph = socialGraph(computeStats(parseLeague([{ name: 'n.csv', text: csv }])));
+    const wash = pairOf(graph, 'Ada', 'Bo')!;
+    const genuine = pairOf(graph, 'Cleo', 'Dev')!;
+    expect(wash.upvotesTraded).toBe(10);
+    expect(wash.downvotesTraded).toBe(10);
+    expect(wash.weaker).toBe(0);
+    expect(genuine.weaker).toBe(6);
+    expect(genuine.strength).toBeGreaterThan(wash.strength);
+    expect(graph.alliances).toHaveLength(1);
+    expect(graph.alliances[0].totalNet).toBe(12);
+  });
+
+  it('gives every voter with a net-positive target a top-backer arrow and records lopsided/feud pairs', () => {
+    const graph = socialGraph(demoStats);
+    const votersWithPos = new Set(
+      graph.directed.filter((d) => d.net > 0).map((d) => d.from),
+    );
+    for (const voterId of votersWithPos) {
+      expect(graph.directed.some((d) => d.from === voterId && d.isTopBacker)).toBe(true);
+    }
+    expect(graph.alliances.every((a) => a.netAtoB > 0 && a.netBtoA > 0)).toBe(true);
+  });
 });
 
 describe('"Where games are won"', () => {

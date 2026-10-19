@@ -3,14 +3,17 @@ import type { Stats } from './stats';
 /**
  * Who votes with whom, as a graph.
  *
- * An edge is the *mutual* warmth between two players: what they gave each
- * other as a share of what they were allowed to give. Using the mutual figure
- * rather than the sum means a one-way crush does not read as a friendship, and
- * normalising by what the rules allowed keeps players with different numbers of
- * shared rounds comparable.
+ * Every relationship figure is grounded in **net points** (`upvotes - downvotes`),
+ * not raw upvotes alone: giving someone +5 and −5 across the season is a net 0
+ * wash, not a friendship.
  *
- * The layout and the clustering are both deterministic — no randomness, fixed
- * iteration counts — so the same export always draws the same picture.
+ * The graph exposes three complementary views over the same deterministic
+ * node positions:
+ * 1. `directed` (`isTopBacker` / `isTopRival`): directional arrows (A → B) for
+ *    who each voter actually backs or targets.
+ * 2. `alliances` and `edges`: mutual warmth where *both* players are net-positive
+ *    toward each other.
+ * 3. `lopsided` and `feuds`: one-way crushes and net-negative rivalries.
  */
 
 export interface GraphNode {
@@ -30,12 +33,77 @@ export interface GraphNode {
 export interface GraphEdge {
   a: string;
   b: string;
-  /** 0..1 mutual warmth. */
+  /** 0..1 mutual net warmth. */
   strength: number;
-  /** Points traded, for the tooltip. */
+  /** Net positive points traded, for the tooltip. */
   traded: number;
-  /** The quieter direction, so an imbalance can be described. */
+  /** The quieter net direction, so an imbalance can be described. */
   weaker: number;
+  /** Net points from `a` to `b`. */
+  netAtoB: number;
+  /** Net points from `b` to `a`. */
+  netBtoA: number;
+  /** Raw upvotes traded (both ways). */
+  upvotesTraded: number;
+  /** Raw downvotes traded (both ways). */
+  downvotesTraded: number;
+}
+
+export interface DirectedEdge {
+  from: string;
+  to: string;
+  upvotes: number;
+  downvotes: number;
+  /** Net points (`upvotes - downvotes`) from `from` to `to`. */
+  net: number;
+  /** Net points (`upvotes - downvotes`) in the reverse direction (`to` -> `from`). */
+  reverseNet: number;
+  opportunities: number;
+  /** True when this is `from`'s #1 net-positive target (or a strong secondary tie >= +6). */
+  isTopBacker: boolean;
+  /** True when this is `from`'s #1 net-negative target (or a strong secondary rivalry <= -6). */
+  isTopRival: boolean;
+  /** True when both directions are positive and at least one is a top backer. */
+  isMutualBacker: boolean;
+  /** True when both directions are net-negative (`net < 0 && reverseNet < 0`). */
+  isMutualRival: boolean;
+}
+
+export interface AllianceEdge {
+  a: string;
+  b: string;
+  netAtoB: number;
+  netBtoA: number;
+  /** `Math.min(netAtoB, netBtoA)` — both > 0. */
+  minNet: number;
+  /** `netAtoB + netBtoA`. */
+  totalNet: number;
+  upvotesTraded: number;
+  downvotesTraded: number;
+}
+
+export interface LopsidedEdge {
+  from: string;
+  to: string;
+  net: number;
+  reverseNet: number;
+  upvotes: number;
+  downvotes: number;
+  reverseUpvotes: number;
+  reverseDownvotes: number;
+  /** `net - reverseNet`. */
+  gap: number;
+}
+
+export interface FeudEdge {
+  from: string;
+  to: string;
+  net: number;
+  reverseNet: number;
+  upvotes: number;
+  downvotes: number;
+  mutual: boolean;
+  combinedNet: number;
 }
 
 export interface Cluster {
@@ -50,6 +118,10 @@ export interface Cluster {
 export interface SocialGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
+  directed: DirectedEdge[];
+  alliances: AllianceEdge[];
+  lopsided: LopsidedEdge[];
+  feuds: FeudEdge[];
   clusters: Cluster[];
   /** Mean strength across all pairs, the baseline a cluster is measured against. */
   average: number;
@@ -64,50 +136,59 @@ export interface SocialGraph {
 /**
  * How many rounds' worth of league-average warmth an edge is assumed to start
  * with before the pair's own votes are counted.
- *
- * A pair who shared a single round can show 3 points given of 3 allowed —
- * "100% devotion" — on one ballot. Without shrinkage those one-round pairs
- * outrank season-long relationships and dominate the graph. Blending with
- * this much league-average warmth leaves a well-observed pair almost
- * untouched and pulls a thinly observed one back to the middle of the table,
- * so a newcomer is neither a soulmate nor a stranger.
- *
- * The blend is applied to the mutual figure, not to each direction: shrinking
- * both sides to the average and then taking the colder one leaves an unknown
- * pair *above* most real pairs, whose colder side is usually below average.
  */
 export const PRIOR_ROUNDS = 3;
 
-/** Mutual warmth for every pair that could vote for each other. */
+/** Mutual net warmth for every pair that could vote for each other. */
 function buildEdges(stats: Stats): GraphEdge[] {
   const index = new Map(stats.pairs.map((p) => [`${p.voterId}\u0000${p.targetId}`, p]));
 
-  // Mutual means both directions: the raw edge is only as warm as its colder
-  // side, and only as well evidenced as its less-observed side. A sum would
-  // let one player's generosity paper over the other's indifference.
-  const raw: { a: string; b: string; mutual: number; evidence: number; traded: number; weaker: number }[] = [];
+  // Mutual means both directions after subtracting downvotes: a +5 / −5 wash
+  // is net 0, not warmth.
+  const raw: {
+    a: string;
+    b: string;
+    mutual: number;
+    evidence: number;
+    traded: number;
+    weaker: number;
+    netAtoB: number;
+    netBtoA: number;
+    upvotesTraded: number;
+    downvotesTraded: number;
+  }[] = [];
   const seen = new Set<string>();
   for (const pair of stats.pairs) {
     const [first, second] = [pair.voterId, pair.targetId].sort();
     const key = `${first}\u0000${second}`;
     if (seen.has(key)) continue;
-    const reverse = index.get(`${pair.targetId}\u0000${pair.voterId}`);
-    if (!reverse || pair.maxPossible <= 0 || reverse.maxPossible <= 0) continue;
+    const ab = index.get(`${first}\u0000${second}`);
+    const ba = index.get(`${second}\u0000${first}`);
+    if (!ab || !ba || ab.maxPossible <= 0 || ba.maxPossible <= 0) continue;
     seen.add(key);
+
+    const netAB = ab.upvotes - ab.downvotes;
+    const netBA = ba.upvotes - ba.downvotes;
+    const posAB = Math.max(0, netAB);
+    const posBA = Math.max(0, netBA);
+
     raw.push({
       a: first,
       b: second,
-      mutual: Math.min(pair.upvotes / pair.maxPossible, reverse.upvotes / reverse.maxPossible),
-      evidence: Math.min(pair.maxPossible, reverse.maxPossible),
-      traded: pair.upvotes + reverse.upvotes,
-      weaker: Math.min(pair.upvotes, reverse.upvotes),
+      mutual: Math.min(posAB / ab.maxPossible, posBA / ba.maxPossible),
+      evidence: Math.min(ab.maxPossible, ba.maxPossible),
+      traded: posAB + posBA,
+      weaker: Math.min(posAB, posBA),
+      netAtoB: netAB,
+      netBtoA: netBA,
+      upvotesTraded: ab.upvotes + ba.upvotes,
+      downvotesTraded: ab.downvotes + ba.downvotes,
     });
   }
 
-  // League baseline: the evidence-weighted average mutual warmth, and the
-  // typical allowance per shared round, which sizes the prior.
   const totalEvidence = raw.reduce((a, e) => a + e.evidence, 0);
-  const baseline = totalEvidence > 0 ? raw.reduce((a, e) => a + e.mutual * e.evidence, 0) / totalEvidence : 0;
+  const baseline =
+    totalEvidence > 0 ? raw.reduce((a, e) => a + e.mutual * e.evidence, 0) / totalEvidence : 0;
   const totalAllowed = stats.pairs.reduce((a, p) => a + p.maxPossible, 0);
   const totalOpportunities = stats.pairs.reduce((a, p) => a + p.opportunities, 0);
   const prior = totalOpportunities > 0 ? (totalAllowed / totalOpportunities) * PRIOR_ROUNDS : 0;
@@ -120,23 +201,229 @@ function buildEdges(stats: Stats): GraphEdge[] {
       strength: (e.mutual * e.evidence + baseline * prior) / (e.evidence + prior),
       traded: e.traded,
       weaker: e.weaker,
+      netAtoB: e.netAtoB,
+      netBtoA: e.netBtoA,
+      upvotesTraded: e.upvotesTraded,
+      downvotesTraded: e.downvotesTraded,
     });
   }
 
   return [...byPair.values()].sort(
-    (x, y) => y.strength - x.strength || x.a.localeCompare(y.a),
+    (x, y) => y.strength - x.strength || y.weaker - x.weaker || x.a.localeCompare(y.a),
   );
 }
 
+/** Build directional net edges, alliances, one-way crushes, and feuds. */
+function buildDirectional(
+  ids: string[],
+  stats: Stats,
+): {
+  directed: DirectedEdge[];
+  alliances: AllianceEdge[];
+  lopsided: LopsidedEdge[];
+  feuds: FeudEdge[];
+} {
+  const idSet = new Set(ids);
+  const validPairs = stats.pairs.filter(
+    (p) => idSet.has(p.voterId) && idSet.has(p.targetId) && p.voterId !== p.targetId,
+  );
+  const byKey = new Map(validPairs.map((p) => [`${p.voterId}\u0000${p.targetId}`, p]));
+
+  // Find each voter's #1 net-positive target and #1 net-negative target.
+  const topBackerKey = new Set<string>();
+  const topRivalKey = new Set<string>();
+
+  for (const voterId of ids) {
+    const outgoing = validPairs.filter((p) => p.voterId === voterId);
+    const revNet = (targetId: string) =>
+      byKey.get(`${targetId}\u0000${voterId}`)?.net ?? 0;
+    const pos = outgoing
+      .filter((p) => p.net > 0)
+      .sort(
+        (a, b) =>
+          b.net - a.net ||
+          b.upvotes - a.upvotes ||
+          a.downvotes - b.downvotes ||
+          revNet(b.targetId) - revNet(a.targetId) ||
+          b.opportunities - a.opportunities ||
+          a.targetId.localeCompare(b.targetId),
+      );
+    if (pos.length > 0) {
+      // Always pick the single strongest #1 net recipient (tie-broken by who
+      // reciprocates most), plus any secondary recipient with net >= +6.
+      topBackerKey.add(`${pos[0].voterId}\u0000${pos[0].targetId}`);
+      for (const p of pos.slice(1)) {
+        if (p.net >= 6) {
+          topBackerKey.add(`${p.voterId}\u0000${p.targetId}`);
+        }
+      }
+    }
+
+    const neg = outgoing
+      .filter((p) => p.net < 0)
+      .sort(
+        (a, b) =>
+          a.net - b.net ||
+          b.downvotes - a.downvotes ||
+          b.opportunities - a.opportunities ||
+          a.targetId.localeCompare(b.targetId),
+      );
+    if (neg.length > 0 && neg[0].net <= -3) {
+      topRivalKey.add(`${neg[0].voterId}\u0000${neg[0].targetId}`);
+      for (const p of neg.slice(1)) {
+        if (p.net <= -6) {
+          topRivalKey.add(`${p.voterId}\u0000${p.targetId}`);
+        }
+      }
+    }
+  }
+
+  const directed: DirectedEdge[] = [];
+  for (const p of validPairs) {
+    if (p.upvotes === 0 && p.downvotes === 0) continue;
+    const rev = byKey.get(`${p.targetId}\u0000${p.voterId}`);
+    const reverseNet = rev ? rev.net : 0;
+    const key = `${p.voterId}\u0000${p.targetId}`;
+    const revKey = `${p.targetId}\u0000${p.voterId}`;
+    const isTopBacker = topBackerKey.has(key);
+    const isTopRival = topRivalKey.has(key);
+    const isMutualBacker =
+      p.net > 0 && reverseNet > 0 && (isTopBacker || topBackerKey.has(revKey));
+    const isMutualRival = p.net < 0 && reverseNet < 0;
+
+    directed.push({
+      from: p.voterId,
+      to: p.targetId,
+      upvotes: p.upvotes,
+      downvotes: p.downvotes,
+      net: p.net,
+      reverseNet,
+      opportunities: p.opportunities,
+      isTopBacker,
+      isTopRival,
+      isMutualBacker,
+      isMutualRival,
+    });
+  }
+
+  directed.sort(
+    (a, b) =>
+      Math.abs(b.net) - Math.abs(a.net) ||
+      b.upvotes + b.downvotes - (a.upvotes + a.downvotes) ||
+      a.from.localeCompare(b.from),
+  );
+
+  // Mutual alliances: both sides strictly net-positive.
+  const alliances: AllianceEdge[] = [];
+  const seenUndirected = new Set<string>();
+  for (const p of validPairs) {
+    const [first, second] = [p.voterId, p.targetId].sort();
+    const uKey = `${first}\u0000${second}`;
+    if (seenUndirected.has(uKey)) continue;
+    seenUndirected.add(uKey);
+    const ab = byKey.get(`${first}\u0000${second}`);
+    const ba = byKey.get(`${second}\u0000${first}`);
+    if (!ab || !ba) continue;
+    if (ab.net > 0 && ba.net > 0) {
+      alliances.push({
+        a: first,
+        b: second,
+        netAtoB: ab.net,
+        netBtoA: ba.net,
+        minNet: Math.min(ab.net, ba.net),
+        totalNet: ab.net + ba.net,
+        upvotesTraded: ab.upvotes + ba.upvotes,
+        downvotesTraded: ab.downvotes + ba.downvotes,
+      });
+    }
+  }
+  alliances.sort(
+    (x, y) =>
+      y.minNet - x.minNet ||
+      y.totalNet - x.totalNet ||
+      x.downvotesTraded - y.downvotesTraded ||
+      x.a.localeCompare(y.a),
+  );
+
+  // One-way crushes: `from` is strongly net-positive toward `to` (`net >= 4`),
+  // while `to` gives much less (or negative!) back (`gap >= 4`).
+  const lopsided: LopsidedEdge[] = [];
+  for (const p of validPairs) {
+    if (p.net < 4) continue;
+    const rev = byKey.get(`${p.targetId}\u0000${p.voterId}`);
+    const reverseNet = rev ? rev.net : 0;
+    const gap = p.net - reverseNet;
+    if (gap < 4) continue;
+    lopsided.push({
+      from: p.voterId,
+      to: p.targetId,
+      net: p.net,
+      reverseNet,
+      upvotes: p.upvotes,
+      downvotes: p.downvotes,
+      reverseUpvotes: rev?.upvotes ?? 0,
+      reverseDownvotes: rev?.downvotes ?? 0,
+      gap,
+    });
+  }
+  lopsided.sort((a, b) => b.gap - a.gap || b.net - a.net || a.from.localeCompare(b.from));
+
+  // Feuds: top net-negative relationships, deduplicating mutual feuds so a
+  // mutual feud appears once oriented from the harsher side.
+  const feuds: FeudEdge[] = [];
+  const seenFeudPair = new Set<string>();
+  for (const p of validPairs) {
+    if (p.net >= 0) continue;
+    const rev = byKey.get(`${p.targetId}\u0000${p.voterId}`);
+    const reverseNet = rev ? rev.net : 0;
+    const mutual = reverseNet < 0;
+    if (mutual) {
+      const uKey = [p.voterId, p.targetId].sort().join('\u0000');
+      if (seenFeudPair.has(uKey)) continue;
+      seenFeudPair.add(uKey);
+      const harsher =
+        p.net < reverseNet || (p.net === reverseNet && p.downvotes >= (rev?.downvotes ?? 0))
+          ? p
+          : rev!;
+      const other = harsher === p ? rev! : p;
+      if (harsher.net + other.net <= -4 || harsher.net <= -4) {
+        feuds.push({
+          from: harsher.voterId,
+          to: harsher.targetId,
+          net: harsher.net,
+          reverseNet: other.net,
+          upvotes: harsher.upvotes,
+          downvotes: harsher.downvotes,
+          mutual: true,
+          combinedNet: harsher.net + other.net,
+        });
+      }
+    } else if (p.net <= -5) {
+      feuds.push({
+        from: p.voterId,
+        to: p.targetId,
+        net: p.net,
+        reverseNet,
+        upvotes: p.upvotes,
+        downvotes: p.downvotes,
+        mutual: false,
+        combinedNet: p.net + reverseNet,
+      });
+    }
+  }
+  feuds.sort(
+    (a, b) =>
+      a.net - b.net ||
+      a.combinedNet - b.combinedNet ||
+      b.downvotes - a.downvotes ||
+      a.from.localeCompare(b.from),
+  );
+
+  return { directed, alliances, lopsided, feuds };
+}
+
 /**
- * Groups players by their strongest ties.
- *
- * Label propagation was the obvious choice and it does not work here: in a
- * league everyone votes for everyone at least a little, so the graph is dense
- * and propagation converges on a single community that says nothing. Instead
- * each player keeps only their few warmest relationships, and the groups are the
- * connected components of what remains. That answers the actual question —
- * whose company do you keep — and is stable without tuning.
+ * Groups players by their strongest net-positive ties.
  */
 function findClusters(
   ids: string[],
@@ -147,9 +434,6 @@ function findClusters(
     (x, y) => y.strength - x.strength || x.a.localeCompare(y.a) || x.b.localeCompare(y.b),
   );
 
-  // Each player nominates their warmest few. Only ties where both sides gave
-  // something qualify: shrinkage gives every pair a little baseline warmth, and
-  // two players who never once backed each other are not a group.
   const kept = new Set<GraphEdge>();
   for (const id of ids) {
     const mine = byStrength
@@ -158,7 +442,6 @@ function findClusters(
     for (const edge of mine) kept.add(edge);
   }
 
-  // Union-find over the surviving edges.
   const parent = new Map(ids.map((id) => [id, id]));
   const find = (id: string): string => {
     let root = id;
@@ -177,13 +460,11 @@ function findClusters(
     groups.set(root, [...(groups.get(root) ?? []), id]);
   }
 
-  // One group swallowing the league is not a finding: tighten and retry.
   const biggest = Math.max(...[...groups.values()].map((g) => g.length));
   if (keepPerNode > 1 && biggest > Math.max(2, ids.length * 0.7)) {
     return findClusters(ids, edges, keepPerNode - 1);
   }
 
-  // Renumber so clusters read 0, 1, 2… by size then by first member.
   const ordered = [...groups.values()].sort(
     (x, y) => y.length - x.length || x[0].localeCompare(y[0]),
   );
@@ -195,14 +476,13 @@ function findClusters(
 }
 
 /**
- * Spring layout: edges pull, everything pushes apart.
- *
- * Positions start on a circle rather than at random, and the iteration count is
- * fixed, so the drawing is reproducible.
+ * Spring layout: mutual and directional net support pulls together,
+ * everything pushes apart. Deterministic.
  */
 function layout(
   ids: string[],
   edges: GraphEdge[],
+  directed: DirectedEdge[],
   clusters: Map<string, number>,
   iterations = 400,
 ): Map<string, { x: number; y: number }> {
@@ -216,10 +496,19 @@ function layout(
 
   const strength = new Map<string, number>();
   for (const edge of edges) strength.set(`${edge.a}\u0000${edge.b}`, edge.strength);
-  const between = (a: string, b: string) =>
-    strength.get(`${a}\u0000${b}`) ?? strength.get(`${b}\u0000${a}`) ?? 0;
+  const topBonus = new Map<string, number>();
+  for (const d of directed) {
+    if (d.isTopBacker && d.net > 0) {
+      const k = [d.from, d.to].sort().join('\u0000');
+      topBonus.set(k, (topBonus.get(k) ?? 0) + 0.22 + d.net * 0.025);
+    }
+  }
+  const between = (a: string, b: string) => {
+    const k = [a, b].sort().join('\u0000');
+    return (strength.get(k) ?? 0) + (topBonus.get(k) ?? 0);
+  };
 
-  const repulsion = 260;
+  const repulsion = 300;
   for (let step = 0; step < iterations; step += 1) {
     const cooling = 1 - step / iterations;
     const force = new Map(ids.map((id) => [id, { x: 0, y: 0 }]));
@@ -234,18 +523,14 @@ function layout(
         let dy = pa.y - pb.y;
         let dist = Math.hypot(dx, dy);
         if (dist < 0.01) {
-          // Deterministic nudge for coincident nodes.
           dx = (i - j) * 0.01;
           dy = 0.01;
           dist = Math.hypot(dx, dy);
         }
         const push = repulsion / (dist * dist);
-        // Pull harder within a cluster than across one. The affinity itself is
-        // never invented — only how strongly it is allowed to draw two nodes
-        // together — which keeps camps legible instead of collapsing them into
-        // one ring.
         const sameCluster = clusters.get(a) === clusters.get(b);
-        const affinity = between(a, b) * (sameCluster ? 2 : 0.5);
+        const hasTopLink = (topBonus.get([a, b].sort().join('\u0000')) ?? 0) > 0;
+        const affinity = between(a, b) * (sameCluster || hasTopLink ? 1.8 : 0.6);
         const pull = affinity * dist * 0.09;
         const net = (pull - push) / dist;
         const fa = force.get(a)!;
@@ -262,13 +547,11 @@ function layout(
       const f = force.get(id)!;
       p.x += Math.max(-4, Math.min(4, f.x)) * cooling;
       p.y += Math.max(-4, Math.min(4, f.y)) * cooling;
-      // Pull gently back toward the middle so nothing drifts off the canvas.
       p.x += (50 - p.x) * 0.012;
       p.y += (50 - p.y) * 0.012;
     }
   }
 
-  // Rescale to fill the canvas with a margin.
   const xs = ids.map((id) => pos.get(id)!.x);
   const ys = ids.map((id) => pos.get(id)!.y);
   const minX = Math.min(...xs);
@@ -279,8 +562,8 @@ function layout(
   const spanY = Math.max(1, maxY - minY);
   for (const id of ids) {
     const p = pos.get(id)!;
-    p.x = 8 + ((p.x - minX) / spanX) * 84;
-    p.y = 8 + ((p.y - minY) / spanY) * 84;
+    p.x = 10 + ((p.x - minX) / spanX) * 80;
+    p.y = 12 + ((p.y - minY) / spanY) * 76;
   }
   return pos;
 }
@@ -291,12 +574,23 @@ export function socialGraph(stats: Stats): SocialGraph {
   const edges = buildEdges(stats).filter((e) => ids.includes(e.a) && ids.includes(e.b));
 
   if (ids.length < 2 || !edges.length) {
-    return { nodes: [], edges: [], clusters: [], average: 0, distinct: false };
+    return {
+      nodes: [],
+      edges: [],
+      directed: [],
+      alliances: [],
+      lopsided: [],
+      feuds: [],
+      clusters: [],
+      average: 0,
+      distinct: false,
+    };
   }
 
+  const { directed, alliances, lopsided, feuds } = buildDirectional(ids, stats);
   const average = edges.reduce((sum, e) => sum + e.strength, 0) / edges.length;
   const clusters = findClusters(ids, edges);
-  const positions = layout(ids, edges, clusters);
+  const positions = layout(ids, edges, directed, clusters);
 
   const warmth = new Map(ids.map((id) => [id, 0]));
   for (const edge of edges) {
@@ -316,7 +610,6 @@ export function socialGraph(stats: Stats): SocialGraph {
     }))
     .sort((a, b) => a.cluster - b.cluster || b.warmth - a.warmth);
 
-  // Describe each cluster by how much warmer it is inside than out.
   const nameOf = new Map(players.map((p) => [p.playerId, p.name]));
   const groups = new Map<number, string[]>();
   for (const id of ids) {
@@ -341,9 +634,18 @@ export function socialGraph(stats: Stats): SocialGraph {
     })
     .sort((a, b) => b.members.length - a.members.length || a.index - b.index);
 
-  // A single cluster holding nearly everyone is not a finding.
   const biggest = Math.max(...clusterList.map((c) => c.members.length));
   const distinct = clusterList.length > 1 && biggest <= Math.max(2, ids.length * 0.7);
 
-  return { nodes, edges, clusters: clusterList, average, distinct };
+  return {
+    nodes,
+    edges,
+    directed,
+    alliances,
+    lopsided,
+    feuds,
+    clusters: clusterList,
+    average,
+    distinct,
+  };
 }

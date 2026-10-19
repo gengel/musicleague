@@ -996,6 +996,24 @@ tbody tr.row--flag td {
 
 /* ---------------- social graph ---------------- */
 
+.graph-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.graph-spotlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
 .graph {
   margin-top: 14px;
   background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.03), transparent 70%);
@@ -1012,11 +1030,21 @@ tbody tr.row--flag td {
 
 .graph__label {
   fill: var(--text);
-  font-size: 2.1px;
+  font-size: 2.35px;
   font-weight: 600;
   paint-order: stroke;
   stroke: #0d0d11;
-  stroke-width: 0.6px;
+  stroke-width: 0.75px;
+}
+
+.graph__badge {
+  pointer-events: auto;
+}
+
+.graph__badge-text {
+  font-size: 2.05px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .clusters {
