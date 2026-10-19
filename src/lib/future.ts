@@ -654,7 +654,7 @@ export function future(stats: Stats): Future {
       detail: `At that rate the remaining ${plural(
         roundsLeft,
         'round',
-      )} will cost them another ${expected}. They have taken ${worst.player.breakdown.downvotes} so far, the most in the league — picking safer songs is worth more to them than picking better ones.`,
+      )} will cost them another ${expected}. They have taken ${worst.player.breakdown.downvotes} across ${plural(worst.player.roundsSubmitted, 'song')} so far, the steepest rate in the league — picking safer songs is worth more to them than picking better ones.`,
       status: 'info',
       subject: worst.player.playerId,
       interest: 74,
@@ -734,4 +734,3 @@ export function future(stats: Stats): Future {
     bands,
   };
 }
-
