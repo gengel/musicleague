@@ -218,5 +218,60 @@
     "value": 650819,
     "source": "lastfm-listeners",
     "fetchedAt": "2026-10-19"
+  },
+  "spotify:track:02DTkcgh0BpYrEYPO05Zex": {
+    "value": 1753,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:0WhsFIDmoJosHihNyNlf0z": {
+    "value": 1567,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:1dQ84P0W0lOckT02lPEhhP": {
+    "value": 571,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:3Ss1Hu9p7SoWw9q3xWzWhF": {
+    "value": 7,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:3wMUvT6eIw2L5cZFG1yH9j": {
+    "value": 208305,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:3Y4BqG5FGXgGFQaJzX1MQC": {
+    "value": 163586,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:4WEaJQLlhlkOU7YJDLhn7x": {
+    "value": 215112,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:4xOTVtbCPcfxMs2hSt9D6i": {
+    "value": 477481,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:4xQMFoD33vx6stB1UzfA6s": {
+    "value": 4461,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:6JLcz9UGiVxAmEZXlCucn5": {
+    "value": 159762,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
+  },
+  "spotify:track:7nYvUtkQMx1v80S2FH2s9J": {
+    "value": 843654,
+    "source": "lastfm-listeners",
+    "fetchedAt": "2026-10-26"
   }
 }
