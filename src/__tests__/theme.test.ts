@@ -215,7 +215,7 @@ describeReal('league 2 (real data)', () => {
         .map((name) => ({ name, text: readFileSync(join(L2, name), 'utf8') }))
     : [];
 
-  it('scores theme outcomes correctly for Bob, Nina, Cynthia, Tim, and Go_BirdzDH', () => {
+  it('scores theme outcomes correctly for Bob, Nina, Cynthia, Tim, Go_BirdzDH, Megan, and Laura', () => {
     const s = computeStats(parseLeague(files), {
       scoring: 'competitive',
       flooring: 'none',
@@ -226,26 +226,36 @@ describeReal('league 2 (real data)', () => {
     const bob = s.players.find((p) => p.name === 'Bob')!;
     expect(s.themeOutcomes.find((o) => o.playerName === 'Bob')?.outcome).toBe('won');
     expect(bob.themeBonus).toBe(3);
-    expect(bob.pointsCounted).toBe(-13);
+    expect(bob.pointsCounted).toBe(-22);
 
     const nina = s.players.find((p) => p.name === 't33nwitch')!;
     expect(s.themeOutcomes.find((o) => o.playerName === 't33nwitch')?.outcome).toBe('lost');
     expect(nina.themeBonus).toBe(-3);
-    expect(nina.pointsCounted).toBe(6);
+    expect(nina.pointsCounted).toBe(22);
 
     const cynthia = s.players.find((p) => p.name === 'Cynthia Dallas')!;
     expect(s.themeOutcomes.find((o) => o.playerName === 'Cynthia Dallas')?.outcome).toBe('won');
     expect(cynthia.themeBonus).toBe(3);
-    expect(cynthia.pointsCounted).toBe(8);
+    expect(cynthia.pointsCounted).toBe(-10);
 
     const tim = s.players.find((p) => p.name === 'Tim Engel')!;
     expect(s.themeOutcomes.find((o) => o.playerName === 'Tim Engel')?.outcome).toBe('won');
     expect(tim.themeBonus).toBe(3);
-    expect(tim.pointsCounted).toBe(25);
+    expect(tim.pointsCounted).toBe(23);
 
     const hans = s.players.find((p) => p.name === 'Go_BirdzDH')!;
     expect(s.themeOutcomes.find((o) => o.playerName === 'Go_BirdzDH')?.outcome).toBe('lost');
     expect(hans.themeBonus).toBe(-3);
     expect(hans.pointsCounted).toBe(-44);
+
+    const megan = s.players.find((p) => p.name === 'Megan Pallace')!;
+    expect(s.themeOutcomes.find((o) => o.playerName === 'Megan Pallace')?.outcome).toBe('lost');
+    expect(megan.themeBonus).toBe(-3);
+    expect(megan.pointsCounted).toBe(-11);
+
+    const laura = s.players.find((p) => p.name === 'Laura M')!;
+    expect(s.themeOutcomes.find((o) => o.playerName === 'Laura M')?.outcome).toBe('lost');
+    expect(laura.themeBonus).toBe(-3);
+    expect(laura.pointsCounted).toBe(-2);
   });
 });
